@@ -1,0 +1,77 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+comment "RA Configuration Options"
+
+choice
+   prompt "RA Chip Selection"
+   default ARCH_CHIP_R7FA8E1AFDCFB
+   depends on ARCH_CHIP_RA8
+
+config ARCH_CHIP_R7FA8E1AFDCFB
+   bool "R7FA8E1AFDCFB"
+   select RA_HAVE_SCI2_UART
+   select RA8E1_FAMILY
+
+config ARCH_CHIP_R7FA8E1ABxxFM
+   bool "R7FA8E1ABxxFM"
+   select RA_HAVE_SCI2_UART
+   select RA8E1_FAMILY
+
+config ARCH_CHIP_R7FA8E1ABxxFL
+   bool "R7FA8E1ABxxFL"
+   select RA_HAVE_SCI2_UART
+   select RA8E1_FAMILY
+
+endchoice # RA8 Chip Selection
+
+config RA8E1_FAMILY
+	bool
+   default y
+   select ARCH_CORTEXM85
+
+menu "RA8E1 Peripheral Support"
+
+config RA_HAVE_SCI0_UART
+	bool
+	default n
+
+config RA_HAVE_SCI1_UART
+	bool
+	default n
+
+config RA_HAVE_SCI2_UART
+	bool
+	default n
+
+config RA_HAVE_SCI9_UART
+	bool
+	default n
+
+config RA_SCI0_UART
+	bool "UART 0"
+	default n
+	depends on RA_HAVE_SCI0_UART
+	select SCI0_SERIALDRIVER
+
+config RA_SCI1_UART
+	bool "UART 1"
+	default n
+	depends on RA_HAVE_SCI1_UART
+	select SCI1_SERIALDRIVER
+
+config RA_SCI2_UART
+	bool "UART 2"
+	default y
+	depends on RA_HAVE_SCI2_UART
+	select SCI2_SERIALDRIVER
+
+config RA_SCI9_UART
+	bool "UART 9"
+	default n
+	depends on RA_HAVE_SCI9_UART
+	select SCI9_SERIALDRIVER
+
+endmenu # RA8E1 Peripheral Support

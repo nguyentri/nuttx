@@ -1,0 +1,13 @@
+# ##############################################################################
+# boards/arm/ra8/fpb-ra8e1/Kconfig
+#
+# Kconfig for the FPB-RA8E1 board support package for the RA8E1 MCU.
+#
+if ARCH_BOARD_FPB_RA8E1
+
+config BOARD_FPB_RA8E1
+    bool "FPB-RA8E1 Board Support"
+    help
+      Enable support for the FPB-RA8E1 board based on the RA8E1 MCU.
+
+endif

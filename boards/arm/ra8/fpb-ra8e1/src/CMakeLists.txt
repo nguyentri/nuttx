@@ -1,5 +1,5 @@
 # ##############################################################################
-# boards/arm/ra4/arduino-r4-minima/src/CMakeLists.txt
+# boards/arm/ra8/fpb-ra8e1/src/CMakeLists.txt
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more contributor
 # license agreements.  See the NOTICE file distributed with this work for

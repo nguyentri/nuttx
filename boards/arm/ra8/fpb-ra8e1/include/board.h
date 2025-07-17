@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/ra4/arduino-r4-minima/include/board.h
+ * boards/arm/ra8/fpb-ra8e1/include/board.h
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -100,7 +100,7 @@
 
 /* These LEDs are not used by the board port unless CONFIG_ARCH_LEDS is
  * defined.  In that case, the usage by the board port is defined in
- * include/board.h and src/ra4m1_leds.c. The LEDs are used to encode
+ * include/board.h and src/ra8e1_leds.c. The LEDs are used to encode
  * OS-related events as follows:
  *
  *  SYMBOL                MEANING                         LED STATE

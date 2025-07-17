@@ -59,6 +59,14 @@ config ARCH_BOARD_XIAO_RA4M1
 		This options selects the Seeed Studio XIAO RA4M1 board featuring the Renesas
 		R7FA4M1 MCU running at 48 MHz.
 
+config ARCH_BOARD_FPB_RA8E1
+	bool "Fast Prototyping Board RA8E1"
+	depends on ARCH_CHIP_RA8
+	select ARCH_HAVE_LEDS
+	---help---
+		This options selects the FPB-RA8E1 board featuring the Renesas
+		R7FA8E1 MCU running at 360 MHz.
+
 config ARCH_BOARD_ARDUINO_M0
 	bool "Arduino M0"
 	depends on ARCH_CHIP_SAMD21G18A
@@ -3446,6 +3454,7 @@ config ARCH_BOARD
 	default "arduino-mega2560"          if ARCH_BOARD_ARDUINO_MEGA2560
 	default "arduino-due"               if ARCH_BOARD_ARDUINO_DUE
 	default "arduino-r4-minima"         if ARCH_BOARD_ARDUINO_R4_MINIMA
+	default "fpb-ra8e1"                 if ARCH_BOARD_FPB_RA8E1
 	default "arduino-m0"                if ARCH_BOARD_ARDUINO_M0
 	default "arduino-nano-33ble"        if ARCH_BOARD_ARDUINO_NANO_33BLE
 	default "arduino-nano-33ble-rev2"   if ARCH_BOARD_ARDUINO_NANO_33BLE_REV2
@@ -4159,6 +4168,9 @@ source "boards/arm/ra4/arduino-r4-minima/Kconfig"
 endif
 if ARCH_BOARD_XIAO_RA4M1
 source "boards/arm/ra4/xiao-ra4m1/Kconfig"
+endif
+if ARCH_BOARD_FPB_RA8E1
+source "boards/arm/ra8/fpb-ra8e1/Kconfig"
 endif
 if ARCH_BOARD_ARDUINO_M0
 source "boards/arm/samd2l2/arduino-m0/Kconfig"

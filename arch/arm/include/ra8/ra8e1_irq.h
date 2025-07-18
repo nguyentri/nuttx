@@ -22,8 +22,8 @@
  * only indirectly through nuttx/irq.h
  */
 
-#ifndef __ARCH_ARM_INCLUDE_RA_RA8M1_IRQ_H
-#define __ARCH_ARM_INCLUDE_RA_RA8M1_IRQ_H
+#ifndef __ARCH_ARM_INCLUDE_RA_RA8E1_IRQ_H
+#define __ARCH_ARM_INCLUDE_RA_RA8E1_IRQ_H
 
 /****************************************************************************
  * Included Files

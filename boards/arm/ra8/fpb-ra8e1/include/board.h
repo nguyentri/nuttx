@@ -33,7 +33,7 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#* Clocking for FPB-RA8E1 Board ***************************************************
+/* Clocking for FPB-RA8E1 Board ***********************************************/
 
 /* This is the canonical configuration:
  *   System Clock source      : HOCO

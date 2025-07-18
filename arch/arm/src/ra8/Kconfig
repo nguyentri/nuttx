@@ -1,77 +1,406 @@
 #
-# For a description of the syntax of this configuration file,
-# see the file kconfig-language.txt in the NuttX tools repository.
+# RA8E1 MCU Configuration Options
 #
 
-comment "RA Configuration Options"
+comment "RA8E1 MCU Selection"
 
 choice
-   prompt "RA Chip Selection"
+   prompt "RA8E1 Chip Selection"
    default ARCH_CHIP_R7FA8E1AFDCFB
    depends on ARCH_CHIP_RA8
 
 config ARCH_CHIP_R7FA8E1AFDCFB
-   bool "R7FA8E1AFDCFB"
-   select RA_HAVE_SCI2_UART
+   bool "R7FA8E1AFDCFB (LQFP144)"
    select RA8E1_FAMILY
-
-config ARCH_CHIP_R7FA8E1ABxxFM
-   bool "R7FA8E1ABxxFM"
+   select RA_HAVE_SCI0_UART
+   select RA_HAVE_SCI1_UART
    select RA_HAVE_SCI2_UART
-   select RA8E1_FAMILY
+   select RA_HAVE_SCI3_UART
+   select RA_HAVE_SCI4_UART
+   select RA_HAVE_SCI9_UART
+   select RA_HAVE_I2C0
+   select RA_HAVE_I2C1
+   select RA_HAVE_I2C2
+   select RA_HAVE_SPI0
+   select RA_HAVE_SPI1
+   select RA_HAVE_SPI2
+   select RA_HAVE_CAN0
+   select RA_HAVE_ETHERC_MII
+   select RA_HAVE_ETHERC_RMII
+   select RA_HAVE_USBFS
+   select RA_HAVE_OSPI
+   select RA_HAVE_SSIE
+   select RA_HAVE_GPT
+   select RA_HAVE_AGT
+   select RA_HAVE_ULPT
+   select RA_HAVE_RTC
+   select RA_HAVE_ADC12
+   select RA_HAVE_DAC12
+   select RA_HAVE_ACMPHS
 
-config ARCH_CHIP_R7FA8E1ABxxFL
-   bool "R7FA8E1ABxxFL"
+config ARCH_CHIP_R7FA8E1AFDCFP
+   bool "R7FA8E1AFDCFP (LQFP100)"
+   select RA8E1_FAMILY
+   select RA_HAVE_SCI0_UART
+   select RA_HAVE_SCI1_UART
    select RA_HAVE_SCI2_UART
-   select RA8E1_FAMILY
+   select RA_HAVE_SCI3_UART
+   select RA_HAVE_SCI4_UART
+   select RA_HAVE_SCI9_UART
+   select RA_HAVE_I2C0
+   select RA_HAVE_I2C1
+   # No I2C2
+   select RA_HAVE_SPI0
+   # No SPI1, SPI2
+   # No CAN0
+   # No ETHERC_MII
+   select RA_HAVE_ETHERC_RMII
+   select RA_HAVE_USBFS
+   # No OSPI, SSIE
+   select RA_HAVE_GPT
+   select RA_HAVE_AGT
+   select RA_HAVE_ULPT
+   select RA_HAVE_RTC
+   select RA_HAVE_ADC12
+   select RA_HAVE_DAC12
+   select RA_HAVE_ACMPHS
 
-endchoice # RA8 Chip Selection
+endchoice
 
 config RA8E1_FAMILY
-	bool
+   bool
    default y
    select ARCH_CORTEXM85
+   select ARCH_HAVE_FPU
+   select ARCH_HAVE_DPFPU
+   select ARMV8M_HAVE_ICACHE
+   select ARMV8M_HAVE_DCACHE
+   select ARMV8M_HAVE_ITCM
+   select ARMV8M_HAVE_DTCM
+   select ARMV8M_HAVE_HELIUM
+   select ARMV8M_HAVE_SECURITY
+   select ARMV8M_HAVE_MPU
+   select ARMV8M_HAVE_SMPU
+   select ARMV8M_HAVE_SYSTICK
+   select ARMV8M_HAVE_CORESIGHT
+   select ARCH_HAVE_CODE_FLASH
+   select ARCH_HAVE_DATA_FLASH
+   select ARCH_HAVE_SRAM
+   help
+     Enables all core features for the RA8E1 Cortex-M85 family.
 
-menu "RA8E1 Peripheral Support"
+menu "Cortex-M85 Core Features"
+config ARCH_CORTEXM85
+   bool
+   default n
+   help
+     Selects the Arm Cortex-M85 core.
 
+config ARCH_HAVE_FPU
+   bool
+   default y
+   help
+     Floating Point Unit present.
+
+config ARCH_HAVE_DPFPU
+   bool
+   default y
+   help
+     Double-precision Floating Point Unit present.
+
+config ARMV8M_HAVE_ICACHE
+   bool
+   default y
+   help
+     Instruction cache present.
+
+config ARMV8M_HAVE_DCACHE
+   bool
+   default y
+   help
+     Data cache present.
+
+config ARMV8M_HAVE_ITCM
+   bool
+   default y
+   help
+     Instruction Tightly Coupled Memory present.
+
+config ARMV8M_HAVE_DTCM
+   bool
+   default y
+   help
+     Data Tightly Coupled Memory present.
+
+config ARMV8M_HAVE_HELIUM
+   bool
+   default y
+   help
+     Arm Helium (M-Profile Vector Extension) present.
+
+config ARMV8M_HAVE_SECURITY
+   bool
+   default n
+   help
+     Armv8-M Security Extension present.
+
+config ARMV8M_HAVE_MPU
+   bool
+   default n
+   help
+     Memory Protection Unit present.
+
+config ARMV8M_HAVE_SMPU
+   bool
+   default n
+   help
+     Secure Memory Protection Unit present.
+
+config ARMV8M_HAVE_SYSTICK
+   bool
+   default n
+   help
+     SysTick timer present (secure and non-secure).
+
+config ARMV8M_HAVE_CORESIGHT
+   bool
+   default n
+   help
+     CoreSight ETM-M85 trace present.
+
+config ARCH_HAVE_CODE_FLASH
+   bool
+   default n
+   help
+     1 MB code flash memory.
+
+config ARCH_HAVE_DATA_FLASH
+   bool
+   default n
+   help
+     12 KB data flash memory.
+
+config ARCH_HAVE_SRAM
+   bool
+   default n
+   help
+     544 KB SRAM including 32 KB TCM.
+endmenu
+
+menu "SCI UARTs"
 config RA_HAVE_SCI0_UART
-	bool
-	default n
+   bool
+   default n
 
 config RA_HAVE_SCI1_UART
-	bool
-	default n
+   bool
+   default n
 
 config RA_HAVE_SCI2_UART
-	bool
-	default n
+   bool
+   default n
+
+config RA_HAVE_SCI3_UART
+   bool
+   default n
+
+config RA_HAVE_SCI4_UART
+   bool
+   default n
 
 config RA_HAVE_SCI9_UART
-	bool
-	default n
+   bool
+   default n
 
 config RA_SCI0_UART
-	bool "UART 0"
-	default n
-	depends on RA_HAVE_SCI0_UART
-	select SCI0_SERIALDRIVER
+   bool "SCI0 UART"
+   default n
+   depends on RA_HAVE_SCI0_UART
 
 config RA_SCI1_UART
-	bool "UART 1"
-	default n
-	depends on RA_HAVE_SCI1_UART
-	select SCI1_SERIALDRIVER
+   bool "SCI1 UART"
+   default n
+   depends on RA_HAVE_SCI1_UART
 
 config RA_SCI2_UART
-	bool "UART 2"
-	default y
-	depends on RA_HAVE_SCI2_UART
-	select SCI2_SERIALDRIVER
+   bool "SCI2 UART"
+   default n
+   depends on RA_HAVE_SCI2_UART
+
+config RA_SCI3_UART
+   bool "SCI3 UART"
+   default n
+   depends on RA_HAVE_SCI3_UART
+
+config RA_SCI4_UART
+   bool "SCI4 UART"
+   default n
+   depends on RA_HAVE_SCI4_UART
 
 config RA_SCI9_UART
-	bool "UART 9"
-	default n
-	depends on RA_HAVE_SCI9_UART
-	select SCI9_SERIALDRIVER
+   bool "SCI9 UART"
+   default n
+   depends on RA_HAVE_SCI9_UART
+endmenu
 
-endmenu # RA8E1 Peripheral Support
+menu "I2C"
+config RA_HAVE_I2C0
+   bool
+   default n
+
+config RA_HAVE_I2C1
+   bool
+   default n
+
+config RA_HAVE_I2C2
+   bool
+   default n
+
+config RA_I2C0
+   bool "I2C0"
+   default n
+   depends on RA_HAVE_I2C0
+
+config RA_I2C1
+   bool "I2C1"
+   default n
+   depends on RA_HAVE_I2C1
+
+config RA_I2C2
+   bool "I2C2"
+   default n
+   depends on RA_HAVE_I2C2
+endmenu
+
+menu "SPI"
+config RA_HAVE_SPI0
+   bool
+   default n
+
+config RA_HAVE_SPI1
+   bool
+   default n
+
+config RA_HAVE_SPI2
+   bool
+   default n
+
+config RA_SPI0
+   bool "SPI0"
+   default n
+   depends on RA_HAVE_SPI0
+
+config RA_SPI1
+   bool "SPI1"
+   default n
+   depends on RA_HAVE_SPI1
+
+config RA_SPI2
+   bool "SPI2"
+   default n
+   depends on RA_HAVE_SPI2
+endmenu
+
+menu "CAN"
+config RA_HAVE_CAN0
+   bool
+   default n
+
+config RA_CAN0
+   bool "CAN0"
+   default n
+   depends on RA_HAVE_CAN0
+endmenu
+
+menu "Ethernet"
+config RA_HAVE_ETHERC_MII
+   bool
+   default n
+
+config RA_HAVE_ETHERC_RMII
+   bool
+   default n
+
+config RA_ETHERC_MII
+   bool "Ethernet MII"
+   default n
+   depends on RA_HAVE_ETHERC_MII
+
+config RA_ETHERC_RMII
+   bool "Ethernet RMII"
+   default n
+   depends on RA_HAVE_ETHERC_RMII
+endmenu
+
+menu "USB"
+config RA_HAVE_USBFS
+   bool
+   default n
+
+config RA_USBFS
+   bool "USB Full Speed"
+   default n
+   depends on RA_HAVE_USBFS
+endmenu
+
+menu "Octal SPI"
+config RA_HAVE_OSPI
+   bool
+   default n
+
+config RA_OSPI
+   bool "Octal SPI"
+   default n
+   depends on RA_HAVE_OSPI
+endmenu
+
+menu "Serial Sound Interface"
+config RA_HAVE_SSIE
+   bool
+   default n
+
+config RA_SSIE
+   bool "Serial Sound Interface"
+   default n
+   depends on RA_HAVE_SSIE
+endmenu
+
+menu "Timers"
+config RA_HAVE_GPT
+   bool
+   default n
+
+config RA_HAVE_AGT
+   bool
+   default n
+
+config RA_HAVE_ULPT
+   bool
+   default n
+
+config RA_GPT
+   bool "General PWM Timer"
+   default n
+   depends on RA_HAVE_GPT
+
+config RA_AGT
+   bool "Asynchronous General Purpose Timer"
+   default n
+   depends on RA_HAVE_AGT
+
+config RA_ULPT
+   bool "Ultra Low Power Timer"
+   default n
+   depends on RA_HAVE_ULPT
+endmenu
+
+menu "RTC"
+config RA_HAVE_RTC
+   bool
+   default n
+
+config RA_RTC
+   bool "Real Time Clock"
+   default n
+   depends on RA_HAVE_RTC
+endmenu

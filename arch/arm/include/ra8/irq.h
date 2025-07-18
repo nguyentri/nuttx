@@ -62,7 +62,7 @@
 
 #define RA_IRQ_FIRST        (16) /* Vector number of the first external interrupt */
 
-#if defined(CONFIG_RA8M1_FAMILY)
+#if defined(CONFIG_RA8E1_FAMILY)
 #  include <arch/ra8/ra8e1_irq.h>
 #else
 #  error Unrecognized RA architecture

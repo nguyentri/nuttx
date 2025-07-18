@@ -91,6 +91,20 @@
 #define SCI2_ERI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive error */
 #endif
 
+#if (CONFIG_RA_SCI3_UART)
+#define SCI3_RXI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive data full */
+#define SCI3_TXI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit data empty */
+#define SCI3_TEI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit end */
+#define SCI3_ERI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive error */
+#endif
+
+#if (CONFIG_RA_SCI4_UART)
+#define SCI4_RXI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive data full */
+#define SCI4_TXI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit data empty */
+#define SCI4_TEI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit end */
+#define SCI4_ERI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive error */
+#endif
+
 #if (CONFIG_RA_SCI9_UART)
 #define SCI9_RXI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive data full */
 #define SCI9_TXI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit data empty */

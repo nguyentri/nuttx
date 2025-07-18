@@ -20,13 +20,11 @@
 
 set(SRCS
     ra_start.c
-    ra_serial.c
     ra_timerisr.c
     ra_clockconfig.c
     ra_irq.c
     ra_lowputc.c
     ra_icu.c
     ra_gpio.c
-    ra_allocateheap.c)
-
-target_sources(arch PRIVATE ${SRCS})
+    ra_allocateheap.c
+    ra_serial.c)

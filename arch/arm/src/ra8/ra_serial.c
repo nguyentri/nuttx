@@ -82,7 +82,7 @@
 #undef CONFIG_SCI2_SERIAL_CONSOLE
 #define HAVE_CONSOLE        1
 #else
-#ifndef CONFIG_NO_SERIAL_CONSOLE
+#if !defined(CONFIG_NO_SERIAL_CONSOLE) && !defined(CONFIG_SERIAL_RTT_CONSOLE)
 #warning "No valid CONFIG_SCIn_SERIAL_CONSOLE Setting"
 #endif
 
@@ -107,6 +107,14 @@
 #define CONSOLE_DEV     g_uart2port /* UART2 is console */
 #define TTYS0_DEV       g_uart2port /* UART2 is ttyS0 */
 #define UART2_ASSIGNED  1
+#elif defined(CONFIG_SCI3_SERIAL_CONSOLE)
+#define CONSOLE_DEV     g_uart3port /* UART3 is console */
+#define TTYS0_DEV       g_uart3port /* UART3 is ttyS0 */
+#define UART3_ASSIGNED  1
+#elif defined(CONFIG_SCI4_SERIAL_CONSOLE)
+#define CONSOLE_DEV     g_uart4port /* UART4 is console */
+#define TTYS0_DEV       g_uart4port /* UART4 is ttyS0 */
+#define UART4_ASSIGNED  1
 #elif defined(CONFIG_SCI9_SERIAL_CONSOLE)
 #define CONSOLE_DEV     g_uart9port /* UART9 is console */
 #define TTYS0_DEV       g_uart9port /* UART9 is ttyS0 */
@@ -122,6 +130,12 @@
 #elif defined(CONFIG_RA_SCI2_UART)
 #define TTYS0_DEV       g_uart2port /* UART2 is ttyS0 */
 #define UART2_ASSIGNED  1
+#elif defined(CONFIG_RA_SCI3_UART)
+#define TTYS0_DEV       g_uart3port /* UART3 is ttyS0 */
+#define UART3_ASSIGNED  1
+#elif defined(CONFIG_RA_SCI4_UART)
+#define TTYS0_DEV       g_uart4port /* UART4 is ttyS0 */
+#define UART4_ASSIGNED  1
 #elif defined(CONFIG_RA_SCI9_UART)
 #define TTYS0_DEV       g_uart9port /* UART9 is ttyS0 */
 #define UART9_ASSIGNED  1
@@ -137,14 +151,38 @@
 #define TTYS1_DEV       g_uart1port /* UART1 is ttyS1 */
 #define UART1_ASSIGNED  1
 #elif defined(CONFIG_RA_SCI2_UART) && !defined(UART2_ASSIGNED)
-#define TTYS1_DEV       g_usart0port /* UART2 is ttyS1 */
+#define TTYS1_DEV       g_uart2port /* UART2 is ttyS1 */
 #define UART2_ASSIGNED  1
+#elif defined(CONFIG_RA_SCI3_UART) && !defined(UART3_ASSIGNED)
+#define TTYS1_DEV       g_uart3port /* UART3 is ttyS1 */
+#define UART3_ASSIGNED  1
+#elif defined(CONFIG_RA_SCI4_UART) && !defined(UART4_ASSIGNED)
+#define TTYS1_DEV       g_uart4port /* UART4 is ttyS1 */
+#define UART4_ASSIGNED  1
 #elif defined(CONFIG_RA_SCI9_UART) && !defined(UART9_ASSIGNED)
-#define TTYS1_DEV       g_usart1port /* UART9 is ttyS1 */
+#define TTYS1_DEV       g_uart9port /* UART9 is ttyS1 */
 #define UART9_ASSIGNED  1
 #endif
 
 #define SCI_UART_ERR_BITS  (R_SCI_SSR_PER | R_SCI_SSR_FER | R_SCI_SSR_ORER)
+
+/* Check if any UART is enabled */
+
+#ifdef CONFIG_RA_SCI0_UART
+#  define HAVE_UART 1
+#elif defined(CONFIG_RA_SCI1_UART)
+#  define HAVE_UART 1
+#elif defined(CONFIG_RA_SCI2_UART)
+#  define HAVE_UART 1
+#elif defined(CONFIG_RA_SCI3_UART)
+#  define HAVE_UART 1
+#elif defined(CONFIG_RA_SCI4_UART)
+#  define HAVE_UART 1
+#elif defined(CONFIG_RA_SCI9_UART)
+#  define HAVE_UART 1
+#endif
+
+#ifdef HAVE_UART
 
 /****************************************************************************
  * Private Function Prototypes
@@ -211,6 +249,12 @@ static char g_uart1txbuffer[CONFIG_SCI1_TXBUFSIZE];
 #elif defined(CONFIG_RA_SCI2_UART)
 static char g_uart2rxbuffer[CONFIG_SCI2_RXBUFSIZE];
 static char g_uart2txbuffer[CONFIG_SCI2_TXBUFSIZE];
+#elif defined(CONFIG_RA_SCI3_UART)
+static char g_uart3rxbuffer[CONFIG_SCI3_RXBUFSIZE];
+static char g_uart3txbuffer[CONFIG_SCI3_TXBUFSIZE];
+#elif defined(CONFIG_RA_SCI4_UART)
+static char g_uart4rxbuffer[CONFIG_SCI4_RXBUFSIZE];
+static char g_uart4txbuffer[CONFIG_SCI4_TXBUFSIZE];
 #elif defined(CONFIG_RA_SCI9_UART)
 static char g_uart9rxbuffer[CONFIG_SCI9_RXBUFSIZE];
 static char g_uart9txbuffer[CONFIG_SCI9_TXBUFSIZE];
@@ -307,6 +351,68 @@ static uart_dev_t  g_uart2port =
   },
   .ops   = &g_uart_ops,
   .priv = &g_uart2priv,
+};
+
+#elif defined(CONFIG_RA_SCI3_UART)
+static struct up_dev_s  g_uart3priv =
+{
+  .scibase    = R_SCI3_BASE,
+  .mstp         = R_MSTP_MSTPCRB_SCI3,
+  .rxirq        = SCI3_RXI,
+  .txirq        = SCI3_TXI,
+  .teirq        = SCI3_TEI,
+  .erirq        = SCI3_ERI,
+  .baud         = CONFIG_SCI3_BAUD,
+  .parity       = CONFIG_SCI3_PARITY,
+  .bits         = CONFIG_SCI3_BITS,
+  .stopbits2    = CONFIG_SCI3_2STOP,
+};
+
+static uart_dev_t  g_uart3port =
+{
+  .recv     =
+  {
+    .size   = CONFIG_SCI3_RXBUFSIZE,
+    .buffer = g_uart3rxbuffer,
+  },
+  .xmit  =
+  {
+    .size   = CONFIG_SCI3_TXBUFSIZE,
+    .buffer = g_uart3txbuffer,
+  },
+  .ops   = &g_uart_ops,
+  .priv = &g_uart3priv,
+};
+
+#elif defined(CONFIG_RA_SCI4_UART)
+static struct up_dev_s  g_uart4priv =
+{
+  .scibase    = R_SCI4_BASE,
+  .mstp         = R_MSTP_MSTPCRB_SCI4,
+  .rxirq        = SCI4_RXI,
+  .txirq        = SCI4_TXI,
+  .teirq        = SCI4_TEI,
+  .erirq        = SCI4_ERI,
+  .baud         = CONFIG_SCI4_BAUD,
+  .parity       = CONFIG_SCI4_PARITY,
+  .bits         = CONFIG_SCI4_BITS,
+  .stopbits2    = CONFIG_SCI4_2STOP,
+};
+
+static uart_dev_t  g_uart4port =
+{
+  .recv     =
+  {
+    .size   = CONFIG_SCI4_RXBUFSIZE,
+    .buffer = g_uart4rxbuffer,
+  },
+  .xmit  =
+  {
+    .size   = CONFIG_SCI4_TXBUFSIZE,
+    .buffer = g_uart4txbuffer,
+  },
+  .ops   = &g_uart_ops,
+  .priv = &g_uart4priv,
 };
 
 #elif defined(CONFIG_RA_SCI9_UART)
@@ -982,3 +1088,5 @@ void arm_serialinit(void)
   uart_register("/dev/ttyS5", &TTYS5_DEV);
 #endif
 }
+
+#endif /* HAVE_UART */

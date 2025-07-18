@@ -31,32 +31,26 @@
  * Pre-processor Prototypes
  ****************************************************************************/
 
-/* Get customizations for each supported chip */
+/* RA8E1 Family */
 
-/* RA Family */
-
-/* Common FEATURES
- * Flash        256KB
- * DataFlash    8KB
- * SRAM         32+16KB
+/* Memory
+ * - 1 MB code flash memory
+ * - 12 KB data flash memory (100,000 program/erase (P/E) cycles)
+ * - 544 KB SRAM including 32 KB of TCM
  */
 
-/* Internal memory */
+/* Internal memory sizes for RA8E1 */
+#define RA8E1_CODE_FLASH_SIZE        (1024*1024)   /* 1MB Code Flash */
+#define RA8E1_DATA_FLASH_SIZE        (12*1024)     /* 12KB Data Flash */
+#define RA8E1_SRAM_SIZE              (544*1024)    /* 544KB SRAM (includes 32KB TCM) */
+#define RA8E1_TCM_SIZE               (32*1024)     /* 32KB TCM */
 
-#  define RA_FLASH_SIZE            (256*1024)   /* 256KB */
-#  define RA_SRAM0_SIZE            (48*1024)    /* 48KB */
+#define RA_FLASH_SIZE                 RA8E1_CODE_FLASH_SIZE
+#define RA_SRAM0_SIZE                 RA8E1_SRAM_SIZE
 
-/* FEATURE      R7FA4M1ABxxFP  R7FA4M1ABxxLJ  R7FA4M1ABxxFM R7FA4M1ABxxNB
- * -----------  -------------  -------------  ------------- -------------
- * Package      LQFP100        LGA100         LQFP64        QFNP64
- * No. PIOs     81             81             49            49
- * SCI          4              4              4             4
- *
- * FEATURE      R7FA4M1ABxxFL R7FA4M1ABxxNE R7FA4M1ABxxNF
- * -----------  ------------- ------------- -------------
- * Package      LQFP48        QFNP48        QFN40
- * No. PIOs     33            33            25
- * SCI          4             4             4
+/* Supported packages:
+ * R7FA8E1AFDCFB PLQP0144KA-B (LQFP144)
+ * R7FA8E1AFDCFP PLQP0100KP-A (LQFP100)
  */
 
 /* NVIC priority levels *****************************************************/

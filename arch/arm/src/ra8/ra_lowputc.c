@@ -45,41 +45,70 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+/* Check for RTT console */
+
+#ifdef CONFIG_SERIAL_RTT_CONSOLE
+#  define HAVE_RTT_CONSOLE 1
+#endif
+
 /* Is there a serial console?  It could be on SCI0-1 or USART0-3 */
 
 #if defined(CONFIG_SCI0_SERIAL_CONSOLE) && defined(CONFIG_RA_SCI0_UART)
 #undef CONFIG_SCI1_SERIAL_CONSOLE
 #undef CONFIG_SCI2_SERIAL_CONSOLE
+#undef CONFIG_SCI3_SERIAL_CONSOLE
+#undef CONFIG_SCI4_SERIAL_CONSOLE
 #undef CONFIG_SCI9_SERIAL_CONSOLE
 #define HAVE_CONSOLE    1
 #elif defined(CONFIG_SCI1_SERIAL_CONSOLE) && defined(CONFIG_RA_SCI1_UART)
 #undef CONFIG_SCI0_SERIAL_CONSOLE
 #undef CONFIG_SCI2_SERIAL_CONSOLE
+#undef CONFIG_SCI3_SERIAL_CONSOLE
+#undef CONFIG_SCI4_SERIAL_CONSOLE
 #undef CONFIG_SCI9_SERIAL_CONSOLE
 #define HAVE_CONSOLE    1
 #elif defined(CONFIG_SCI2_SERIAL_CONSOLE) && defined(CONFIG_RA_SCI2_UART)
 #undef CONFIG_SCI0_SERIAL_CONSOLE
 #undef CONFIG_SCI1_SERIAL_CONSOLE
+#undef CONFIG_SCI3_SERIAL_CONSOLE
+#undef CONFIG_SCI4_SERIAL_CONSOLE
+#undef CONFIG_SCI9_SERIAL_CONSOLE
+#define HAVE_CONSOLE    1
+#elif defined(CONFIG_SCI3_SERIAL_CONSOLE) && defined(CONFIG_RA_SCI3_UART)
+#undef CONFIG_SCI0_SERIAL_CONSOLE
+#undef CONFIG_SCI1_SERIAL_CONSOLE
+#undef CONFIG_SCI2_SERIAL_CONSOLE
+#undef CONFIG_SCI4_SERIAL_CONSOLE
+#undef CONFIG_SCI9_SERIAL_CONSOLE
+#define HAVE_CONSOLE    1
+#elif defined(CONFIG_SCI4_SERIAL_CONSOLE) && defined(CONFIG_RA_SCI4_UART)
+#undef CONFIG_SCI0_SERIAL_CONSOLE
+#undef CONFIG_SCI1_SERIAL_CONSOLE
+#undef CONFIG_SCI2_SERIAL_CONSOLE
+#undef CONFIG_SCI3_SERIAL_CONSOLE
 #undef CONFIG_SCI9_SERIAL_CONSOLE
 #define HAVE_CONSOLE    1
 #elif defined(CONFIG_SCI9_SERIAL_CONSOLE) && defined(CONFIG_RA_SCI9_UART)
 #undef CONFIG_SCI0_SERIAL_CONSOLE
 #undef CONFIG_SCI1_SERIAL_CONSOLE
 #undef CONFIG_SCI2_SERIAL_CONSOLE
+#undef CONFIG_SCI3_SERIAL_CONSOLE
+#undef CONFIG_SCI4_SERIAL_CONSOLE
 #define HAVE_CONSOLE    1
 #else
-#ifndef CONFIG_NO_SERIAL_CONSOLE
-#warning "No valid CONFIG_USARTn_SERIAL_CONSOLE Setting"
+#if !defined(HAVE_RTT_CONSOLE) && !defined(HAVE_CONSOLE)
+#warning "No valid console configuration"
 #endif
 
 #undef CONFIG_SCI0_SERIAL_CONSOLE
 #undef CONFIG_SCI1_SERIAL_CONSOLE
 #undef CONFIG_SCI2_SERIAL_CONSOLE
-#undef CONFIG_SCI9_SERIAL_CONSOLE
+#undef CONFIG_SCI3_SERIAL_CONSOLE
+#undef CONFIG_SCI4_SERIAL_CONSOLE
 #undef HAVE_CONSOLE
 #endif
 
-#if defined(HAVE_CONSOLE)
+#if defined(HAVE_CONSOLE) && !defined(HAVE_RTT_CONSOLE)
 
 /* Select USART parameters for the selected console */
 
@@ -104,6 +133,20 @@
 #    define RA_CONSOLE_BITS     CONFIG_SCI2_BITS
 #    define RA_CONSOLE_PARITY   CONFIG_SCI2_PARITY
 #    define RA_CONSOLE_2STOP    CONFIG_SCI2_2STOP
+#  elif defined(CONFIG_SCI3_SERIAL_CONSOLE)
+#    define RA_CONSOLE_BASE     R_SCI3_BASE
+#    define RA_CONSOLE_MTSP     R_MSTP_MSTPCRB_SCI3
+#    define RA_CONSOLE_BAUD     CONFIG_SCI3_BAUD
+#    define RA_CONSOLE_BITS     CONFIG_SCI3_BITS
+#    define RA_CONSOLE_PARITY   CONFIG_SCI3_PARITY
+#    define RA_CONSOLE_2STOP    CONFIG_SCI3_2STOP
+#  elif defined(CONFIG_SCI4_SERIAL_CONSOLE)
+#    define RA_CONSOLE_BASE     R_SCI4_BASE
+#    define RA_CONSOLE_MTSP     R_MSTP_MSTPCRB_SCI4
+#    define RA_CONSOLE_BAUD     CONFIG_SCI4_BAUD
+#    define RA_CONSOLE_BITS     CONFIG_SCI4_BITS
+#    define RA_CONSOLE_PARITY   CONFIG_SCI4_PARITY
+#    define RA_CONSOLE_2STOP    CONFIG_SCI4_2STOP
 #  elif defined(CONFIG_SCI9_SERIAL_CONSOLE)
 #    define RA_CONSOLE_BASE     R_SCI9_BASE
 #    define RA_CONSOLE_MTSP     R_MSTP_MSTPCRB_SCI9
@@ -114,7 +157,7 @@
 #  else
 #    error "No CONFIG_UARTn_SERIAL_CONSOLE Setting"
 #  endif
-#  endif
+#endif
 
 /* Configuration ************************************************************/
 
@@ -212,7 +255,9 @@ void up_putc(int ch)
 
 void ra_lowsetup(void)
 {
+#ifdef HAVE_CONSOLE
   uint32_t regval;
+#endif
 
 #if defined(CONFIG_RA_SCI0_UART)
   ra_configgpio(GPIO_SCI0_RX);
@@ -223,11 +268,20 @@ void ra_lowsetup(void)
 #elif defined(CONFIG_RA_SCI2_UART)
   ra_configgpio(GPIO_SCI2_RX);
   ra_configgpio(GPIO_SCI2_TX);
+#elif defined(CONFIG_RA_SCI3_UART)
+  /* TODO: Add proper GPIO pin configuration for SCI3 when pins are determined */
+  /* ra_configgpio(GPIO_SCI3_RX); */
+  /* ra_configgpio(GPIO_SCI3_TX); */
+#elif defined(CONFIG_RA_SCI4_UART)
+  /* TODO: Add proper GPIO pin configuration for SCI4 when pins are determined */
+  /* ra_configgpio(GPIO_SCI4_RX); */
+  /* ra_configgpio(GPIO_SCI4_TX); */
 #elif defined(CONFIG_RA_SCI9_UART)
   ra_configgpio(GPIO_SCI9_RX);
   ra_configgpio(GPIO_SCI9_TX);
 #endif
 
+#if defined(HAVE_CONSOLE)
   putreg16((R_SYSTEM_PRCR_PRKEY_VALUE | R_SYSTEM_PRCR_PRC1), R_SYSTEM_PRCR);
   modifyreg32(R_MSTP_MSTPCRB, RA_CONSOLE_MTSP, 0);
   putreg16(R_SYSTEM_PRCR_PRKEY_VALUE, R_SYSTEM_PRCR);
@@ -240,4 +294,5 @@ void ra_lowsetup(void)
 
   regval = (R_SCI_SCR_TE | R_SCI_SCR_RE);
   putreg8(regval, RA_CONSOLE_BASE + R_SCI_SCR_OFFSET);
+#endif
 }

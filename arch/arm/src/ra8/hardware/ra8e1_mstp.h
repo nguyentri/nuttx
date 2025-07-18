@@ -51,6 +51,8 @@
 #define R_MSTP_MSTPCRB_SCI0            (1 << 31) /* 80000000: Serial Communication Interface 0 Module Stop */
 #define R_MSTP_MSTPCRB_SCI1            (1 << 30) /* 40000000: Serial Communication Interface 1 Module Stop */
 #define R_MSTP_MSTPCRB_SCI2            (1 << 29) /* 20000000: Serial Communication Interface 2 Module Stop */
+#define R_MSTP_MSTPCRB_SCI3            (1 << 28) /* 10000000: Serial Communication Interface 3 Module Stop */
+#define R_MSTP_MSTPCRB_SCI4            (1 << 27) /* 08000000: Serial Communication Interface 4 Module Stop */
 #define R_MSTP_MSTPCRB_SCI9            (1 << 22) /* 400000: Serial Communication Interface 9 Module Stop */
 #define R_MSTP_MSTPCRB_SPI0            (1 << 19) /* 80000: Serial Peripheral Interface 0 Module Stop */
 #define R_MSTP_MSTPCRB_SPI1            (1 << 18) /* 40000: Serial Peripheral Interface 1 Module Stop */

@@ -77,6 +77,12 @@
 #define GPIO_SCI9_RX   GPIO_RXD9_MISO9_SCL9_1  /* P110 */
 #define GPIO_SCI9_TX   GPIO_TXD9_MOSI9_SDA9_1  /* P109 */
 
+/* SCI3 and SCI4 pins - Update these with actual pin assignments when determined */
+/* #define GPIO_SCI3_RX   GPIO_PIN_UNDEFINED */
+/* #define GPIO_SCI3_TX   GPIO_PIN_UNDEFINED */
+/* #define GPIO_SCI4_RX   GPIO_PIN_UNDEFINED */
+/* #define GPIO_SCI4_TX   GPIO_PIN_UNDEFINED */
+
 /* LED pin selections */
 
 #define GPIO_L_LED    (gpio_pinset_t){ PORT1,PIN11, (GPIO_OUPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_LOW)}   /* P111 */

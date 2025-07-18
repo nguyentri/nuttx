@@ -32,4 +32,12 @@ ifeq ($(CONFIG_BOARDCTL),y)
 CSRCS += ra8e1_appinit.c
 endif
 
+ifeq ($(CONFIG_EXAMPLES_PWM),y)
+CSRCS += ra8e1_pwm_demo.c
+endif
+
+ifeq ($(CONFIG_RA8_ADC),y)
+CSRCS += ra8e1_adc_demo.c
+endif
+
 include $(TOPDIR)/boards/Board.mk

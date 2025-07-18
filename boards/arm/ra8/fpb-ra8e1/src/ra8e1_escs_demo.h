@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/ra8/fpb-ra8e1/src/fpb-ra8e1.h
+ * boards/arm/ra8/fpb-ra8e1/src/ra8e1_pwm_demo.h
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -18,87 +18,89 @@
  *
  ****************************************************************************/
 
-#ifndef __BOARDS_ARM_RA8_FPB_RA8E1_SRC_H
-#define __BOARDS_ARM_RA8_FPB_RA8E1_SRC_H
+#ifndef __BOARDS_ARM_RA8_FPB_RA8E1_SRC_RA8E1_PWM_DEMO_H
+#define __BOARDS_ARM_RA8_FPB_RA8E1_SRC_RA8E1_PWM_DEMO_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include <nuttx/compiler.h>
-
-#include <stdint.h>
-
-#include <arch/irq.h>
-#include <nuttx/irq.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
+/* ESC PWM Parameters */
+
+#define NUM_ESC_CHANNELS        4
+#define ESC_PWM_FREQUENCY       400      /* 400Hz for ESC control */
+#define ESC_PWM_MIN_US          1000     /* Minimum pulse width (microseconds) */
+#define ESC_PWM_MAX_US          2000     /* Maximum pulse width (microseconds) */
+#define ESC_PWM_ARM_US          1000     /* Arming pulse width */
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
 
-/****************************************************************************
- * Public Data
- ****************************************************************************/
+/* ESC Status Structure */
 
-#ifndef __ASSEMBLY__
-
-/****************************************************************************
- * Public Functions Definitions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: ra_bringup
- *
- * Description:
- *   Perform architecture-specific initialization
- *
- *   CONFIG_BOARD_LATE_INITIALIZE=y :
- *     Called from board_late_initialize().
- *
- *   CONFIG_BOARD_LATE_INITIALIZE=y && CONFIG_BOARDCTL=y :
- *     Called from the NSH library
- *
- ****************************************************************************/
-
-int ra8e1_bringup(void);
-
-/****************************************************************************
- * Name: ra8e1_gy912_initialize
- *
- * Description:
- *   Initialize GY-912 sensor module (ICM-20948 + BMP388)
- *
- ****************************************************************************/
-
-#ifdef CONFIG_RA8_I2C
-int ra8e1_gy912_initialize(void);
-int ra8e1_gy912_test(void);
-
-/* GY-912 Data Structure */
-struct gy912_data_s
+struct esc_status_s
 {
-  /* ICM-20948 data */
-  int16_t accel_x;        /* Accelerometer X-axis */
-  int16_t accel_y;        /* Accelerometer Y-axis */
-  int16_t accel_z;        /* Accelerometer Z-axis */
-  int16_t gyro_x;         /* Gyroscope X-axis */
-  int16_t gyro_y;         /* Gyroscope Y-axis */
-  int16_t gyro_z;         /* Gyroscope Z-axis */
-  int16_t temperature_imu; /* Temperature from IMU */
-
-  /* BMP388 data */
-  uint32_t pressure;      /* Pressure data */
-  int32_t temperature_bmp; /* Temperature from BMP388 */
+  bool armed;                   /* ESC armed status */
+  uint16_t throttle_percent;    /* Current throttle percentage */
+  uint32_t pulse_width_us;      /* Current pulse width in microseconds */
 };
 
-int ra8e1_gy912_read_data(struct gy912_data_s *data);
-void ra8e1_gy912_print_data(const struct gy912_data_s *data);
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
+
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C"
+{
+#else
+#define EXTERN extern
 #endif
 
-#endif /* __ASSEMBLY__ */
-#endif /* __BOARDS_ARM_RA8_FPB_RA8E1_SRC_H */
+/****************************************************************************
+ * Name: ra8e1_pwm_demo_main
+ *
+ * Description:
+ *   Main entry point for PWM ESC control demo
+ *
+ * Input Parameters:
+ *   argc - Number of command line arguments
+ *   argv - Array of command line arguments
+ *
+ * Returned Value:
+ *   Zero on success; negative value on failure
+ *
+ ****************************************************************************/
+
+int ra8e1_pwm_demo_main(int argc, char *argv[]);
+
+/****************************************************************************
+ * Name: ra8e1_esc_get_status
+ *
+ * Description:
+ *   Get current status of specified ESC channel
+ *
+ * Input Parameters:
+ *   esc_index - ESC channel index (0-3)
+ *   status    - Pointer to status structure to fill
+ *
+ * Returned Value:
+ *   Zero on success; negative value on failure
+ *
+ ****************************************************************************/
+
+int ra8e1_esc_get_status(int esc_index, struct esc_status_s *status);
+
+#undef EXTERN
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __BOARDS_ARM_RA8_FPB_RA8E1_SRC_RA8E1_PWM_DEMO_H */

@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/ra8/fpb-ra8e1/src/fpb-ra8e1.h
+ * arch/arm/src/ra8/ra_dmac.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -18,87 +18,120 @@
  *
  ****************************************************************************/
 
-#ifndef __BOARDS_ARM_RA8_FPB_RA8E1_SRC_H
-#define __BOARDS_ARM_RA8_FPB_RA8E1_SRC_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
-#include <nuttx/compiler.h>
-
+#include <sys/types.h>
 #include <stdint.h>
+#include <stdbool.h>
 
-#include <arch/irq.h>
-#include <nuttx/irq.h>
+#ifdef CONFIG_RA8_DMAC
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Types
+ * Private Types
  ****************************************************************************/
 
 /****************************************************************************
- * Public Data
- ****************************************************************************/
-
-#ifndef __ASSEMBLY__
-
-/****************************************************************************
- * Public Functions Definitions
+ * Private Function Prototypes
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ra_bringup
+ * Private Data
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: ra_dmac_initialize
  *
  * Description:
- *   Perform architecture-specific initialization
- *
- *   CONFIG_BOARD_LATE_INITIALIZE=y :
- *     Called from board_late_initialize().
- *
- *   CONFIG_BOARD_LATE_INITIALIZE=y && CONFIG_BOARDCTL=y :
- *     Called from the NSH library
+ *   Initialize the DMAC controller
  *
  ****************************************************************************/
 
-int ra8e1_bringup(void);
-
-/****************************************************************************
- * Name: ra8e1_gy912_initialize
- *
- * Description:
- *   Initialize GY-912 sensor module (ICM-20948 + BMP388)
- *
- ****************************************************************************/
-
-#ifdef CONFIG_RA8_I2C
-int ra8e1_gy912_initialize(void);
-int ra8e1_gy912_test(void);
-
-/* GY-912 Data Structure */
-struct gy912_data_s
+int ra_dmac_initialize(void)
 {
-  /* ICM-20948 data */
-  int16_t accel_x;        /* Accelerometer X-axis */
-  int16_t accel_y;        /* Accelerometer Y-axis */
-  int16_t accel_z;        /* Accelerometer Z-axis */
-  int16_t gyro_x;         /* Gyroscope X-axis */
-  int16_t gyro_y;         /* Gyroscope Y-axis */
-  int16_t gyro_z;         /* Gyroscope Z-axis */
-  int16_t temperature_imu; /* Temperature from IMU */
+  /* TODO: Implement DMAC initialization */
+  
+  return 0;  /* OK */
+}
 
-  /* BMP388 data */
-  uint32_t pressure;      /* Pressure data */
-  int32_t temperature_bmp; /* Temperature from BMP388 */
-};
+/****************************************************************************
+ * Name: ra_dmac_channel_alloc
+ *
+ * Description:
+ *   Allocate a DMAC channel
+ *
+ ****************************************************************************/
 
-int ra8e1_gy912_read_data(struct gy912_data_s *data);
-void ra8e1_gy912_print_data(const struct gy912_data_s *data);
-#endif
+int ra_dmac_channel_alloc(void)
+{
+  /* TODO: Implement DMAC channel allocation */
+  
+  return -1;  /* ENOSYS */
+}
 
-#endif /* __ASSEMBLY__ */
-#endif /* __BOARDS_ARM_RA8_FPB_RA8E1_SRC_H */
+/****************************************************************************
+ * Name: ra_dmac_channel_free
+ *
+ * Description:
+ *   Free a DMAC channel
+ *
+ ****************************************************************************/
+
+int ra_dmac_channel_free(int channel)
+{
+  /* TODO: Implement DMAC channel free */
+  
+  (void)channel;  /* Suppress unused parameter warning */
+  return 0;  /* OK */
+}
+
+/****************************************************************************
+ * Name: ra_dmac_start
+ *
+ * Description:
+ *   Start DMAC transfer
+ *
+ ****************************************************************************/
+
+int ra_dmac_start(int channel, uint32_t src, uint32_t dst, uint32_t len)
+{
+  /* TODO: Implement DMAC transfer start */
+  
+  (void)channel;  /* Suppress unused parameter warnings */
+  (void)src;
+  (void)dst;
+  (void)len;
+  
+  return -1;  /* ENOSYS */
+}
+
+/****************************************************************************
+ * Name: ra_dmac_stop
+ *
+ * Description:
+ *   Stop DMAC transfer
+ *
+ ****************************************************************************/
+
+int ra_dmac_stop(int channel)
+{
+  /* TODO: Implement DMAC transfer stop */
+  
+  (void)channel;  /* Suppress unused parameter warning */
+  return 0;  /* OK */
+}
+
+#endif /* CONFIG_RA8_DMAC */

@@ -21,6 +21,7 @@ config ARCH_CHIP_R7FA8E1AFDCFB
    select RA_HAVE_I2C0
    select RA_HAVE_I2C1
    select RA_HAVE_I2C2
+   select RA_HAVE_DMAC
    select RA_HAVE_SPI0
    select RA_HAVE_SPI1
    select RA_HAVE_SPI2
@@ -49,7 +50,7 @@ config ARCH_CHIP_R7FA8E1AFDCFP
    select RA_HAVE_SCI9_UART
    select RA_HAVE_I2C0
    select RA_HAVE_I2C1
-   # No I2C2
+   select RA_HAVE_DMAC
    select RA_HAVE_SPI0
    # No SPI1, SPI2
    # No CAN0
@@ -241,6 +242,255 @@ config RA_SCI9_UART
    bool "SCI9 UART"
    default n
    depends on RA_HAVE_SCI9_UART
+
+# Console selection for SCI UARTs
+choice
+   prompt "SCI Serial Console"
+   default NO_SCI_SERIAL_CONSOLE
+   depends on RA_SCI0_UART || RA_SCI1_UART || RA_SCI2_UART || RA_SCI3_UART || RA_SCI4_UART || RA_SCI9_UART
+
+config SCI0_SERIAL_CONSOLE
+   bool "SCI0"
+   depends on RA_SCI0_UART
+
+config SCI1_SERIAL_CONSOLE
+   bool "SCI1"
+   depends on RA_SCI1_UART
+
+config SCI2_SERIAL_CONSOLE
+   bool "SCI2"
+   depends on RA_SCI2_UART
+
+config SCI3_SERIAL_CONSOLE
+   bool "SCI3"
+   depends on RA_SCI3_UART
+
+config SCI4_SERIAL_CONSOLE
+   bool "SCI4"
+   depends on RA_SCI4_UART
+
+config SCI9_SERIAL_CONSOLE
+   bool "SCI9"
+   depends on RA_SCI9_UART
+
+config NO_SCI_SERIAL_CONSOLE
+   bool "No SCI Console"
+
+endchoice
+
+# Buffer sizes for SCI UARTs
+config SCI0_RXBUFSIZE
+   int "SCI0 receive buffer size"
+   default 256
+   depends on RA_SCI0_UART
+
+config SCI0_TXBUFSIZE
+   int "SCI0 transmit buffer size"
+   default 256
+   depends on RA_SCI0_UART
+
+config SCI1_RXBUFSIZE
+   int "SCI1 receive buffer size"
+   default 256
+   depends on RA_SCI1_UART
+
+config SCI1_TXBUFSIZE
+   int "SCI1 transmit buffer size"
+   default 256
+   depends on RA_SCI1_UART
+
+config SCI2_RXBUFSIZE
+   int "SCI2 receive buffer size"
+   default 256
+   depends on RA_SCI2_UART
+
+config SCI2_TXBUFSIZE
+   int "SCI2 transmit buffer size"
+   default 256
+   depends on RA_SCI2_UART
+
+config SCI3_RXBUFSIZE
+   int "SCI3 receive buffer size"
+   default 256
+   depends on RA_SCI3_UART
+
+config SCI3_TXBUFSIZE
+   int "SCI3 transmit buffer size"
+   default 256
+   depends on RA_SCI3_UART
+
+config SCI4_RXBUFSIZE
+   int "SCI4 receive buffer size"
+   default 256
+   depends on RA_SCI4_UART
+
+config SCI4_TXBUFSIZE
+   int "SCI4 transmit buffer size"
+   default 256
+   depends on RA_SCI4_UART
+
+config SCI9_RXBUFSIZE
+   int "SCI9 receive buffer size"
+   default 256
+   depends on RA_SCI9_UART
+
+config SCI9_TXBUFSIZE
+   int "SCI9 transmit buffer size"
+   default 256
+   depends on RA_SCI9_UART
+
+# Advanced SCI UART Features
+config RA_SCI_UART_FLOWCONTROL
+   bool "Enable SCI UART flow control support"
+   default n
+   depends on RA_SCI0_UART || RA_SCI1_UART || RA_SCI2_UART || RA_SCI3_UART || RA_SCI4_UART || RA_SCI9_UART
+   help
+     Enable hardware flow control (RTS/CTS) support for SCI UARTs.
+     Not all SCI channels support flow control - check RA8E1 datasheet.
+
+config RA_SCI_UART_RS485
+   bool "Enable SCI UART RS485 support"
+   default n
+   depends on RA_SCI0_UART || RA_SCI1_UART || RA_SCI2_UART || RA_SCI3_UART || RA_SCI4_UART || RA_SCI9_UART
+   help
+     Enable RS485 transceiver control (DE signal) for SCI UARTs.
+     Useful for half-duplex communication protocols.
+
+config RA_SCI_UART_BAUDRATE_MODULATION
+   bool "Enable SCI UART baud rate modulation"
+   default y
+   depends on RA_SCI0_UART || RA_SCI1_UART || RA_SCI2_UART || RA_SCI3_UART || RA_SCI4_UART || RA_SCI9_UART
+   help
+     Enable baud rate modulation for more accurate baud rates.
+     Reduces baud rate error for better communication reliability.
+endmenu
+
+menu "RA8 UART+DMA Driver"
+comment "Enhanced UART driver with DMA support for specialized applications"
+
+config RA8_SCI_UART
+   bool "Enable RA8 SCI UART+DMA driver"
+   default n
+   help
+     Enable the enhanced RA8 SCI UART driver with DMA support.
+     This driver provides specialized features for GPS, SBUS, and other protocols.
+     Based on FSP reference implementations for optimal performance.
+
+if RA8_SCI_UART
+
+config RA8_UART2_SBUS
+   bool "UART2 for SBUS RC receiver"
+   default n
+   help
+     Configure UART2 for SBUS RC receiver input with DMA support.
+     SBUS protocol: 100000 baud, 8E2, inverted signal.
+     Pin configuration: P502 (RXD), P501 (TXD).
+
+config RA8_UART3_GPS
+   bool "UART3 for GPS module"
+   default n
+   help
+     Configure UART3 for GPS module communication with DMA support.
+     Supports NMEA protocol parsing at 9600 baud, 8N1.
+     Pin configuration: P201 (RXD), P200 (TXD).
+
+config UART2_RX_BUFFER_SIZE
+   int "UART2 receive buffer size"
+   default 32
+   range 16 1024
+   depends on RA8_UART2_SBUS
+   help
+     Size of the UART2 receive buffer for SBUS data.
+     SBUS frames are 25 bytes, so 32 bytes provides adequate buffering.
+     Must be power of 2 for optimal DMA performance.
+
+config UART3_RX_BUFFER_SIZE
+   int "UART3 receive buffer size"
+   default 512
+   range 64 2048
+   depends on RA8_UART3_GPS
+   help
+     Size of the UART3 receive buffer for GPS NMEA sentences.
+     NMEA sentences can be up to 82 characters, buffer allows multiple sentences.
+     Larger buffer reduces risk of data loss during processing.
+
+config UART3_TX_BUFFER_SIZE
+   int "UART3 transmit buffer size"
+   default 256
+   range 32 1024
+   depends on RA8_UART3_GPS
+   help
+     Size of the UART3 transmit buffer for GPS commands.
+     Used for sending configuration commands to GPS module.
+
+config RA8_UART_DMA_ENABLE
+   bool "Enable DMA for UART transfers"
+   default y
+   depends on RA8_SCI_UART
+   select RA_DMA
+   help
+     Enable DMA transfers for improved UART performance and reduced CPU usage.
+     Uses DMAC channels 0-3 for UART2/3 RX/TX operations.
+     Based on FSP DMAC reference implementation.
+
+if RA8_UART_DMA_ENABLE
+
+config RA8_UART_DMA_CHANNELS
+   int "Number of DMA channels to reserve for UART"
+   default 4
+   range 2 4
+   help
+     Number of DMA channels to reserve for UART operations.
+     2 = RX only, 4 = RX+TX for both UARTs.
+
+config RA8_UART_DMA_IRQ_PRIORITY
+   int "DMA interrupt priority for UART"
+   default 3
+   range 0 15
+   help
+     Interrupt priority for DMA transfers (0=highest, 15=lowest).
+     Should be lower than UART interrupt priority.
+
+endif # RA8_UART_DMA_ENABLE
+
+config RA8_UART_IRQ_PRIORITY
+   int "UART interrupt priority"
+   default 12
+   range 0 15
+   depends on RA8_SCI_UART
+   help
+     Interrupt priority for UART RX/TX/error interrupts (0=highest, 15=lowest).
+     Based on FSP reference: priority 12 provides good responsiveness.
+
+config RA8_UART_CLOCK_SOURCE
+   int "SCI clock source selection"
+   default 0
+   range 0 3
+   depends on RA8_SCI_UART
+   help
+     SCI clock source selection:
+     0 = PCLKA (48MHz typical)
+     1 = PCLKB (24MHz typical)  
+     2 = SCICLK (external clock)
+     3 = HOCO (20MHz typical)
+
+config RA8_UART_NOISE_FILTER
+   bool "Enable digital noise filter"
+   default y
+   depends on RA8_SCI_UART
+   help
+     Enable digital noise filter for improved signal integrity.
+     Recommended for SBUS and other high-speed protocols.
+
+config RA8_UART_DEBUG
+   bool "Enable UART debug output"
+   default n
+   depends on RA8_SCI_UART && DEBUG_FEATURES
+   help
+     Enable debug output for the RA8 UART+DMA driver.
+     Provides detailed information about transfers and errors.
+
+endif # RA8_SCI_UART
 endmenu
 
 menu "I2C"
@@ -256,20 +506,80 @@ config RA_HAVE_I2C2
    bool
    default n
 
+config RA8_I2C
+   bool
+   default n
+   select I2C
+
 config RA_I2C0
    bool "I2C0"
    default n
    depends on RA_HAVE_I2C0
+   select RA8_I2C
 
 config RA_I2C1
    bool "I2C1"
    default n
    depends on RA_HAVE_I2C1
+   select RA8_I2C
 
 config RA_I2C2
    bool "I2C2"
    default n
    depends on RA_HAVE_I2C2
+   select RA8_I2C
+
+config RA8_I2C_DTC
+   bool "Use DTC for I2C transfers"
+   default n
+   depends on RA8_I2C && RA8_DMAC
+   ---help---
+      Use Data Transfer Controller (DTC) for I2C transfers to improve
+      performance and reduce CPU usage.
+
+config RA8_I2C_SLAVE
+   bool "I2C Slave support"
+   default n
+   depends on RA8_I2C
+   select I2C_SLAVE
+   ---help---
+      Enable I2C slave mode support.
+
+config RA8_I2C0_SLAVE
+   bool "I2C0 Slave"
+   default n
+   depends on RA_I2C0 && RA8_I2C_SLAVE
+
+config RA8_I2C1_SLAVE
+   bool "I2C1 Slave"
+   default n
+   depends on RA_I2C1 && RA8_I2C_SLAVE
+
+config RA8_I2C2_SLAVE
+   bool "I2C2 Slave"
+   default n
+   depends on RA_I2C2 && RA8_I2C_SLAVE
+
+endmenu
+
+menu "DMAC"
+config RA_HAVE_DMAC
+   bool
+   default n
+
+config RA8_DMAC
+   bool "DMAC support"
+   default n
+   depends on RA_HAVE_DMAC
+   ---help---
+      Enable Data Transfer Controller (DTC) and Direct Memory Access Controller (DMAC) support.
+
+config RA8_DMAC_CHANNELS
+   int "Number of DMAC channels"
+   default 8
+   depends on RA8_DMAC
+   ---help---
+      Number of DMAC channels to support (1-8).
 endmenu
 
 menu "SPI"
@@ -403,4 +713,122 @@ config RA_RTC
    bool "Real Time Clock"
    default n
    depends on RA_HAVE_RTC
+endmenu
+
+menu "ADC"
+config RA_HAVE_ADC12
+   bool
+   default n
+
+config RA_ADC12
+   bool "12-bit ADC"
+   default n
+   depends on RA_HAVE_ADC12
+   help
+     Enable 12-bit Analog-to-Digital Converter.
+
+config RA8_ADC
+   bool "RA8 ADC Driver"
+   default n
+   depends on RA_ADC12
+   select ADC
+   help
+     Enable RA8 ADC driver with DTC support.
+
+config RA8_ADC_DTC
+   bool "Use DTC for ADC transfers"
+   default y
+   depends on RA8_ADC
+   help
+     Use Data Transfer Controller (DTC) for efficient multi-channel
+     ADC data transfers.
+
+config RA8_ADC_BATTERY_MONITOR
+   bool "Battery monitoring support"
+   default n
+   depends on RA8_ADC
+   help
+     Enable battery monitoring functions for voltage and current
+     measurement using ADC channels.
+
+endmenu
+
+menu "DAC"
+config RA_HAVE_DAC12
+   bool
+   default n
+
+config RA_DAC12
+   bool "12-bit DAC"
+   default n
+   depends on RA_HAVE_DAC12
+   help
+     Enable 12-bit Digital-to-Analog Converter.
+endmenu
+
+menu "Analog Comparator"
+config RA_HAVE_ACMPHS
+   bool
+   default n
+
+config RA_ACMPHS
+   bool "High-Speed Analog Comparator"
+   default n
+   depends on RA_HAVE_ACMPHS
+   help
+     Enable High-Speed Analog Comparator.
+endmenu
+
+menu "DMA"
+config RA_HAVE_DMA
+   bool
+   default y if RA8E1_FAMILY
+   help
+     RA8E1 family has DMA controller support.
+
+config RA_DMA
+   bool "DMA Controller"
+   default n
+   depends on RA_HAVE_DMA
+   help
+     Enable DMA (Direct Memory Access) controller support.
+     The RA8E1 has DMAC with 8 channels supporting various transfer modes.
+
+if RA_DMA
+
+config RA_DMA_CHANNELS
+   int "Number of DMA channels"
+   default 8
+   range 1 8
+   help
+     Number of available DMA channels (0-7).
+     RA8E1 has 8 DMAC channels that can be used for various peripherals.
+
+config RA_DMA_IRQ_PRIORITY
+   int "DMA interrupt priority"
+   default 3
+   range 0 15
+   help
+     Interrupt priority for DMA completion interrupts (0=highest, 15=lowest).
+     Should typically be lower than the peripheral interrupt priority.
+
+config RA_DMA_PARAM_CHECKING
+   bool "Enable DMA parameter checking"
+   default y if DEBUG_FEATURES
+   default n
+   help
+     Enable parameter checking in DMA driver functions.
+     Adds safety checks but increases code size and execution time.
+
+config RA_DMA_TRANSFER_MODES
+   bool "Support all DMA transfer modes"
+   default y
+   help
+     Enable support for all DMA transfer modes:
+     - Normal transfer
+     - Repeat transfer
+     - Block transfer
+     Based on FSP DMAC implementation.
+
+endif # RA_DMA
 endmenu

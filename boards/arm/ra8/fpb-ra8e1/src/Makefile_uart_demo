@@ -1,0 +1,66 @@
+# Makefile for RA8E1 UART DMA Demo
+# 
+# This makefile can be used to build the demo application standalone
+# for testing and development purposes.
+
+# Compiler settings
+CC = gcc
+CFLAGS = -Wall -Wextra -std=c99 -O2 -g
+DEFINES = -DSTANDALONE_DEMO
+
+# Source files
+DEMO_SOURCES = \
+	ra8e1_uart_demo.c
+
+# Object files
+DEMO_OBJECTS = $(DEMO_SOURCES:.c=.o)
+
+# Target executable
+DEMO_TARGET = ra8e1_uart_demo
+
+# Default target
+all: $(DEMO_TARGET)
+
+# Build the demo executable
+$(DEMO_TARGET): $(DEMO_OBJECTS)
+	$(CC) $(CFLAGS) $(DEFINES) -o $@ $^
+
+# Compile source files
+%.o: %.c
+	$(CC) $(CFLAGS) $(DEFINES) -c $< -o $@
+
+# Clean build artifacts
+clean:
+	rm -f $(DEMO_OBJECTS) $(DEMO_TARGET)
+
+# Run the demo
+run: $(DEMO_TARGET)
+	./$(DEMO_TARGET)
+
+# Run demo with config display
+run-config: $(DEMO_TARGET)
+	./$(DEMO_TARGET) config
+
+# Show help
+help:
+	@echo "Available targets:"
+	@echo "  all        - Build the demo (default)"
+	@echo "  clean      - Remove build artifacts"
+	@echo "  run        - Build and run the demo"
+	@echo "  run-config - Build and run with configuration display"
+	@echo "  help       - Show this help message"
+
+# Install dependencies (if needed)
+deps:
+	@echo "No external dependencies required for standalone demo"
+
+# For NuttX integration
+nuttx-files:
+	@echo "Files for NuttX integration:"
+	@echo "  Driver files:"
+	@echo "    arch/arm/src/ra8/ra_uart.h"
+	@echo "    arch/arm/src/ra8/ra_uart.c"
+  @echo "  Board files:"
+	@echo "    boards/arm/ra8/fpb-ra8e1/src/ra8e1_uart_demo.h"
+	@echo "    boards/arm/ra8/fpb-ra8e1/src/ra8e1_uart_demo.c"
+	@echo "    boards/arm/ra8/fpb-ra8e1/src/README_UART_DMA.md".PHONY: all clean run run-config help deps nuttx-files

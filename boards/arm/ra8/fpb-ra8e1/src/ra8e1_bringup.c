@@ -75,6 +75,34 @@ int ra8e1_bringup(void)
     }
 #endif
 
+#ifdef CONFIG_RA8_SPI
+  /* Initialize SPI */
+  ret = fpb_ra8e1_spi_initialize();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize SPI: %d\n", ret);
+      return ret;
+    }
+  else
+    {
+      syslog(LOG_INFO, "SPI initialized successfully\n");
+    }
+#endif
+
+#ifdef CONFIG_SENSORS_GY912
+  /* Initialize GY-912 sensor module */
+  ret = gy912_initialize();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize GY-912: %d\n", ret);
+      /* Don't return error, continue with other initialization */
+    }
+  else
+    {
+      syslog(LOG_INFO, "GY-912 sensor module initialized\n");
+    }
+#endif
+
   UNUSED(ret);
   return OK;
 }

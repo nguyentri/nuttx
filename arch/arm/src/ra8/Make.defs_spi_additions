@@ -1,0 +1,30 @@
+# Makefile additions for RA8 SPI support
+# Add these lines to nuttx/arch/arm/src/ra8/Make.defs
+
+# SPI support
+ifeq ($(CONFIG_RA8_SPI),y)
+CHIP_CSRCS += ra_spi.c
+endif
+
+# DMAC support  
+ifeq ($(CONFIG_RA8_DMAC),y)
+CHIP_CSRCS += ra_dmac.c
+endif
+
+# Hardware header files
+CHIP_CSRCS += hardware/ra_spi.h
+CHIP_CSRCS += hardware/ra_dmac.h
+
+# Add to existing CHIP_CSRCS in Make.defs:
+# CHIP_CSRCS += ra_allocateheap.c ra_clockconfig.c ra_gpio.c ra_gpt.c
+# CHIP_CSRCS += ra_icu.c ra_irq.c ra_lowputc.c ra_pwm.c ra_serial.c 
+# CHIP_CSRCS += ra_start.c ra_timerisr.c ra_uart.c
+#
+# Add these new lines:
+ifeq ($(CONFIG_RA8_SPI),y)
+CHIP_CSRCS += ra_spi.c
+endif
+
+ifeq ($(CONFIG_RA8_DMAC),y) 
+CHIP_CSRCS += ra_dmac.c
+endif

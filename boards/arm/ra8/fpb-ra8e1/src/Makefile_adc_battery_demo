@@ -1,5 +1,5 @@
 ############################################################################
-# arch/arm/src/ra8/Make.defs
+# apps/examples/adc_battery/Makefile
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -18,40 +18,15 @@
 #
 ############################################################################
 
-# The start-up, "head", file
+include $(APPDIR)/Make.defs
 
-# Common ARM and Cortex-M85 files
+# ADC Battery Monitor Example
 
-include armv8-m/Make.defs
+PROGNAME = adc_battery
+PRIORITY = 100
+STACKSIZE = 2048
+MODULE = $(CONFIG_EXAMPLES_ADC_BATTERY)
 
-# Required RA files
+MAINSRC = adc_battery_main.c
 
-CHIP_CSRCS += ra_start.c
-CHIP_CSRCS += ra_clockconfig.c
-CHIP_CSRCS += ra_irq.c
-CHIP_CSRCS += ra_icu.c
-CHIP_CSRCS += ra_gpio.c
-CHIP_CSRCS += ra_lowputc.c
-CHIP_CSRCS += ra_allocateheap.c
-CHIP_CSRCS += ra_timerisr.c
-CHIP_CSRCS += ra_serial.c
-
-# ADC driver
-ifeq ($(CONFIG_RA8_ADC),y)
-CHIP_CSRCS += ra_adc.c
-endif
-
-# I2C driver
-ifeq ($(CONFIG_RA8_I2C),y)
-CHIP_CSRCS += ra_i2c.c
-endif
-
-# I2C slave driver
-ifeq ($(CONFIG_RA8_I2C_SLAVE),y)
-CHIP_CSRCS += ra_i2c_slave.c
-endif
-
-# DMAC driver
-ifeq ($(CONFIG_RA8_DMAC),y)
-CHIP_CSRCS += ra_dmac.c
-endif
+include $(APPDIR)/Application.mk

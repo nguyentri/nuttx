@@ -28,6 +28,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include "ra_gpio.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -124,11 +125,102 @@
  #define LED_PANIC         3  /* The system has crashed   N/C N/C  Blinking */
  #define LED_PANIC         3  /* MCU is is sleep mode    ---- Not used ---- */
 
+/* Enhanced UART+DMA Driver Configuration **********************************/
+
+/* GPIO Pin Definitions for Enhanced UART Driver ***********************/
+
+/* SCI2 UART for SBUS (if configured) */
+#ifdef CONFIG_RA8_UART2_SBUS
+#  define GPIO_UART2_RXD    IOPORT_CFG(PORT_5, PIN_2, IOPORT_CFG_PERIPHERAL_PIN | IOPORT_PERIPHERAL_SCI1_3_5_7_9)
+#  define GPIO_UART2_TXD    IOPORT_CFG(PORT_5, PIN_1, IOPORT_CFG_PERIPHERAL_PIN | IOPORT_PERIPHERAL_SCI1_3_5_7_9)
+#endif
+
+/* SCI3 UART for GPS (if configured) */  
+#ifdef CONFIG_RA8_UART3_GPS
+#  define GPIO_UART3_RXD    IOPORT_CFG(PORT_2, PIN_1, IOPORT_CFG_PERIPHERAL_PIN | IOPORT_PERIPHERAL_SCI1_3_5_7_9)
+#  define GPIO_UART3_TXD    IOPORT_CFG(PORT_2, PIN_0, IOPORT_CFG_PERIPHERAL_PIN | IOPORT_PERIPHERAL_SCI1_3_5_7_9)
+#endif
+
+/* DMA Channel Assignments **********************************************/
+
+/* DMA channels for UART (if DMA is enabled) */
+#ifdef CONFIG_RA8_UART_DMA_ENABLE
+#  define UART2_RX_DMA_CHANNEL    0
+#  define UART2_TX_DMA_CHANNEL    1
+#  define UART3_RX_DMA_CHANNEL    2
+#  define UART3_TX_DMA_CHANNEL    3
+#endif
+
+/* Clock Configuration **************************************************/
+
+/* SCI clock source and divider settings based on RA8E1 reference */
+#define SCI_CLOCK_SOURCE_PCLKA    /* Use PCLKA as SCI clock source */
+#define SCI_CLOCK_DIVIDER         4  /* Divide by 4 for optimal baud rates */
+
+/* UART Configuration Defaults *****************************************/
+
+/* SBUS configuration (100kbps, 8E2, inverted) */
+#ifdef CONFIG_RA8_UART2_SBUS
+#  define UART2_DEFAULT_BAUD      100000
+#  define UART2_DEFAULT_DATABITS  8
+#  define UART2_DEFAULT_PARITY    2  /* Even parity */
+#  define UART2_DEFAULT_STOPBITS  2
+#  define UART2_DEFAULT_INVERTED  true
+#endif
+
+/* GPS configuration (9600bps, 8N1, non-inverted) */
+#ifdef CONFIG_RA8_UART3_GPS
+#  define UART3_DEFAULT_BAUD      9600
+#  define UART3_DEFAULT_DATABITS  8  
+#  define UART3_DEFAULT_PARITY    0  /* No parity */
+#  define UART3_DEFAULT_STOPBITS  1
+#  define UART3_DEFAULT_INVERTED  false
+#endif
+
+/* Interrupt Priority Levels *******************************************/
+
+/* UART interrupt priorities (based on FSP reference) */
+#define UART_IRQ_PRIORITY         12  /* Medium priority */
+
+/* DMA interrupt priorities */
+#ifdef CONFIG_RA8_UART_DMA_ENABLE
+#  define DMA_IRQ_PRIORITY        3   /* Lower priority than UART */
+#endif
+
 /* ID_CODE */
 
 #define IDCODE1   0xFFFFFFFF
 #define IDCODE2   0xFFFFFFFF
 #define IDCODE3   0xFFFFFFFF
 #define IDCODE4   0xFFFFFFFF
+
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
+
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C"
+{
+#else
+#define EXTERN extern
+#endif
+
+/****************************************************************************
+ * Name: ra8e1_fpb_uart_setup
+ *
+ * Description:
+ *   Setup board-specific UART configuration for enhanced UART+DMA driver
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_RA8_SCI_UART
+int ra8e1_fpb_uart_setup(void);
+#endif
+
+#undef EXTERN
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __BOARDS_ARM_RA8_FPB_RA8E1_INCLUDE_BOARD_H */

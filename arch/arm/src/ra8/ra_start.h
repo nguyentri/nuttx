@@ -31,6 +31,6 @@
  * Public Function Prototypes
  ****************************************************************************/
 
-void ra_boardinitialize(void);
+void ra_board_initialize(void);
 
 #endif /* __ARCH_ARM_SRC_RA_START_H */

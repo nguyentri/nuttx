@@ -404,3 +404,32 @@ config RA_RTC
    default n
    depends on RA_HAVE_RTC
 endmenu
+
+menu "Analog"
+config RA_HAVE_ADC12
+   bool
+   default n
+
+config RA_HAVE_DAC12
+   bool
+   default n
+
+config RA_HAVE_ACMPHS
+   bool
+   default n
+
+config RA_ADC12
+   bool "12-bit ADC"
+   default n
+   depends on RA_HAVE_ADC12
+
+config RA_DAC12
+   bool "12-bit DAC"
+   default n
+   depends on RA_HAVE_DAC12
+
+config RA_ACMPHS
+   bool "High-Speed Analog Comparator"
+   default n
+   depends on RA_HAVE_ACMPHS
+endmenu

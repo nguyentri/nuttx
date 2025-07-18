@@ -120,7 +120,7 @@ void __start(void)
 
   /* Initialize onboard resources */
 
-  ra_boardinitialize();
+  ra_board_initialize();
 
   showprogress('C');
 

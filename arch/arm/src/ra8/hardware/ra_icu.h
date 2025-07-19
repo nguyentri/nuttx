@@ -176,6 +176,9 @@
 #define R_ICU_WUPEN_IRQWUPEN1             (1 <<  1) /* 02: IRQ1 interrupt S/W standby returns enable */
 #define R_ICU_WUPEN_IRQWUPEN0             (1 <<  0) /* 01: IRQ0 interrupt S/W standby returns enable */
 
+/* External IRQ events */
+#define EVENT_ICU_IRQ13    (0x55)  /* IRQ13 event number */
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/

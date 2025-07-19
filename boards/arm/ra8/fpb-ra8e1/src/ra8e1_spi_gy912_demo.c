@@ -1,6 +1,6 @@
 
 /****************************************************************************
- * boards/arm/ra8/fpb-ra8e1/src/spi_gy912.c
+ * boards/arm/ra8/fpb-ra8e1/src/gy912_spi.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -41,8 +41,8 @@
 #include "arm_internal.h"
 #include "chip.h"
 #include "ra_gpio.h"
-#include "ra8e1_fpb.h"
-#include "spi_gy912.h"
+#include "board.h"
+#include "ra8e1_demo_log.h"
 
 #ifdef CONFIG_RA8_SPI
 
@@ -129,7 +129,7 @@
  ****************************************************************************/
 
 /* SPI Device Structure */
-struct spi_gy912dev_s
+struct gy912_spidev_s
 {
   struct spi_dev_s spidev;     /* Externally visible part of the SPI interface */
   uint32_t         spibase;    /* SPI controller register base address */
@@ -147,7 +147,7 @@ struct spi_gy912dev_s
   size_t           nrxwords;   /* Size of RX buffer in words */
   size_t           nwords;     /* Number of words to be exchanged */
   volatile bool    dma_active; /* DMA transfer in progress */
-  struct spi_gy912_transfer_s *current_xfer; /* Current transfer context */
+  struct gy912_spi_transfer_s *current_xfer; /* Current transfer context */
 };
 
 /* DTC Transfer Information Structure */
@@ -166,38 +166,38 @@ struct ra8e1_dtc_info_s
  ****************************************************************************/
 
 /* SPI methods */
-static int      spi_gy912_lock(struct spi_dev_s *dev, bool lock);
-static uint32_t spi_gy912_setfrequency(struct spi_dev_s *dev, uint32_t frequency);
-static void     spi_gy912_setmode(struct spi_dev_s *dev, enum spi_mode_e mode);
-static void     spi_gy912_setbits(struct spi_dev_s *dev, int nbits);
+static int      gy912_spi_lock(struct spi_dev_s *dev, bool lock);
+static uint32_t gy912_spi_setfrequency(struct spi_dev_s *dev, uint32_t frequency);
+static void     gy912_spi_setmode(struct spi_dev_s *dev, enum spi_mode_e mode);
+static void     gy912_spi_setbits(struct spi_dev_s *dev, int nbits);
 #ifdef CONFIG_SPI_HWFEATURES
-static int      spi_gy912_hwfeatures(struct spi_dev_s *dev, spi_hwfeatures_t features);
+static int      gy912_spi_hwfeatures(struct spi_dev_s *dev, spi_hwfeatures_t features);
 #endif
-static uint32_t spi_gy912_send(struct spi_dev_s *dev, uint32_t wd);
-static void     spi_gy912_exchange(struct spi_dev_s *dev, const void *txbuffer,
+static uint32_t gy912_spi_send(struct spi_dev_s *dev, uint32_t wd);
+static void     gy912_spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
                                    void *rxbuffer, size_t nwords);
 #ifndef CONFIG_SPI_EXCHANGE
-static void     spi_gy912_sndblock(struct spi_dev_s *dev, const void *txbuffer,
+static void     gy912_spi_sndblock(struct spi_dev_s *dev, const void *txbuffer,
                                    size_t nwords);
-static void     spi_gy912_recvblock(struct spi_dev_s *dev, void *rxbuffer,
+static void     gy912_spi_recvblock(struct spi_dev_s *dev, void *rxbuffer,
                                     size_t nwords);
 #endif
 
 /* Initialization */
-static void     spi_gy912_bus_initialize(struct spi_gy912dev_s *priv);
+static void     gy912_spi_bus_initialize(struct gy912_spidev_s *priv);
 
 /* DMA support */
-static int      spi_gy912_dma_setup_transfer(struct spi_gy912dev_s *priv,
-                                              struct spi_gy912_transfer_s *xfer);
-static void     spi_gy912_dma_callback(struct spi_gy912dev_s *priv, int result);
+static int      gy912_spi_dma_setup_transfer(struct gy912_spidev_s *priv,
+                                              struct gy912_spi_transfer_s *xfer);
+static void     gy912_spi_dma_callback(struct gy912_spidev_s *priv, int result);
 
 /* Register access helpers */
-static inline uint8_t spi_gy912_getreg8(struct spi_gy912dev_s *priv, uint8_t offset);
-static inline void spi_gy912_putreg8(struct spi_gy912dev_s *priv, uint8_t offset, uint8_t value);
-static inline uint16_t spi_gy912_getreg16(struct spi_gy912dev_s *priv, uint8_t offset);
-static inline void spi_gy912_putreg16(struct spi_gy912dev_s *priv, uint8_t offset, uint16_t value);
-static inline uint32_t spi_gy912_getreg32(struct spi_gy912dev_s *priv, uint8_t offset);
-static inline void spi_gy912_putreg32(struct spi_gy912dev_s *priv, uint8_t offset, uint32_t value);
+static inline uint8_t gy912_spi_getreg8(struct gy912_spidev_s *priv, uint8_t offset);
+static inline void gy912_spi_putreg8(struct gy912_spidev_s *priv, uint8_t offset, uint8_t value);
+static inline uint16_t gy912_spi_getreg16(struct gy912_spidev_s *priv, uint8_t offset);
+static inline void gy912_spi_putreg16(struct gy912_spidev_s *priv, uint8_t offset, uint16_t value);
+static inline uint32_t gy912_spi_getreg32(struct gy912_spidev_s *priv, uint8_t offset);
+static inline void gy912_spi_putreg32(struct gy912_spidev_s *priv, uint8_t offset, uint32_t value);
 
 /****************************************************************************
  * Private Data
@@ -206,28 +206,28 @@ static inline void spi_gy912_putreg32(struct spi_gy912dev_s *priv, uint8_t offse
 /* SPI0 driver operations */
 static const struct spi_ops_s g_spi0ops =
 {
-  .lock              = spi_gy912_lock,
+  .lock              = gy912_spi_lock,
   .select            = ra_spi0_select,
-  .setfrequency      = spi_gy912_setfrequency,
-  .setmode           = spi_gy912_setmode,
-  .setbits           = spi_gy912_setbits,
+  .setfrequency      = gy912_spi_setfrequency,
+  .setmode           = gy912_spi_setmode,
+  .setbits           = gy912_spi_setbits,
 #ifdef CONFIG_SPI_HWFEATURES
-  .hwfeatures        = spi_gy912_hwfeatures,
+  .hwfeatures        = gy912_spi_hwfeatures,
 #endif
   .status            = ra_spi0_status,
   .cmddata           = ra_spi0_cmddata,
-  .send              = spi_gy912_send,
+  .send              = gy912_spi_send,
 #ifdef CONFIG_SPI_EXCHANGE
-  .exchange          = spi_gy912_exchange,
+  .exchange          = gy912_spi_exchange,
 #else
-  .sndblock          = spi_gy912_sndblock,
-  .recvblock         = spi_gy912_recvblock,
+  .sndblock          = gy912_spi_sndblock,
+  .recvblock         = gy912_spi_recvblock,
 #endif
   .registercallback  = 0,
 };
 
 /* SPI0 device structure */
-static struct spi_gy912dev_s g_spi0dev =
+static struct gy912_spidev_s g_spi0dev =
 {
   .spidev   = { &g_spi0ops },
   .spibase  = RA8E1_SPI0_BASE,
@@ -243,45 +243,45 @@ static struct ra8e1_dtc_info_s g_spi_dtc_rx_info;
  ****************************************************************************/
 
 /****************************************************************************
- * Name: spi_gy912_getreg8, spi_gy912_putreg8, etc.
+ * Name: gy912_spi_getreg8, gy912_spi_putreg8, etc.
  *
  * Description:
  *   Register access helpers
  *
  ****************************************************************************/
 
-static inline uint8_t spi_gy912_getreg8(struct spi_gy912dev_s *priv, uint8_t offset)
+static inline uint8_t gy912_spi_getreg8(struct gy912_spidev_s *priv, uint8_t offset)
 {
   return getreg8(priv->spibase + offset);
 }
 
-static inline void spi_gy912_putreg8(struct spi_gy912dev_s *priv, uint8_t offset, uint8_t value)
+static inline void gy912_spi_putreg8(struct gy912_spidev_s *priv, uint8_t offset, uint8_t value)
 {
   putreg8(value, priv->spibase + offset);
 }
 
-static inline uint16_t spi_gy912_getreg16(struct spi_gy912dev_s *priv, uint8_t offset)
+static inline uint16_t gy912_spi_getreg16(struct gy912_spidev_s *priv, uint8_t offset)
 {
   return getreg16(priv->spibase + offset);
 }
 
-static inline void spi_gy912_putreg16(struct spi_gy912dev_s *priv, uint8_t offset, uint16_t value)
+static inline void gy912_spi_putreg16(struct gy912_spidev_s *priv, uint8_t offset, uint16_t value)
 {
   putreg16(value, priv->spibase + offset);
 }
 
-static inline uint32_t spi_gy912_getreg32(struct spi_gy912dev_s *priv, uint8_t offset)
+static inline uint32_t gy912_spi_getreg32(struct gy912_spidev_s *priv, uint8_t offset)
 {
   return getreg32(priv->spibase + offset);
 }
 
-static inline void spi_gy912_putreg32(struct spi_gy912dev_s *priv, uint8_t offset, uint32_t value)
+static inline void gy912_spi_putreg32(struct gy912_spidev_s *priv, uint8_t offset, uint32_t value)
 {
   putreg32(value, priv->spibase + offset);
 }
 
 /****************************************************************************
- * Name: spi_gy912_lock
+ * Name: gy912_spi_lock
  *
  * Description:
  *   On SPI buses where there are multiple devices, it will be necessary to
@@ -301,9 +301,9 @@ static inline void spi_gy912_putreg32(struct spi_gy912dev_s *priv, uint8_t offse
  *
  ****************************************************************************/
 
-static int spi_gy912_lock(struct spi_dev_s *dev, bool lock)
+static int gy912_spi_lock(struct spi_dev_s *dev, bool lock)
 {
-  struct spi_gy912dev_s *priv = (struct spi_gy912dev_s *)dev;
+  struct gy912_spidev_s *priv = (struct gy912_spidev_s *)dev;
   int ret;
 
   if (lock)
@@ -319,7 +319,7 @@ static int spi_gy912_lock(struct spi_dev_s *dev, bool lock)
 }
 
 /****************************************************************************
- * Name: spi_gy912_setfrequency
+ * Name: gy912_spi_setfrequency
  *
  * Description:
  *   Set the SPI frequency.
@@ -333,9 +333,9 @@ static int spi_gy912_lock(struct spi_dev_s *dev, bool lock)
  *
  ****************************************************************************/
 
-static uint32_t spi_gy912_setfrequency(struct spi_dev_s *dev, uint32_t frequency)
+static uint32_t gy912_spi_setfrequency(struct spi_dev_s *dev, uint32_t frequency)
 {
-  struct spi_gy912dev_s *priv = (struct spi_gy912dev_s *)dev;
+  struct gy912_spidev_s *priv = (struct gy912_spidev_s *)dev;
   uint32_t pclk;
   uint32_t divisor;
   uint8_t spbr;
@@ -374,20 +374,20 @@ static uint32_t spi_gy912_setfrequency(struct spi_dev_s *dev, uint32_t frequency
   priv->frequency = frequency;
 
   /* Configure bit rate */
-  spi_gy912_putreg8(priv, RA8E1_SPI_SPBR_OFFSET, spbr);
+  gy912_spi_putreg8(priv, RA8E1_SPI_SPBR_OFFSET, spbr);
 
   /* Update command register with BRDV */
-  uint16_t spcmd = spi_gy912_getreg16(priv, RA8E1_SPI_SPCMD0_OFFSET);
+  uint16_t spcmd = gy912_spi_getreg16(priv, RA8E1_SPI_SPCMD0_OFFSET);
   spcmd &= ~RA8E1_SPI_SPCMD_BRDV_MASK;
   spcmd |= (brdv << 2) & RA8E1_SPI_SPCMD_BRDV_MASK;
-  spi_gy912_putreg16(priv, RA8E1_SPI_SPCMD0_OFFSET, spcmd);
+  gy912_spi_putreg16(priv, RA8E1_SPI_SPCMD0_OFFSET, spcmd);
 
   spiinfo("Frequency %d->%d\n", frequency, priv->actual);
   return priv->actual;
 }
 
 /****************************************************************************
- * Name: spi_gy912_setmode
+ * Name: gy912_spi_setmode
  *
  * Description:
  *   Set the SPI mode.
@@ -401,9 +401,9 @@ static uint32_t spi_gy912_setfrequency(struct spi_dev_s *dev, uint32_t frequency
  *
  ****************************************************************************/
 
-static void spi_gy912_setmode(struct spi_dev_s *dev, enum spi_mode_e mode)
+static void gy912_spi_setmode(struct spi_dev_s *dev, enum spi_mode_e mode)
 {
-  struct spi_gy912dev_s *priv = (struct spi_gy912dev_s *)dev;
+  struct gy912_spidev_s *priv = (struct gy912_spidev_s *)dev;
   uint16_t spcmd;
 
   spiinfo("mode=%d\n", mode);
@@ -412,7 +412,7 @@ static void spi_gy912_setmode(struct spi_dev_s *dev, enum spi_mode_e mode)
   if (mode != priv->mode)
     {
       /* Configure CPOL and CPHA in SPCMD0 register */
-      spcmd = spi_gy912_getreg16(priv, RA8E1_SPI_SPCMD0_OFFSET);
+      spcmd = gy912_spi_getreg16(priv, RA8E1_SPI_SPCMD0_OFFSET);
       spcmd &= ~(RA8E1_SPI_SPCMD_CPOL | RA8E1_SPI_SPCMD_CPHA);
 
       switch (mode)
@@ -436,13 +436,13 @@ static void spi_gy912_setmode(struct spi_dev_s *dev, enum spi_mode_e mode)
             return;
         }
 
-      spi_gy912_putreg16(priv, RA8E1_SPI_SPCMD0_OFFSET, spcmd);
+      gy912_spi_putreg16(priv, RA8E1_SPI_SPCMD0_OFFSET, spcmd);
       priv->mode = mode;
     }
 }
 
 /****************************************************************************
- * Name: spi_gy912_setbits
+ * Name: gy912_spi_setbits
  *
  * Description:
  *   Set the number of bits per word.
@@ -456,9 +456,9 @@ static void spi_gy912_setmode(struct spi_dev_s *dev, enum spi_mode_e mode)
  *
  ****************************************************************************/
 
-static void spi_gy912_setbits(struct spi_dev_s *dev, int nbits)
+static void gy912_spi_setbits(struct spi_dev_s *dev, int nbits)
 {
-  struct spi_gy912dev_s *priv = (struct spi_gy912dev_s *)dev;
+  struct gy912_spidev_s *priv = (struct gy912_spidev_s *)dev;
   uint16_t spcmd;
 
   spiinfo("nbits=%d\n", nbits);
@@ -467,7 +467,7 @@ static void spi_gy912_setbits(struct spi_dev_s *dev, int nbits)
   if (nbits != priv->nbits)
     {
       /* Configure data length in SPCMD0 register */
-      spcmd = spi_gy912_getreg16(priv, RA8E1_SPI_SPCMD0_OFFSET);
+      spcmd = gy912_spi_getreg16(priv, RA8E1_SPI_SPCMD0_OFFSET);
       spcmd &= ~RA8E1_SPI_SPCMD_SPB_MASK;
 
       if (nbits <= 8)
@@ -486,13 +486,13 @@ static void spi_gy912_setbits(struct spi_dev_s *dev, int nbits)
           return;
         }
 
-      spi_gy912_putreg16(priv, RA8E1_SPI_SPCMD0_OFFSET, spcmd);
+      gy912_spi_putreg16(priv, RA8E1_SPI_SPCMD0_OFFSET, spcmd);
     }
 }
 
 #ifdef CONFIG_SPI_HWFEATURES
 /****************************************************************************
- * Name: spi_gy912_hwfeatures
+ * Name: gy912_spi_hwfeatures
  *
  * Description:
  *   Set hardware-specific feature flags.
@@ -507,7 +507,7 @@ static void spi_gy912_setbits(struct spi_dev_s *dev, int nbits)
  *
  ****************************************************************************/
 
-static int spi_gy912_hwfeatures(struct spi_dev_s *dev, spi_hwfeatures_t features)
+static int gy912_spi_hwfeatures(struct spi_dev_s *dev, spi_hwfeatures_t features)
 {
   /* Other H/W features are not supported */
   return (features == 0) ? OK : -ENOSYS;
@@ -515,7 +515,7 @@ static int spi_gy912_hwfeatures(struct spi_dev_s *dev, spi_hwfeatures_t features
 #endif
 
 /****************************************************************************
- * Name: spi_gy912_send
+ * Name: gy912_spi_send
  *
  * Description:
  *   Exchange one word on SPI
@@ -530,9 +530,9 @@ static int spi_gy912_hwfeatures(struct spi_dev_s *dev, spi_hwfeatures_t features
  *
  ****************************************************************************/
 
-static uint32_t spi_gy912_send(struct spi_dev_s *dev, uint32_t wd)
+static uint32_t gy912_spi_send(struct spi_dev_s *dev, uint32_t wd)
 {
-  struct spi_gy912dev_s *priv = (struct spi_gy912dev_s *)dev;
+  struct gy912_spidev_s *priv = (struct gy912_spidev_s *)dev;
   uint32_t regval;
   uint32_t ret;
 
@@ -541,35 +541,35 @@ static uint32_t spi_gy912_send(struct spi_dev_s *dev, uint32_t wd)
   /* Write the data to transmit to the SPI Data Register */
   if (priv->nbits <= 8)
     {
-      spi_gy912_putreg8(priv, RA8E1_SPI_SPDR_OFFSET, (uint8_t)wd);
+      gy912_spi_putreg8(priv, RA8E1_SPI_SPDR_OFFSET, (uint8_t)wd);
     }
   else
     {
-      spi_gy912_putreg16(priv, RA8E1_SPI_SPDR_OFFSET, (uint16_t)wd);
+      gy912_spi_putreg16(priv, RA8E1_SPI_SPDR_OFFSET, (uint16_t)wd);
     }
 
   /* Wait until the transfer is complete */
   do
     {
-      regval = spi_gy912_getreg8(priv, RA8E1_SPI_SPSR_OFFSET);
+      regval = gy912_spi_getreg8(priv, RA8E1_SPI_SPSR_OFFSET);
     }
   while ((regval & RA8E1_SPI_SPSR_SPTEF) == 0);
 
   /* Wait for receive data */
   do
     {
-      regval = spi_gy912_getreg8(priv, RA8E1_SPI_SPSR_OFFSET);
+      regval = gy912_spi_getreg8(priv, RA8E1_SPI_SPSR_OFFSET);
     }
   while ((regval & RA8E1_SPI_SPSR_SPRF) == 0);
 
   /* Read the received data */
   if (priv->nbits <= 8)
     {
-      ret = spi_gy912_getreg8(priv, RA8E1_SPI_SPDR_OFFSET);
+      ret = gy912_spi_getreg8(priv, RA8E1_SPI_SPDR_OFFSET);
     }
   else
     {
-      ret = spi_gy912_getreg16(priv, RA8E1_SPI_SPDR_OFFSET);
+      ret = gy912_spi_getreg16(priv, RA8E1_SPI_SPDR_OFFSET);
     }
 
   spiinfo("Sent: %04x Return: %04x Status: %02x\n", wd, ret, regval);
@@ -577,7 +577,7 @@ static uint32_t spi_gy912_send(struct spi_dev_s *dev, uint32_t wd)
 }
 
 /****************************************************************************
- * Name: spi_gy912_exchange
+ * Name: gy912_spi_exchange
  *
  * Description:
  *   Exchange a block of data from SPI.
@@ -597,11 +597,11 @@ static uint32_t spi_gy912_send(struct spi_dev_s *dev, uint32_t wd)
  *
  ****************************************************************************/
 
-static void spi_gy912_exchange(struct spi_dev_s *dev, const void *txbuffer,
+static void gy912_spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
                                void *rxbuffer, size_t nwords)
 {
-  struct spi_gy912dev_s *priv = (struct spi_gy912dev_s *)dev;
-  struct spi_gy912_transfer_s xfer;
+  struct gy912_spidev_s *priv = (struct gy912_spidev_s *)dev;
+  struct gy912_spi_transfer_s xfer;
 
   DEBUGASSERT(priv && priv->spibase);
 
@@ -618,7 +618,7 @@ static void spi_gy912_exchange(struct spi_dev_s *dev, const void *txbuffer,
   /* Use DMA for large transfers if available */
   if (nwords > 16 && !priv->dma_active)
     {
-      if (spi_gy912_transfer_dma(dev, &xfer) == OK)
+      if (gy912_spi_transfer_dma(dev, &xfer) == OK)
         {
           return;
         }
@@ -626,13 +626,13 @@ static void spi_gy912_exchange(struct spi_dev_s *dev, const void *txbuffer,
     }
 
   /* Use polling mode */
-  spi_gy912_transfer_polling(dev, &xfer);
+  gy912_spi_transfer_polling(dev, &xfer);
 }
 
 #ifndef CONFIG_SPI_EXCHANGE
 
 /****************************************************************************
- * Name: spi_gy912_sndblock
+ * Name: gy912_spi_sndblock
  *
  * Description:
  *   Send a block of data on SPI
@@ -649,15 +649,15 @@ static void spi_gy912_exchange(struct spi_dev_s *dev, const void *txbuffer,
  *
  ****************************************************************************/
 
-static void spi_gy912_sndblock(struct spi_dev_s *dev, const void *txbuffer,
+static void gy912_spi_sndblock(struct spi_dev_s *dev, const void *txbuffer,
                                size_t nwords)
 {
   spiinfo("txbuffer=%p nwords=%d\n", txbuffer, nwords);
-  return spi_gy912_exchange(dev, txbuffer, NULL, nwords);
+  return gy912_spi_exchange(dev, txbuffer, NULL, nwords);
 }
 
 /****************************************************************************
- * Name: spi_gy912_recvblock
+ * Name: gy912_spi_recvblock
  *
  * Description:
  *   Receive a block of data from SPI
@@ -674,17 +674,17 @@ static void spi_gy912_sndblock(struct spi_dev_s *dev, const void *txbuffer,
  *
  ****************************************************************************/
 
-static void spi_gy912_recvblock(struct spi_dev_s *dev, void *rxbuffer,
+static void gy912_spi_recvblock(struct spi_dev_s *dev, void *rxbuffer,
                                 size_t nwords)
 {
   spiinfo("rxbuffer=%p nwords=%d\n", rxbuffer, nwords);
-  return spi_gy912_exchange(dev, NULL, rxbuffer, nwords);
+  return gy912_spi_exchange(dev, NULL, rxbuffer, nwords);
 }
 
 #endif /* !CONFIG_SPI_EXCHANGE */
 
 /****************************************************************************
- * Name: spi_gy912_bus_initialize
+ * Name: gy912_spi_bus_initialize
  *
  * Description:
  *   Initialize the selected SPI bus in its default state (Master, 8-bit,
@@ -698,7 +698,7 @@ static void spi_gy912_recvblock(struct spi_dev_s *dev, void *rxbuffer,
  *
  ****************************************************************************/
 
-static void spi_gy912_bus_initialize(struct spi_gy912dev_s *priv)
+static void gy912_spi_bus_initialize(struct gy912_spidev_s *priv)
 {
   uint8_t regval;
   uint16_t spcmd;
@@ -714,17 +714,17 @@ static void spi_gy912_bus_initialize(struct spi_gy912dev_s *priv)
   modifyreg32(RA8_SYSTEM_MSTPCRB, RA8E1_MSTP_SPI0, 0);
 
   /* Disable SPI function */
-  spi_gy912_putreg8(priv, RA8E1_SPI_SPCR_OFFSET, 0);
+  gy912_spi_putreg8(priv, RA8E1_SPI_SPCR_OFFSET, 0);
 
   /* Configure SPI Control Register */
   regval = RA8E1_SPI_SPCR_MSTR |    /* Master mode */
            RA8E1_SPI_SPCR_SPE;      /* SPI function enable */
-  spi_gy912_putreg8(priv, RA8E1_SPI_SPCR_OFFSET, regval);
+  gy912_spi_putreg8(priv, RA8E1_SPI_SPCR_OFFSET, regval);
 
   /* Configure SPI Command Register 0 */
   spcmd = RA8E1_SPI_SPCMD_SPB_8 |   /* 8-bit data length */
           (0 << 4);                 /* SSL0 assertion */
-  spi_gy912_putreg16(priv, RA8E1_SPI_SPCMD0_OFFSET, spcmd);
+  gy912_spi_putreg16(priv, RA8E1_SPI_SPCMD0_OFFSET, spcmd);
 
   /* Set default configuration */
   priv->frequency = 0;
@@ -732,9 +732,9 @@ static void spi_gy912_bus_initialize(struct spi_gy912dev_s *priv)
   priv->nbits = 8;
 
   /* Set the initial SPI configuration */
-  spi_gy912_setmode((struct spi_dev_s *)priv, SPIDEV_MODE0);
-  spi_gy912_setbits((struct spi_dev_s *)priv, 8);
-  spi_gy912_setfrequency((struct spi_dev_s *)priv, 400000);
+  gy912_spi_setmode((struct spi_dev_s *)priv, SPIDEV_MODE0);
+  gy912_spi_setbits((struct spi_dev_s *)priv, 8);
+  gy912_spi_setfrequency((struct spi_dev_s *)priv, 400000);
 
   /* Initialize CS pins to deasserted state */
   ra_gpiowrite(GPIO_SPI0_SS0, true);
@@ -744,7 +744,7 @@ static void spi_gy912_bus_initialize(struct spi_gy912dev_s *priv)
 }
 
 /****************************************************************************
- * Name: spi_gy912_dma_setup
+ * Name: gy912_spi_dma_setup
  *
  * Description:
  *   Setup DMA for SPI transfers
@@ -754,7 +754,7 @@ static void spi_gy912_bus_initialize(struct spi_gy912dev_s *priv)
  *
  ****************************************************************************/
 
-int spi_gy912_dma_setup(void)
+int gy912_spi_dma_setup(void)
 {
   /* Enable DTC clock */
   modifyreg32(RA8_SYSTEM_MSTPCRB, RA8E1_MSTP_DTC, 0);
@@ -770,7 +770,7 @@ int spi_gy912_dma_setup(void)
 }
 
 /****************************************************************************
- * Name: spi_gy912_transfer_dma
+ * Name: gy912_spi_transfer_dma
  *
  * Description:
  *   Perform SPI transfer using DMA
@@ -784,10 +784,10 @@ int spi_gy912_dma_setup(void)
  *
  ****************************************************************************/
 
-int spi_gy912_transfer_dma(struct spi_dev_s *dev,
-                           struct spi_gy912_transfer_s *xfer)
+int gy912_spi_transfer_dma(struct spi_dev_s *dev,
+                           struct gy912_spi_transfer_s *xfer)
 {
-  struct spi_gy912dev_s *priv = (struct spi_gy912dev_s *)dev;
+  struct gy912_spidev_s *priv = (struct gy912_spidev_s *)dev;
 
   /* TODO: Implement DMA transfer setup */
   /* This requires:
@@ -799,11 +799,11 @@ int spi_gy912_transfer_dma(struct spi_dev_s *dev,
    */
 
   /* For now, fall back to polling mode */
-  return spi_gy912_transfer_polling(dev, xfer);
+  return gy912_spi_transfer_polling(dev, xfer);
 }
 
 /****************************************************************************
- * Name: spi_gy912_transfer_polling
+ * Name: gy912_spi_transfer_polling
  *
  * Description:
  *   Perform SPI transfer using polling mode
@@ -817,10 +817,10 @@ int spi_gy912_transfer_dma(struct spi_dev_s *dev,
  *
  ****************************************************************************/
 
-int spi_gy912_transfer_polling(struct spi_dev_s *dev,
-                               struct spi_gy912_transfer_s *xfer)
+int gy912_spi_transfer_polling(struct spi_dev_s *dev,
+                               struct gy912_spi_transfer_s *xfer)
 {
-  struct spi_gy912dev_s *priv = (struct spi_gy912dev_s *)dev;
+  struct gy912_spidev_s *priv = (struct gy912_spidev_s *)dev;
   const uint8_t *txptr8 = (const uint8_t *)xfer->txbuffer;
   const uint16_t *txptr16 = (const uint16_t *)xfer->txbuffer;
   uint8_t *rxptr8 = (uint8_t *)xfer->rxbuffer;
@@ -851,7 +851,7 @@ int spi_gy912_transfer_polling(struct spi_dev_s *dev,
         }
 
       /* Perform the exchange */
-      rxdata = spi_gy912_send(dev, txdata);
+      rxdata = gy912_spi_send(dev, txdata);
 
       /* Store received data */
       if (rxptr8 || rxptr16)
@@ -880,7 +880,7 @@ int spi_gy912_transfer_polling(struct spi_dev_s *dev,
 }
 
 /****************************************************************************
- * Name: spi_gy912_cs_control
+ * Name: gy912_spi_cs_control
  *
  * Description:
  *   Control chip select lines
@@ -894,7 +894,7 @@ int spi_gy912_transfer_polling(struct spi_dev_s *dev,
  *
  ****************************************************************************/
 
-void spi_gy912_cs_control(uint32_t devid, bool select)
+void gy912_spi_cs_control(uint32_t devid, bool select)
 {
   switch (devid)
     {
@@ -914,20 +914,20 @@ void spi_gy912_cs_control(uint32_t devid, bool select)
 }
 
 /****************************************************************************
- * Name: spi_gy912_interrupt_handler
+ * Name: gy912_spi_interrupt_handler
  *
  * Description:
  *   SPI interrupt handler
  *
  ****************************************************************************/
 
-int spi_gy912_interrupt_handler(int irq, void *context, void *arg)
+int gy912_spi_interrupt_handler(int irq, void *context, void *arg)
 {
-  struct spi_gy912dev_s *priv = (struct spi_gy912dev_s *)arg;
+  struct gy912_spidev_s *priv = (struct gy912_spidev_s *)arg;
   uint8_t status;
 
   /* Read status register */
-  status = spi_gy912_getreg8(priv, RA8E1_SPI_SPSR_OFFSET);
+  status = gy912_spi_getreg8(priv, RA8E1_SPI_SPSR_OFFSET);
 
   /* Handle errors */
   if (status & (RA8E1_SPI_SPSR_OVRF | RA8E1_SPI_SPSR_MODF | RA8E1_SPI_SPSR_PERF))
@@ -945,16 +945,16 @@ int spi_gy912_interrupt_handler(int irq, void *context, void *arg)
 }
 
 /****************************************************************************
- * Name: spi_gy912_dma_interrupt_handler
+ * Name: gy912_spi_dma_interrupt_handler
  *
  * Description:
  *   DMA interrupt handler for SPI transfers
  *
  ****************************************************************************/
 
-int spi_gy912_dma_interrupt_handler(int irq, void *context, void *arg)
+int gy912_spi_dma_interrupt_handler(int irq, void *context, void *arg)
 {
-  struct spi_gy912dev_s *priv = (struct spi_gy912dev_s *)arg;
+  struct gy912_spidev_s *priv = (struct gy912_spidev_s *)arg;
 
   /* TODO: Handle DMA completion interrupt */
   if (priv->current_xfer)
@@ -972,22 +972,22 @@ int spi_gy912_dma_interrupt_handler(int irq, void *context, void *arg)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: spi_gy912_initialize
+ * Name: gy912_spi_ spi_initialize
  *
  * Description:
  *   Initialize SPI driver and register the /dev/spiN devices.
  *
  ****************************************************************************/
 
-void spi_gy912_initialize(void)
+void gy912_spi_ spi_initialize(void)
 {
   struct spi_dev_s *spi;
 
   /* Initialize SPI0 */
-  spi_gy912_bus_initialize(&g_spi0dev);
+  gy912_spi_bus_initialize(&g_spi0dev);
 
   /* Setup DMA if available */
-  spi_gy912_dma_setup();
+  gy912_spi_dma_setup();
 
   /* Get the SPI0 port interface */
   spi = (struct spi_dev_s *)&g_spi0dev;
@@ -1013,7 +1013,7 @@ void spi_gy912_initialize(void)
 void ra_spi0_select(struct spi_dev_s *dev, uint32_t devid, bool selected)
 {
   spiinfo("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
-  spi_gy912_cs_control(devid, selected);
+  gy912_spi_cs_control(devid, selected);
 }
 
 uint8_t ra_spi0_status(struct spi_dev_s *dev, uint32_t devid)
@@ -1074,7 +1074,7 @@ int ra_spi0_cmddata(struct spi_dev_s *dev, uint32_t devid, bool cmd)
  * include/nuttx/sensors/gy912.h or similar.
  */
 
-extern int gy912_initialize(void);
+extern int gy912_spi_initialize(void);
 extern int gy912_demo_run(void);
 extern int gy912_demo_single_read(void);
 extern int gy912_self_test(void);
@@ -1093,7 +1093,7 @@ extern int gy912_self_test(void);
 
 static void show_help(void)
 {
-  printf(GY912_HELP);
+  demoprintf(GY912_HELP);
 }
 
 /****************************************************************************
@@ -1101,14 +1101,28 @@ static void show_help(void)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: main
+ * Name: ra8e1_spi_gy912_demo_init
  *
  * Description:
- *   GY-912 test application main function
+ *   Initialize the SPI GY-912 demo
  *
  ****************************************************************************/
 
-int main(int argc, FAR char *argv[])
+int ra8e1_spi_gy912_demo_init(void)
+{
+  /* Initialize GY-912 sensor module */
+  return gy912_spi_initialize();
+}
+
+/****************************************************************************
+ * Name: ra8e1_spi_gy912_demo_main
+ *
+ * Description:
+ *   GY-912 SPI demo main function
+ *
+ ****************************************************************************/
+
+int ra8e1_spi_gy912_demo_main(int argc, FAR char *argv[])
 {
   int ret = OK;
   bool help = false;
@@ -1118,8 +1132,8 @@ int main(int argc, FAR char *argv[])
   bool init_only = false;
   int i;
   
-  printf("GY-912 10DOF Sensor Test Application\n");
-  printf("====================================\n\n");
+  demoprintf("GY-912 10DOF Sensor Test Application\n");
+  demoprintf("====================================\n\n");
   
   /* Parse command line arguments */
   for (i = 1; i < argc; i++)
@@ -1146,7 +1160,7 @@ int main(int argc, FAR char *argv[])
         }
       else
         {
-          printf("Unknown option: %s\n\n", argv[i]);
+          demoprintf("Unknown option: %s\n\n", argv[i]);
           show_help();
           return EXIT_FAILURE;
         }
@@ -1161,64 +1175,64 @@ int main(int argc, FAR char *argv[])
   /* If no specific action requested, show help */
   if (!single && !run && !test && !init_only)
     {
-      printf("No action specified. Available actions:\n\n");
+      demoprintf("No action specified. Available actions:\n\n");
       show_help();
       return EXIT_SUCCESS;
     }
   
   /* Initialize sensors */
-  printf("Initializing GY-912 sensors...\n");
-  ret = gy912_initialize();
+  demoprintf("Initializing GY-912 sensors...\n");
+  ret = gy912_spi_initialize();
   if (ret < 0)
     {
-      printf("ERROR: Failed to initialize GY-912 sensors: %d\n", ret);
+      demoprintf("ERROR: Failed to initialize GY-912 sensors: %d\n", ret);
       return EXIT_FAILURE;
     }
   
-  printf("GY-912 sensors initialized successfully!\n\n");
+  demoprintf("GY-912 sensors initialized successfully!\n\n");
   
   if (init_only)
     {
-      printf("Initialization complete.\n");
+      demoprintf("Initialization complete.\n");
       return EXIT_SUCCESS;
     }
   
   /* Perform requested action */
   if (test)
     {
-      printf("Running self-test...\n");
+      demoprintf("Running self-test...\n");
       ret = gy912_self_test();
       if (ret < 0)
         {
-          printf("ERROR: Self-test failed: %d\n", ret);
+          demoprintf("ERROR: Self-test failed: %d\n", ret);
           return EXIT_FAILURE;
         }
-      printf("Self-test completed successfully!\n\n");
+      demoprintf("Self-test completed successfully!\n\n");
     }
   
   if (single)
     {
-      printf("Performing single sensor reading...\n");
+      demoprintf("Performing single sensor reading...\n");
       ret = gy912_demo_single_read();
       if (ret < 0)
         {
-          printf("ERROR: Single reading failed: %d\n", ret);
+          demoprintf("ERROR: Single reading failed: %d\n", ret);
           return EXIT_FAILURE;
         }
-      printf("Single reading completed!\n\n");
+      demoprintf("Single reading completed!\n\n");
     }
   
   if (run)
     {
-      printf("Starting continuous demonstration...\n");
-      printf("Press Ctrl+C to stop.\n\n");
+      demoprintf("Starting continuous demonstration...\n");
+      demoprintf("Press Ctrl+C to stop.\n\n");
       ret = gy912_demo_run();
       if (ret < 0)
         {
-          printf("ERROR: Demonstration failed: %d\n", ret);
+          demoprintf("ERROR: Demonstration failed: %d\n", ret);
           return EXIT_FAILURE;
         }
-      printf("Demonstration completed!\n\n");
+      demoprintf("Demonstration completed!\n\n");
     }
   
   return EXIT_SUCCESS;

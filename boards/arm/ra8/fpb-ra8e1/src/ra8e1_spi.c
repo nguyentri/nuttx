@@ -28,308 +28,220 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <debug.h>
+#include <syslog.h>
 
 #include <nuttx/spi/spi.h>
+#include <nuttx/spi/spi_transfer.h>
+
 #include <arch/board/board.h>
-
-#include "arm_internal.h"
-#include "chip.h"
-#include "ra_gpio.h"
-#include "fpb-ra8e1.h"
-#include "spi_gy912.h"
-
-#ifdef CONFIG_RA8_SPI
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
-/* Debug */
-#ifdef CONFIG_DEBUG_SPI_INFO
-#  define spiinfo _info
-#else
-#  define spiinfo(x...)
-#endif
-
-#ifdef CONFIG_DEBUG_SPI_WARN
-#  define spiwarn _warn
-#else
-#  define spiwarn(x...)
-#endif
-
-#ifdef CONFIG_DEBUG_SPI_ERROR
-#  define spierr _err
-#else
-#  define spierr(x...)
-#endif
-
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-
-static struct spi_dev_s *g_spi0;
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ra_spi_select
- *
- * Description:
- *   Select/deselect the SPI device specified by 'devid'
- *
- * Input Parameters:
- *   dev    - SPI device instance
- *   devid  - Device ID (chip select)
- *   selected - True if selecting device
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-
-void ra_spi_select(struct spi_dev_s *dev, uint32_t devid, bool selected)
-{
-  spiinfo("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
-
-  switch (devid)
-    {
-      case SPIDEV_ICM20948:
-        /* ICM-20948 on P612 (CS0) */
-        ra_gpio_write(GY912_ICM20948_CS_PIN, !selected);
-        break;
-
-      case SPIDEV_BMP388:
-        /* BMP388 on P605 (CS1) */
-        ra_gpio_write(GY912_BMP388_CS_PIN, !selected);
-        break;
-
-      default:
-        spierr("Unknown device ID: %d\n", (int)devid);
-        break;
-    }
-}
-
-/****************************************************************************
- * Name: ra_spi_status
- *
- * Description:
- *   Return status information associated with the SPI device.
- *
- * Input Parameters:
- *   dev   - Device-specific state data
- *   devid - Identifies the device to report status on
- *
- * Returned Value:
- *   Returns a bitset of status values (see SPI_STATUS_* defines)
- *
- ****************************************************************************/
-
-uint8_t ra_spi_status(struct spi_dev_s *dev, uint32_t devid)
-{
-  uint8_t status = 0;
-
-  switch (devid)
-    {
-      case SPIDEV_ICM20948:
-        /* ICM-20948 is always present on GY-912 module */
-        status |= SPI_STATUS_PRESENT;
-        break;
-
-      case SPIDEV_BMP388:
-        /* BMP388 is always present on GY-912 module */
-        status |= SPI_STATUS_PRESENT;
-        break;
-
-      default:
-        break;
-    }
-
-  spiinfo("devid: %d status: 0x%02x\n", (int)devid, status);
-  return status;
-}
-
-#ifdef CONFIG_SPI_CMDDATA
-/****************************************************************************
- * Name: ra_spi_cmddata
- *
- * Description:
- *   Some SPI devices require an additional control to determine if the SPI
- *   data being sent is a command or is data. If CONFIG_SPI_CMDDATA then
- *   this function will be called to different be command data and other data.
- *
- * Input Parameters:
- *   dev - Device-specific state data
- *   devid - Identifies the device to see CMD or DATA
- *   cmd - true: The following word is a command; false: the following words
- *         are data.
- *
- * Returned Value:
- *   OK unless an error occurs.  Then a negated errno value is returned
- *
- ****************************************************************************/
-
-int ra_spi_cmddata(struct spi_dev_s *dev, uint32_t devid, bool cmd)
-{
-  spiinfo("devid: %d CMD: %s\n", (int)devid, cmd ? "command" : "data");
-
-  switch (devid)
-    {
-      case SPIDEV_ICM20948:
-      case SPIDEV_BMP388:
-        /* These devices don't use separate CMD/DATA lines */
-        return OK;
-
-      default:
-        return -ENODEV;
-    }
-}
-#endif
-
-#ifdef CONFIG_SPI_CALLBACK
-/****************************************************************************
- * Name: ra_spi_register_callback
- *
- * Description:
- *   Register a callback that will be invoked on any SPI completion or error
- *
- * Input Parameters:
- *   dev      - Device-specific state data
- *   callback - The function to call on the completion of any SPI DMA
- *   arg      - An argument that will be provided when the callback is invoked
- *
- * Returned Value:
- *   Zero (OK) on success; a negated errno value on failure.
- *
- ****************************************************************************/
-
-int ra_spi_register_callback(struct spi_dev_s *dev, spi_callback_t callback,
-                             void *arg)
-{
-  /* This function would be implemented if we supported DMA completion callbacks */
-  return -ENOSYS;
-}
-#endif
-
-/****************************************************************************
  * Name: fpb_ra8e1_spi_initialize
  *
  * Description:
- *   Initialize SPI driver and register devices
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   Zero (OK) on success; a negated errno value on failure.
+ *   Initialize SPI buses for the FPB-RA8E1 board
+ *   This function initializes both SPI0 and SPI1 for loopback demo
  *
  ****************************************************************************/
 
 int fpb_ra8e1_spi_initialize(void)
 {
-  spiinfo("Initializing SPI for FPB-RA8E1\n");
+#ifdef CONFIG_RA8_SPI
+  struct spi_dev_s *spi0;
+  struct spi_dev_s *spi1;
+  int ret;
 
-  /* Configure CS pins as outputs (initially high - deselected) */
-  ra_gpio_config(GY912_ICM20948_CS_PIN);
-  ra_gpio_config(GY912_BMP388_CS_PIN);
-
-  /* Initialize SPI0 */
-  g_spi0 = ra_spibus_initialize(0);
-  if (g_spi0 == NULL)
+  /* Initialize SPI0 (Master) */
+  spi0 = ra8_spibus_initialize(0);
+  if (!spi0)
     {
-      spierr("Failed to initialize SPI0\n");
+      syslog(LOG_ERR, "ERROR: Failed to initialize SPI0 (Master)\n");
       return -ENODEV;
     }
 
-  spiinfo("SPI0 initialized successfully\n");
+  /* Register SPI0 device */
+  spi_register(spi0, 0);
+  syslog(LOG_INFO, "SPI0 (Master) initialized successfully\n");
 
-  /* Test SPI by reading chip IDs */
-  struct spi_dev_s *spi = g_spi0;
-  uint8_t icm_id, bmp_id;
-
-  /* Test ICM-20948 */
-  SPI_LOCK(spi, true);
-  SPI_SETFREQUENCY(spi, GY912_SPI_FREQUENCY);
-  SPI_SETMODE(spi, GY912_SPI_MODE);
-  SPI_SETBITS(spi, GY912_SPI_BITS);
-
-  SPI_SELECT(spi, SPIDEV_ICM20948, true);
-  SPI_SEND(spi, ICM20948_WHO_AM_I | 0x80);  /* Read bit set */
-  icm_id = SPI_SEND(spi, 0xFF);
-  SPI_SELECT(spi, SPIDEV_ICM20948, false);
-
-  /* Test BMP388 */
-  SPI_SELECT(spi, SPIDEV_BMP388, true);
-  SPI_SEND(spi, BMP388_CHIP_ID | 0x80);  /* Read bit set */
-  bmp_id = SPI_SEND(spi, 0xFF);
-  SPI_SELECT(spi, SPIDEV_BMP388, false);
-
-  SPI_LOCK(spi, false);
-
-  spiinfo("ICM-20948 ID: 0x%02x (expected: 0x%02x)\n", icm_id, ICM20948_WHO_AM_I_VAL);
-  spiinfo("BMP388 ID: 0x%02x (expected: 0x%02x)\n", bmp_id, BMP388_CHIP_ID_VAL);
-
-  if (icm_id != ICM20948_WHO_AM_I_VAL)
+#ifdef CONFIG_RA_SPI1
+  /* Initialize SPI1 (Slave) */
+  spi1 = ra8_spibus_initialize(1);
+  if (!spi1)
     {
-      spiwarn("ICM-20948 not detected or communication failed\n");
+      syslog(LOG_ERR, "ERROR: Failed to initialize SPI1 (Slave)\n");
+      return -ENODEV;
     }
 
-  if (bmp_id != BMP388_CHIP_ID_VAL)
+  /* Register SPI1 device */
+  spi_register(spi1, 1);
+  syslog(LOG_INFO, "SPI1 (Slave) initialized successfully\n");
+#endif
+
+#ifdef CONFIG_SPI_DRIVER
+  /* Register SPI character drivers */
+  ret = spi_register_driver("/dev/spi0", spi0);
+  if (ret < 0)
     {
-      spiwarn("BMP388 not detected or communication failed\n");
+      syslog(LOG_ERR, "ERROR: Failed to register SPI0 driver: %d\n", ret);
+      return ret;
     }
 
-  return OK;
+#ifdef CONFIG_RA_SPI1
+  ret = spi_register_driver("/dev/spi1", spi1);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to register SPI1 driver: %d\n", ret);
+      return ret;
+    }
+#endif
+#endif
+
+  syslog(LOG_INFO, "All SPI interfaces initialized for loopback demo\n");
+
+#endif /* CONFIG_RA8_SPI */
+
+  return 0;
 }
 
 /****************************************************************************
- * Name: fpb_ra8e1_spi_bus_test
+ * Name: ra8_spi0select
  *
  * Description:
- *   Test SPI bus functionality
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   Zero (OK) on success; a negated errno value on failure.
+ *   Select or deselect the SPI device specified by 'devid' for SPI0
  *
  ****************************************************************************/
 
-int fpb_ra8e1_spi_bus_test(void)
+#ifdef CONFIG_RA8_SPI
+void ra8_spi0select(FAR struct spi_dev_s *dev, uint32_t devid,
+                     bool selected)
 {
-  struct spi_dev_s *spi = g_spi0;
-  uint8_t test_data[] = {0x55, 0xAA, 0xFF, 0x00};
-  uint8_t read_data[sizeof(test_data)];
-  int i;
+  spiinfo("SPI0 devid: %" PRIu32 " CS: %s\n",
+          devid, selected ? "assert" : "de-assert");
 
-  if (spi == NULL)
+  /* Handle device selection based on device ID */
+  switch (devid)
     {
-      spierr("SPI0 not initialized\n");
-      return -ENODEV;
+#ifdef CONFIG_RA8_SPI_GY912
+      case SPIDEV_GY912(0):
+        /* Handle GY-912 sensor chip select on SPI0 */
+        /* Implementation would go here based on hardware pinout */
+        break;
+#endif
+
+#ifdef CONFIG_RA8_SPI_LOOPBACK_DEMO
+      case SPIDEV_USER(0):
+        /* Handle loopback demo device selection */
+        /* For loopback demo, CS handling may be simplified */
+        break;
+#endif
+
+      default:
+        break;
     }
-
-  spiinfo("Testing SPI bus functionality\n");
-
-  SPI_LOCK(spi, true);
-  SPI_SETFREQUENCY(spi, 1000000);  /* 1MHz for testing */
-  SPI_SETMODE(spi, SPIDEV_MODE0);
-  SPI_SETBITS(spi, 8);
-
-  /* Test with ICM-20948 */
-  SPI_SELECT(spi, SPIDEV_ICM20948, true);
-  
-  for (i = 0; i < sizeof(test_data); i++)
-    {
-      read_data[i] = SPI_SEND(spi, test_data[i]);
-      spiinfo("Sent: 0x%02x, Received: 0x%02x\n", test_data[i], read_data[i]);
-    }
-  
-  SPI_SELECT(spi, SPIDEV_ICM20948, false);
-  SPI_LOCK(spi, false);
-
-  return OK;
 }
+
+/****************************************************************************
+ * Name: ra8_spi1select
+ *
+ * Description:
+ *   Select or deselect the SPI device specified by 'devid' for SPI1
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_RA_SPI1
+void ra8_spi1select(FAR struct spi_dev_s *dev, uint32_t devid,
+                     bool selected)
+{
+  spiinfo("SPI1 devid: %" PRIu32 " CS: %s\n",
+          devid, selected ? "assert" : "de-assert");
+
+  /* Handle device selection based on device ID */
+  switch (devid)
+    {
+#ifdef CONFIG_RA8_SPI_LOOPBACK_DEMO
+      case SPIDEV_USER(1):
+        /* Handle loopback demo device selection for SPI1 */
+        /* For loopback demo between SPI0 and SPI1 */
+        break;
+#endif
+
+      default:
+        break;
+    }
+}
+#endif
+
+/****************************************************************************
+ * Name: ra8_spi0status
+ *
+ * Description:
+ *   Return status information associated with the SPI0 device.
+ *
+ ****************************************************************************/
+
+uint8_t ra8_spi0status(FAR struct spi_dev_s *dev, uint32_t devid)
+{
+  uint8_t status = 0;
+
+  switch (devid)
+    {
+#ifdef CONFIG_RA8_SPI_GY912
+      case SPIDEV_GY912(0):
+        /* Return status for GY-912 sensor */
+        status = SPI_STATUS_PRESENT;
+        break;
+#endif
+
+#ifdef CONFIG_RA8_SPI_LOOPBACK_DEMO
+      case SPIDEV_USER(0):
+        /* Return status for loopback demo */
+        status = SPI_STATUS_PRESENT;
+        break;
+#endif
+
+      default:
+        break;
+    }
+
+  return status;
+}
+
+/****************************************************************************
+ * Name: ra8_spi1status
+ *
+ * Description:
+ *   Return status information associated with the SPI1 device.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_RA_SPI1
+uint8_t ra8_spi1status(FAR struct spi_dev_s *dev, uint32_t devid)
+{
+  uint8_t status = 0;
+
+  switch (devid)
+    {
+#ifdef CONFIG_RA8_SPI_LOOPBACK_DEMO
+      case SPIDEV_USER(1):
+        /* Return status for loopback demo */
+        status = SPI_STATUS_PRESENT;
+        break;
+#endif
+
+      default:
+        break;
+    }
+
+  return status;
+}
+#endif
 
 #endif /* CONFIG_RA8_SPI */

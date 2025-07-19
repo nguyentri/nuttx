@@ -50,22 +50,15 @@
 /* Clock selection HOCO, MOCO, LOCO, PLL */
 
 #define RA_CKSEL  R_SYSTEM_SCKSCR_CKSEL_HOCO
-
-#define RA_HOCOEN     !R_OFS1_HOCOEN /* Inverted logic to enable */
 #define RA_HOCO_FREQUENCY  R_OFS1_HOCOFRQ1_64MHZ
+#define RA_ICLK_FREQUENCY  64000000
 
 #define RA_ICK_DIV       R_SYSTEM_SCKDIVCR_ICK_DIV_1
-#define RA_ICLK_FREQUENCY  64000000
 #define RA_FCK_DIV       R_SYSTEM_SCKDIVCR_FCK_DIV_1
-#define RA_FCK_FREQUENCY  64000000
 #define RA_PCKA_DIV      R_SYSTEM_SCKDIVCR_PCKA_DIV_1
-#define RA_PCKA_FREQUENCY  64000000
 #define RA_PCKB_DIV      R_SYSTEM_SCKDIVCR_PCKB_DIV_1
-#define RA_PCKB_FREQUENCY  64000000
 #define RA_PCKC_DIV      R_SYSTEM_SCKDIVCR_PCKC_DIV_1
-#define RA_PCKC_FREQUENCY  64000000
 #define RA_PCKD_DIV      R_SYSTEM_SCKDIVCR_PCKD_DIV_1
-#define RA_PCKD_FREQUENCY  64000000
 
 /* Alternate function pin selections */
 
@@ -86,44 +79,41 @@
 
 /* LED pin selections */
 
-#define GPIO_L_LED    (gpio_pinset_t){ PORT1,PIN11, (GPIO_OUPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_LOW)}   /* P111 */
-#define GPIO_TX_LED   (gpio_pinset_t){ PORT0,PIN12, (GPIO_OUPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}  /* P012 */
-#define GPIO_RX_LED   (gpio_pinset_t){ PORT0,PIN13, (GPIO_OUPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}  /* P013 */
+#define GPIO_LED1     (gpio_pinset_t){ PORT4, PIN4, (GPIO_OUPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}  /* P404 (Green LED1) */
+#define GPIO_LED2     (gpio_pinset_t){ PORT4, PIN8, (GPIO_OUPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}  /* P408 (Green LED2) */
 
 #define LED_DRIVER_PATH "/dev/userleds"
 
 /* LED index values for use with board_userled() */
 
-#define BOARD_LED_L       0
-#define BOARD_LED_RX      1
-#define BOARD_LED_TX      2
-#define BOARD_NLEDS       3
+#define BOARD_LED1         0
+#define BOARD_LED2         1
+#define BOARD_NLEDS        2
 
 /* LED bits for use with board_userled_all() */
 
-#define BOARD_LED_L_BIT   (1 << BOARD_LED_L)
-#define BOARD_LED_RX_BIT  (1 << BOARD_LED_RX)
-#define BOARD_LED_TX_BIT  (1 << BOARD_LED_TX)
+#define BOARD_LED1_BIT     (1 << BOARD_LED1)
+#define BOARD_LED2_BIT     (1 << BOARD_LED2)
 
 /* These LEDs are not used by the board port unless CONFIG_ARCH_LEDS is
- * defined.  In that case, the usage by the board port is defined in
- * include/board.h and src/ra8e1_leds.c. The LEDs are used to encode
+ * defined. In that case, the usage by the board port is defined in
+ * include/board.h and src/ra8e1_auto_leds.c. The LEDs are used to encode
  * OS-related events as follows:
  *
  *  SYMBOL                MEANING                         LED STATE
- *                                                         L   TX   RX
- *  -----------------------  --------------------------  ---- ---- ----
+ *                                                      LED1   LED2
+ *  -----------------------  --------------------------  ----  ----
  */
 
- #define LED_STARTED       0  /* NuttX has been started   OFF OFF  OFF      */
- #define LED_HEAPALLOCATE  0  /* Heap has been allocated  OFF OFF  OFF      */
- #define LED_IRQSENABLED   0  /* Interrupts enabled       OFF OFF  OFF      */
- #define LED_STACKCREATED  1  /* Idle stack created       ON  OFF  OFF      */
- #define LED_INIRQ         2  /* In an interrupt          N/C GLOW OFF      */
- #define LED_SIGNAL        2  /* In a signal handler      N/C GLOW OFF      */
- #define LED_ASSERTION     2  /* An assertion failed      N/C GLOW OFF      */
- #define LED_PANIC         3  /* The system has crashed   N/C N/C  Blinking */
- #define LED_PANIC         3  /* MCU is is sleep mode    ---- Not used ---- */
+#define LED_STARTED       0  /* NuttX has been started     OFF   OFF  */
+#define LED_HEAPALLOCATE  0  /* Heap has been allocated    OFF   OFF  */
+#define LED_IRQSENABLED   0  /* Interrupts enabled         OFF   OFF  */
+#define LED_STACKCREATED  1  /* Idle stack created         ON    OFF  */
+#define LED_INIRQ         2  /* In an interrupt            N/C   ON   */
+#define LED_SIGNAL        2  /* In a signal handler        N/C   ON   */
+#define LED_ASSERTION     2  /* An assertion failed        N/C   ON   */
+#define LED_PANIC         3  /* The system has crashed     N/C   BLINK */
+#define LED_IDLE          3  /* MCU is in sleep mode       ----  Not used ---- */
 
 /* Enhanced UART+DMA Driver Configuration **********************************/
 
@@ -188,39 +178,13 @@
 #endif
 
 /* ID_CODE */
-
 #define IDCODE1   0xFFFFFFFF
 #define IDCODE2   0xFFFFFFFF
 #define IDCODE3   0xFFFFFFFF
 #define IDCODE4   0xFFFFFFFF
 
-/****************************************************************************
- * Public Function Prototypes
- ****************************************************************************/
-
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C"
-{
-#else
-#define EXTERN extern
-#endif
-
-/****************************************************************************
- * Name: ra8e1_fpb_uart_setup
- *
- * Description:
- *   Setup board-specific UART configuration for enhanced UART+DMA driver
- *
- ****************************************************************************/
-
-#ifdef CONFIG_RA8_SCI_UART
-int ra8e1_fpb_uart_setup(void);
-#endif
-
-#undef EXTERN
-#ifdef __cplusplus
-}
-#endif
+/* User Button - SW1 on P009 using IRQ13 */
+#define GPIO_SW1         (gpio_pinset_t){ PORT0, PIN9, (GPIO_INPUT | GPIO_PULLUP | GPIO_INT_FALLING)}
+#define SW1_IRQ           RA_IRQ_FIRST + 13  /* External IRQ13 */
 
 #endif /* __BOARDS_ARM_RA8_FPB_RA8E1_INCLUDE_BOARD_H */

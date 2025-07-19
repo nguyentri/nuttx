@@ -132,45 +132,79 @@ __attribute__((__used__)) =
 
 void ra_clockconfig(void)
 {
-  /* Unlock VBTCR1 register. */
-
+  /* FSP-based clock configuration sequence */
+  
+  /* Step 1: Unlock system registers */
   putreg16((BSP_PRV_PRCR_KEY | R_SYSTEM_PRCR_PRC0 | R_SYSTEM_PRCR_PRC1),
            R_SYSTEM_PRCR);
 
+  /* Step 2: Configure VBATT Control - FSP requirement */
   /* The VBTCR1.BPWSWSTP must be set after reset on MCUs that have
    * VBTCR1.BPWSWSTP.
    * Reference section 11.2.1 "VBATT Control Register 1 (VBTCR1)" and Figure
-   * 11.2
-   * "Setting flow of the VBTCR1.BPWSWSTP bit" in the RA manual
-   * R01UM0007EU0110. This must be done before bsp_clock_init because LOCOCR,
+   * 11.2 "Setting flow of the VBTCR1.BPWSWSTP bit" in the RA manual
+   * R01UM0007EU0110. This must be done before clock init because LOCOCR,
    * LOCOUTCR, SOSCCR, and SOMCR cannot be accessed until VBTSR.VBTRVLD is
    * set.
-   * */
-
+   */
   modifyreg8(R_SYSTEM_VBTCR1, 0, R_SYSTEM_VBTCR1_BPWSWSTP);
   while ((getreg8(R_SYSTEM_VBTSR) & R_SYSTEM_VBTSR_VBTRVLD) == 0)
     {
     }
 
-  /* Disable FCache. */
+#ifdef CONFIG_RA8_HOCO_ENABLE
+  /* Step 3: Configure HOCO (High-Speed On-Chip Oscillator) */
+  /* FSP-style HOCO configuration */
+  modifyreg8(R_SYSTEM_HOCOCR, R_SYSTEM_HOCOCR_HCSTP, 0);
+  while ((getreg8(R_SYSTEM_OSCSF) & R_SYSTEM_OSCSF_HOCOSF) == 0)
+    {
+    }
+#endif
 
+#ifdef CONFIG_RA8_MOCO_ENABLE
+  /* Step 4: Configure MOCO (Medium-Speed On-Chip Oscillator) */
+  modifyreg8(R_SYSTEM_MOCOCR, R_SYSTEM_MOCOCR_MCSTP, 0);
+  while ((getreg8(R_SYSTEM_OSCSF) & R_SYSTEM_OSCSF_MOCOSF) == 0)
+    {
+    }
+#endif
+
+#ifdef CONFIG_RA8_PLL_ENABLE
+  /* Step 5: Configure PLL - FSP-based PLL setup */
+  /* Set PLL source clock and multiplication factor */
+  putreg16(RA_PLL_DIV | (RA_PLL_MUL << 8), R_SYSTEM_PLLCCR);
+  
+  /* Enable PLL */
+  modifyreg8(R_SYSTEM_PLLCR, R_SYSTEM_PLLCR_PLLSTP, 0);
+  while ((getreg8(R_SYSTEM_OSCSF) & R_SYSTEM_OSCSF_PLLSF) == 0)
+    {
+    }
+#endif
+
+  /* Step 6: Disable Flash Cache during clock transition - FSP requirement */
   modifyreg16(R_FCACHE_FCACHEE, R_FCACHE_FCACHEE_FCACHEEN, 0);
 
+  /* Step 7: Set system clock source - FSP-based clock selection */
   modifyreg8(R_SYSTEM_SCKSCR, R_SYSTEM_SCKSCR_CKSEL_MASK, RA_CKSEL);
 
-  /* lock VBTCR1 register. */
-
-  putreg16(0, R_SYSTEM_PRCR);
-
+  /* Step 8: Configure memory wait states for high-speed operation */
 #if (RA_ICLK_FREQUENCY > 32000000)
   modifyreg8(R_SYSTEM_MEMWAIT, 0, R_SYSTEM_MEMWAIT_MEMWAIT);
 #endif
 
+  /* Step 9: Configure system clock dividers - FSP-based divider setup */
   modifyreg32(R_SYSTEM_SCKDIVCR,
               (R_SYSTEM_SCKDIVCR_FCK_MASK | R_SYSTEM_SCKDIVCR_ICK_MASK |
                R_SYSTEM_SCKDIVCR_PCKA_MASK | R_SYSTEM_SCKDIVCR_PCKB_MASK |
                R_SYSTEM_SCKDIVCR_PCKC_MASK | R_SYSTEM_SCKDIVCR_PCKD_MASK),
               (RA_FCK_DIV | RA_ICK_DIV | RA_PCKA_DIV | RA_PCKB_DIV |
-               RA_PCKC_DIV |
-               RA_PCKD_DIV));
+               RA_PCKC_DIV | RA_PCKD_DIV));
+
+#ifdef CONFIG_RA8_FLASH_CACHE_ENABLE
+  /* Step 10: Re-enable Flash Cache after clock configuration */
+  modifyreg16(R_FCACHE_FCACHEE, 0, R_FCACHE_FCACHEE_FCACHEEN);
+#endif
+
+  /* Step 11: Lock system registers */
+  putreg16(BSP_PRV_PRCR_LOCK, R_SYSTEM_PRCR);
 }

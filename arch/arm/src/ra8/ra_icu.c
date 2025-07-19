@@ -51,47 +51,313 @@
 #include "hardware/ra_mstp.h"
 #include "hardware/ra_system.h"
 #include "ra_icu.h"
-#include "ra_lowputc.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
+#define RA_ICU_MAX_IRQ_NUM    32    /* Maximum number of ICU IRQ lines */
+
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+static void *g_icu_handlers[RA_ICU_MAX_IRQ_NUM];
+static void *g_icu_args[RA_ICU_MAX_IRQ_NUM];
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: ra_icu_interrupt
+ *
+ * Description:
+ *   Common ICU interrupt handler
+ *
+ ****************************************************************************/
+
+static int ra_icu_interrupt(int irq, void *context, void *arg)
+{
+  int icu_irq = (int)arg;
+  
+  /* Clear the interrupt flag */
+  ra_clear_ir(irq);
+  
+  /* Call the registered handler if available */
+  if (g_icu_handlers[icu_irq] != NULL)
+    {
+      return ((int (*)(int, void *, void *))g_icu_handlers[icu_irq])
+               (irq, context, g_icu_args[icu_irq]);
+    }
+  
+  return OK;
+}
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
+/****************************************************************************
+ * Name: ra_icu_initialize
+ *
+ * Description:
+ *   Initialize the ICU driver
+ *
+ ****************************************************************************/
+
+void ra_icu_initialize(void)
+{
+  int i;
+  
+  /* Clear all handlers */
+  for (i = 0; i < RA_ICU_MAX_IRQ_NUM; i++)
+    {
+      g_icu_handlers[i] = NULL;
+      g_icu_args[i] = NULL;
+    }
+  
+  /* Clear all interrupt flags */
+  putreg16(0xFFFF, R_ICU_NMICLR);
+}
+
+/****************************************************************************
+ * Name: ra_icu_attach
+ *
+ * Description:
+ *   Attach an ICU interrupt handler
+ *
+ ****************************************************************************/
+
+int ra_icu_attach(int icu_irq, int (*handler)(int, void *, void *), void *arg)
+{
+  if (icu_irq < 0 || icu_irq >= RA_ICU_MAX_IRQ_NUM)
+    {
+      return -EINVAL;
+    }
+  
+  g_icu_handlers[icu_irq] = handler;
+  g_icu_args[icu_irq] = arg;
+  
+  /* Attach the common interrupt handler */
+  irq_attach(RA_IRQ_ICU_IRQ0 + icu_irq, ra_icu_interrupt, (void *)icu_irq);
+  
+  return OK;
+}
+
+/****************************************************************************
+ * Name: ra_icu_detach
+ *
+ * Description:
+ *   Detach an ICU interrupt handler
+ *
+ ****************************************************************************/
+
+int ra_icu_detach(int icu_irq)
+{
+  if (icu_irq < 0 || icu_irq >= RA_ICU_MAX_IRQ_NUM)
+    {
+      return -EINVAL;
+    }
+  
+  g_icu_handlers[icu_irq] = NULL;
+  g_icu_args[icu_irq] = NULL;
+  
+  /* Detach the interrupt handler */
+  irq_detach(RA_IRQ_ICU_IRQ0 + icu_irq);
+  
+  return OK;
+}
+
+/****************************************************************************
+ * Name: ra_icu_enable
+ *
+ * Description:
+ *   Enable an ICU interrupt
+ *
+ ****************************************************************************/
+
+void ra_icu_enable(int icu_irq)
+{
+  if (icu_irq >= 0 && icu_irq < RA_ICU_MAX_IRQ_NUM)
+    {
+      up_enable_irq(RA_IRQ_ICU_IRQ0 + icu_irq);
+    }
+}
+
+/****************************************************************************
+ * Name: ra_icu_disable
+ *
+ * Description:
+ *   Disable an ICU interrupt
+ *
+ ****************************************************************************/
+
+void ra_icu_disable(int icu_irq)
+{
+  if (icu_irq >= 0 && icu_irq < RA_ICU_MAX_IRQ_NUM)
+    {
+      up_disable_irq(RA_IRQ_ICU_IRQ0 + icu_irq);
+    }
+}
+
+/****************************************************************************
+ * Name: ra_icu_config
+ *
+ * Description:
+ *   Configure an ICU interrupt
+ *
+ ****************************************************************************/
+
+int ra_icu_config(int icu_irq, uint8_t mode, bool filter_enable, 
+                  uint8_t filter_clock)
+{
+  uint32_t regaddr;
+  uint8_t regval;
+  
+  if (icu_irq < 0 || icu_irq >= 16)  /* Only IRQ0-15 have configuration */
+    {
+      return -EINVAL;
+    }
+  
+  regaddr = R_ICU_IRQCR(icu_irq);
+  regval = 0;
+  
+  /* Set detection mode */
+  regval |= (mode & R_ICU_IRQCR_IRQMD_MASK) << R_ICU_IRQCR_IRQMD;
+  
+  /* Set filter configuration */
+  if (filter_enable)
+    {
+      regval |= R_ICU_IRQCR_FLTEN;
+      regval |= (filter_clock & R_ICU_IRQCR_FCLKSEL_MASK) << R_ICU_IRQCR_FCLKSEL_SHIFT;
+    }
+  
+  putreg8(regval, regaddr);
+  
+  return OK;
+}
+
+/****************************************************************************
+ * Name: ra_icu_set_event
+ *
+ * Description:
+ *   Set ICU event link
+ *
+ ****************************************************************************/
+
+int ra_icu_set_event(int icu_slot, int event)
+{
+  uint32_t regaddr;
+  uint32_t regval;
+  
+  if (icu_slot < 0 || icu_slot >= R_ICU_IELSR_SIZE)
+    {
+      return -EINVAL;
+    }
+  
+  regaddr = R_ICU_IELSR(icu_slot);
+  regval = getreg32(regaddr);
+  
+  regval &= ~(R_ICU_IELSR_IELS_MASK << R_ICU_IELSR_IELS_SHIFT);
+  regval |= (event & R_ICU_IELSR_IELS_MASK) << R_ICU_IELSR_IELS_SHIFT;
+  
+  putreg32(regval, regaddr);
+  
+  return OK;
+}
+
+/****************************************************************************
+ * Name: ra_icu_enable_wakeup
+ *
+ * Description:
+ *   Enable wakeup for specific ICU interrupts
+ *
+ ****************************************************************************/
+
+void ra_icu_enable_wakeup(uint32_t mask)
+{
+  modifyreg32(R_ICU_WUPEN, 0, mask);
+}
+
+/****************************************************************************
+ * Name: ra_icu_disable_wakeup
+ *
+ * Description:
+ *   Disable wakeup for specific ICU interrupts
+ *
+ ****************************************************************************/
+
+void ra_icu_disable_wakeup(uint32_t mask)
+{
+  modifyreg32(R_ICU_WUPEN, mask, 0);
+}
+
+/****************************************************************************
+ * Name: ra_icu_clear_nmi_status
+ *
+ * Description:
+ *   Clear NMI status flags
+ *
+ ****************************************************************************/
+
+void ra_icu_clear_nmi_status(uint16_t mask)
+{
+  putreg16(mask, R_ICU_NMICLR);
+}
+
+/****************************************************************************
+ * Name: ra_icu_get_nmi_status
+ *
+ * Description:
+ *   Get NMI status flags
+ *
+ ****************************************************************************/
+
+uint16_t ra_icu_get_nmi_status(void)
+{
+  return getreg16(R_ICU_NMISR);
+}
+
+/****************************************************************************
+ * Name: ra_icu_enable_nmi
+ *
+ * Description:
+ *   Enable NMI interrupts
+ *
+ ****************************************************************************/
+
+void ra_icu_enable_nmi(uint16_t mask)
+{
+  modifyreg16(R_ICU_NMIER, 0, mask);
+}
+
+/****************************************************************************
+ * Name: ra_icu_disable_nmi
+ *
+ * Description:
+ *   Disable NMI interrupts
+ *
+ ****************************************************************************/
+
+void ra_icu_disable_nmi(uint16_t mask)
+{
+  modifyreg16(R_ICU_NMIER, mask, 0);
+}
 void ra_attach_icu(void)
 {
-#ifdef CONFIG_RA_SCI0_UART
-  putreg32(EVENT_SCI0_RXI, R_ICU_IELSR(SCI0_RXI - RA_IRQ_FIRST));
-  putreg32(EVENT_SCI0_TXI, R_ICU_IELSR(SCI0_TXI - RA_IRQ_FIRST));
-  putreg32(EVENT_SCI0_TEI, R_ICU_IELSR(SCI0_TEI - RA_IRQ_FIRST));
-  putreg32(EVENT_SCI0_ERI, R_ICU_IELSR(SCI0_ERI - RA_IRQ_FIRST));
-#endif
-#ifdef CONFIG_RA_SCI1_UART
-  putreg32(EVENT_SCI1_RXI, R_ICU_IELSR(SCI1_RXI - RA_IRQ_FIRST));
-  putreg32(EVENT_SCI1_TXI, R_ICU_IELSR(SCI1_TXI - RA_IRQ_FIRST));
-  putreg32(EVENT_SCI1_TEI, R_ICU_IELSR(SCI1_TEI - RA_IRQ_FIRST));
-  putreg32(EVENT_SCI1_ERI, R_ICU_IELSR(SCI1_ERI - RA_IRQ_FIRST));
-#endif
-#ifdef CONFIG_RA_SCI2_UART
-  putreg32(EVENT_SCI2_RXI, R_ICU_IELSR(SCI2_RXI - RA_IRQ_FIRST));
-  putreg32(EVENT_SCI2_TXI, R_ICU_IELSR(SCI2_TXI - RA_IRQ_FIRST));
-  putreg32(EVENT_SCI2_TEI, R_ICU_IELSR(SCI2_TEI - RA_IRQ_FIRST));
-  putreg32(EVENT_SCI2_ERI, R_ICU_IELSR(SCI2_ERI - RA_IRQ_FIRST));
-#endif
-#ifdef CONFIG_RA_SCI9_UART
-  putreg32(EVENT_SCI9_RXI, R_ICU_IELSR(SCI9_RXI - RA_IRQ_FIRST));
-  putreg32(EVENT_SCI9_TXI, R_ICU_IELSR(SCI9_TXI - RA_IRQ_FIRST));
-  putreg32(EVENT_SCI9_TEI, R_ICU_IELSR(SCI9_TEI - RA_IRQ_FIRST));
-  putreg32(EVENT_SCI9_ERI, R_ICU_IELSR(SCI9_ERI - RA_IRQ_FIRST));
-#endif
+  /* Attach user-defined ICU handlers */
+  extern void ra_attach_user_icu(void);
+  ra_attach_user_icu();
 }
+
+/****************************************************************************
+ * Name: ra_clear_irq
+ *
+ * Description:
+ *   Clear interrupt request status
+ *
+ ****************************************************************************/
 
 void ra_clear_ir(int irq)
 {

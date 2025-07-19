@@ -18,12 +18,88 @@
 #
 # ##############################################################################
 
-set(SRCS ra8e1_boot.c ra8e1_bringup.c ra8e1_appinit.c)
+set(SRCS ra8e1_boot.c ra8e1_bringup.c ra8e1_app_init.c)
 
 if(CONFIG_ARCH_LEDS)
-  list(APPEND SRCS ra8e1_autoleds.c)
+  list(APPEND SRCS ra8e1_auto_leds.c)
 else()
-  list(APPEND SRCS ra8e1_userleds.c)
+  list(APPEND SRCS ra8e1_user_leds.c)
+endif()
+
+if(CONFIG_RA8E1_ADC_BMS_DEMO OR CONFIG_BATTERY_BMS_ADC)
+  list(APPEND SRCS ra8e1_adc_bms_demo.c)
+endif()
+
+if(CONFIG_RA8_CODE_FLASH)
+  list(APPEND SRCS ra8e1_code_flash_demo.c)
+endif()
+
+if(CONFIG_RA8_DATA_FLASH)
+  list(APPEND SRCS ra8e1_data_flash_demo.c)
+endif()
+
+if(CONFIG_PWM)
+  list(APPEND SRCS ra8e1_escs_demo.c)
+endif()
+
+if(CONFIG_RA8_SCI_UART)
+  list(APPEND SRCS ra8e1_uart.c)
+endif()
+
+if(CONFIG_RA8E1_GPS_DEMO)
+  list(APPEND SRCS ra8e1_gps_demo.c)
+endif()
+
+if(CONFIG_RA8E1_SBUS_DEMO)
+  list(APPEND SRCS ra8e1_sbus_demo.c)
+endif()
+
+if(CONFIG_RA8_I2C)
+  list(APPEND SRCS ra8e1_i2c_gy912_demo.c)
+endif()
+
+if(CONFIG_RA8E1_I2C_GY912_DEMO)
+  list(APPEND SRCS ra8e1_i2c_gy912_demo.c)
+endif()
+
+if(CONFIG_RA8E1_I2C_SIMPLE_DEMO)
+  list(APPEND SRCS ra8e1_i2c_simple_demo.c)
+endif()
+
+if(CONFIG_RA8E1_I2C_ACCEL_DEMO)
+  list(APPEND SRCS ra8e1_i2c_acc_demo.c)
+endif()
+
+if(CONFIG_RA8E1_PWM_DEMO OR CONFIG_PWM)
+  list(APPEND SRCS ra8e1_escs_demo.c)
+endif()
+
+if(CONFIG_RA8E1_DATA_FLASH_DEMO OR CONFIG_RA8_DATA_FLASH)
+  list(APPEND SRCS ra8e1_data_flash_demo.c)
+endif()
+
+if(CONFIG_RA8E1_CODE_FLASH_DEMO OR CONFIG_RA8_CODE_FLASH)
+  list(APPEND SRCS ra8e1_code_flash_demo.c)
+endif()
+
+if(CONFIG_RA8_SPI)
+  list(APPEND SRCS ra8e1_spi.c)
+endif()
+
+if(CONFIG_RA8_SPI_LOOPBACK_DEMO)
+  list(APPEND SRCS ra8e1_spi_loopback_demo.c)
+endif()
+
+if(CONFIG_RA8E1_SPI_GY912_DEMO OR CONFIG_RA8_SPI_GY912)
+  list(APPEND SRCS gy912_spi_demo.c)
+endif()
+
+if(CONFIG_RA8_SW_BUTTON)
+  list(APPEND SRCS ra8e1_buttons.c)
+endif()
+
+if(CONFIG_ICU_INPUT_CAPTURE)
+  list(APPEND SRCS ra8e1_user_icu.c)
 endif()
 
 target_sources(board PRIVATE ${SRCS})

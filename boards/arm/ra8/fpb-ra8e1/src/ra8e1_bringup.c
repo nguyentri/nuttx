@@ -30,7 +30,6 @@
 #include <nuttx/board.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/leds/userled.h>
-#include <nuttx/spi/spi_transfer.h>
 
 #include "fpb-ra8e1.h"
 
@@ -75,6 +74,129 @@ int ra8e1_bringup(void)
     }
 #endif
 
+#ifdef CONFIG_RA8_ADC_BATTERY_MONITOR
+  /* Initialize ADC BMS demo */
+  ret = ra8e1_adc_bms_demo_init();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize ADC BMS demo: %d\n", ret);
+      /* Don't return error, continue with other initialization */
+    }
+  else
+    {
+      syslog(LOG_INFO, "ADC BMS demo initialized successfully\n");
+    }
+#endif
+
+#ifdef CONFIG_RA8_CODE_FLASH
+  /* Initialize Code Flash */
+  ret = ra8e1_code_flash_demo_init();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize Code Flash: %d\n", ret);
+      /* Don't return error, continue with other initialization */
+    }
+  else
+    {
+      syslog(LOG_INFO, "Code Flash initialized successfully\n");
+    }
+#endif
+
+#ifdef CONFIG_RA8_DATA_FLASH
+  /* Initialize Data Flash */
+  ret = ra8e1_data_flash_demo_init();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize Data Flash: %d\n", ret);
+      /* Don't return error, continue with other initialization */
+    }
+  else
+    {
+      syslog(LOG_INFO, "Data Flash initialized successfully\n");
+    }
+#endif
+
+#ifdef CONFIG_PWM
+  /* Initialize ESCs demo */
+  ret = ra8e1_escs_demo_init();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize ESCs demo: %d\n", ret);
+      /* Don't return error, continue with other initialization */
+    }
+  else
+    {
+      syslog(LOG_INFO, "ESCs demo initialized successfully\n");
+    }
+#endif
+
+#ifdef CONFIG_RA8_SCI_UART
+#ifdef CONFIG_RA8E1_GPS_DEMO
+  /* Initialize GPS demo */
+  ret = ra8e1_gps_demo_init();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize GPS demo: %d\n", ret);
+      /* Don't return error, continue with other initialization */
+    }
+  else
+    {
+      syslog(LOG_INFO, "GPS demo initialized successfully\n");
+    }
+#endif
+#ifdef CONFIG_RA8E1_SBUS_DEMO
+  /* Initialize SBUS demo */
+  ret = ra8e1_sbus_demo_init();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize SBUS demo: %d\n", ret);
+      /* Don't return error, continue with other initialization */
+    }
+  else
+    {
+      syslog(LOG_INFO, "SBUS demo initialized successfully\n");
+    }
+#endif
+#endif
+
+#ifdef CONFIG_RA8_I2C
+  /* Initialize I2C GY-912 demo */
+  ret = ra8e1_i2c_gy912_demo_init();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize I2C GY-912 demo: %d\n", ret);
+      /* Don't return error, continue with other initialization */
+    }
+  else
+    {
+      syslog(LOG_INFO, "I2C GY-912 demo initialized successfully\n");
+    }
+
+  /* Initialize I2C ACC demo */
+  ret = ra8e1_i2c_acc_demo_init();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize I2C ACC demo: %d\n", ret);
+      /* Don't return error, continue with other initialization */
+    }
+  else
+    {
+      syslog(LOG_INFO, "I2C ACC demo initialized successfully\n");
+    }
+
+  /* Initialize I2C Simple demo */
+  ret = ra8e1_i2c_simple_demo_init();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize I2C Simple demo: %d\n", ret);
+      /* Don't return error, continue with other initialization */
+    }
+  else
+    {
+      syslog(LOG_INFO, "I2C Simple demo initialized successfully\n");
+    }
+#endif
+
 #ifdef CONFIG_RA8_SPI
   /* Initialize SPI */
   ret = fpb_ra8e1_spi_initialize();
@@ -89,20 +211,40 @@ int ra8e1_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_SENSORS_GY912
-  /* Initialize GY-912 sensor module */
-  ret = gy912_initialize();
+#ifdef CONFIG_RA8_SPI_LOOPBACK_DEMO
+  /* Initialize SPI loopback demo */
+  ret = ra8e1_spi_loopback_demo_init();
   if (ret < 0)
     {
-      syslog(LOG_ERR, "ERROR: Failed to initialize GY-912: %d\n", ret);
+      syslog(LOG_ERR, "ERROR: Failed to initialize SPI loopback demo: %d\n", ret);
       /* Don't return error, continue with other initialization */
     }
   else
     {
-      syslog(LOG_INFO, "GY-912 sensor module initialized\n");
+      syslog(LOG_INFO, "SPI loopback demo initialized successfully\n");
     }
 #endif
 
-  UNUSED(ret);
-  return OK;
+#ifdef CONFIG_RA8_SPI_GY912
+  /* Initialize SPI GY-912 demo */
+  ret = ra8e1_spi_gy912_demo_init();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize SPI GY-912 demo: %d\n", ret);
+      /* Don't return error, continue with other initialization */
+    }
+  else
+    {
+      syslog(LOG_INFO, "SPI GY-912 demo initialized successfully\n");
+    }
+#endif
+
+#ifdef CONFIG_RA8_SW_BUTTON
+  /* Initialize buttons */
+  board_button_initialize();
+#endif
+
+  /* Suppress unused variable warning */
+  (void)ret;
+  return 0;
 }

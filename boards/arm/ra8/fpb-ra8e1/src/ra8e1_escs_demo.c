@@ -43,20 +43,9 @@
 #include "chip.h"
 #include "ra_gpio.h"
 #include "ra8e1_escs_demo.h"
+#include "ra8e1_demo_log.h"
 
-/* Conditional RTT support */
-#ifdef CONFIG_SEGGER_RTT
-#include "SEGGER_RTT.h"
-#define RTT_PRINTF(...)     SEGGER_RTT_printf(0, __VA_ARGS__)
-#define RTT_HASKEY()        SEGGER_RTT_HasKey()
-#define RTT_GETKEY()        SEGGER_RTT_GetKey()
-#else
-#define RTT_PRINTF(...)     printf(__VA_ARGS__)
-#define RTT_HASKEY()        (false)
-#define RTT_GETKEY()        (0)
-#endif
-
-#ifdef CONFIG_EXAMPLES_ESCS
+#ifdef CONFIG_RA8_PWM_ESCS
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -170,7 +159,7 @@ static int esc_pwm_open(int esc_index)
                                       O_RDONLY);
   if (g_esc_channels[esc_index].fd < 0)
     {
-      RTT_PRINTF("ERROR: Failed to open %s: %d\n",
+      demoprintf("ERROR: Failed to open %s: %d\n",
              g_esc_channels[esc_index].device_path, errno);
       return -errno;
     }
@@ -184,13 +173,13 @@ static int esc_pwm_open(int esc_index)
               (unsigned long)&info);
   if (ret < 0)
     {
-      RTT_PRINTF("ERROR: Failed to configure PWM%d: %d\n", esc_index, errno);
+      demoprintf("ERROR: Failed to configure PWM%d: %d\n", esc_index, errno);
       close(g_esc_channels[esc_index].fd);
       g_esc_channels[esc_index].fd = -1;
       return -errno;
     }
 
-  RTT_PRINTF("ESC%d: PWM device opened and configured\n", esc_index + 1);
+  demoprintf("ESC%d: PWM device opened and configured\n", esc_index + 1);
   return OK;
 }
 
@@ -244,7 +233,7 @@ static int esc_set_throttle_us(int esc_index, uint32_t pulse_us)
 
   if (g_esc_channels[esc_index].fd < 0)
     {
-      RTT_PRINTF("ERROR: ESC%d PWM device not open\n", esc_index + 1);
+      demoprintf("ERROR: ESC%d PWM device not open\n", esc_index + 1);
       return -ENODEV;
     }
 
@@ -270,7 +259,7 @@ static int esc_set_throttle_us(int esc_index, uint32_t pulse_us)
               (unsigned long)&info);
   if (ret < 0)
     {
-      RTT_PRINTF("ERROR: Failed to set PWM duty for ESC%d: %d\n",
+      demoprintf("ERROR: Failed to set PWM duty for ESC%d: %d\n",
              esc_index + 1, errno);
       return -errno;
     }
@@ -279,12 +268,12 @@ static int esc_set_throttle_us(int esc_index, uint32_t pulse_us)
   ret = ioctl(g_esc_channels[esc_index].fd, PWMIOC_START, 0);
   if (ret < 0)
     {
-      RTT_PRINTF("ERROR: Failed to start PWM for ESC%d: %d\n",
+      demoprintf("ERROR: Failed to start PWM for ESC%d: %d\n",
              esc_index + 1, errno);
       return -errno;
     }
 
-  RTT_PRINTF("ESC%d: Set to %lu µs (duty: %lu%%)\n",
+  demoprintf("ESC%d: Set to %lu µs (duty: %lu%%)\n",
          esc_index + 1, pulse_us, duty_percentage);
 
   return OK;
@@ -332,7 +321,7 @@ static int esc_arm(int esc_index)
   if (ret == OK)
     {
       g_esc_channels[esc_index].armed = true;
-      RTT_PRINTF("ESC%d: Armed\n", esc_index + 1);
+      demoprintf("ESC%d: Armed\n", esc_index + 1);
     }
 
   return ret;
@@ -355,14 +344,14 @@ static int esc_disarm(int esc_index)
       ret = ioctl(g_esc_channels[esc_index].fd, PWMIOC_STOP, 0);
       if (ret < 0)
         {
-          RTT_PRINTF("ERROR: Failed to stop PWM for ESC%d: %d\n",
+          demoprintf("ERROR: Failed to stop PWM for ESC%d: %d\n",
                  esc_index + 1, errno);
         }
       else
         {
           g_esc_channels[esc_index].armed = false;
           g_esc_channels[esc_index].current_throttle = 0;
-          RTT_PRINTF("ESC%d: Disarmed\n", esc_index + 1);
+          demoprintf("ESC%d: Disarmed\n", esc_index + 1);
         }
     }
 
@@ -382,14 +371,14 @@ static int esc_arm_all(void)
   int ret = OK;
   int i;
 
-  RTT_PRINTF("Arming all ESCs...\n");
+  demoprintf("Arming all ESCs...\n");
 
   for (i = 0; i < NUM_ESC_CHANNELS; i++)
     {
       ret = esc_arm(i);
       if (ret < 0)
         {
-          RTT_PRINTF("ERROR: Failed to arm ESC%d\n", i + 1);
+          demoprintf("ERROR: Failed to arm ESC%d\n", i + 1);
           break;
         }
       usleep(100000);  /* 100ms delay between arming */
@@ -397,7 +386,7 @@ static int esc_arm_all(void)
 
   if (ret == OK)
     {
-      RTT_PRINTF("All ESCs armed successfully\n");
+      demoprintf("All ESCs armed successfully\n");
     }
 
   return ret;
@@ -415,14 +404,14 @@ static int esc_disarm_all(void)
 {
   int i;
 
-  RTT_PRINTF("Disarming all ESCs...\n");
+  demoprintf("Disarming all ESCs...\n");
 
   for (i = 0; i < NUM_ESC_CHANNELS; i++)
     {
       esc_disarm(i);
     }
 
-  RTT_PRINTF("All ESCs disarmed\n");
+  demoprintf("All ESCs disarmed\n");
   return OK;
 }
 
@@ -436,30 +425,30 @@ static int esc_disarm_all(void)
 
 static void print_menu(void)
 {
-  RTT_PRINTF("\n=== RA8E1 ESC PWM Control Demo ===\n");
-  RTT_PRINTF("Commands:\n");
-  RTT_PRINTF("  help      - Show this menu\n");
-  RTT_PRINTF("  status    - Show ESC status\n");
-  RTT_PRINTF("  arm       - Arm all ESCs\n");
-  RTT_PRINTF("  disarm    - Disarm all ESCs\n");
-  RTT_PRINTF("  arm<N>    - Arm ESC N (1-4)\n");
-  RTT_PRINTF("  esc<N> <%%> - Set ESC N throttle (0-100%%)\n");
-  RTT_PRINTF("  test      - Run automatic test sequence\n");
-  RTT_PRINTF("  stop      - Stop demo\n");
-  RTT_PRINTF("\nExamples:\n");
-  RTT_PRINTF("  esc1 50   - Set ESC1 to 50%% throttle\n");
-  RTT_PRINTF("  esc2 0    - Set ESC2 to 0%% throttle\n");
-  RTT_PRINTF("  arm1      - Arm ESC1 only\n");
-  RTT_PRINTF("\nCurrent Status:\n");
+  demoprintf("\n=== RA8E1 ESC PWM Control Demo ===\n");
+  demoprintf("Commands:\n");
+  demoprintf("  help      - Show this menu\n");
+  demoprintf("  status    - Show ESC status\n");
+  demoprintf("  arm       - Arm all ESCs\n");
+  demoprintf("  disarm    - Disarm all ESCs\n");
+  demoprintf("  arm<N>    - Arm ESC N (1-4)\n");
+  demoprintf("  esc<N> <%%> - Set ESC N throttle (0-100%%)\n");
+  demoprintf("  test      - Run automatic test sequence\n");
+  demoprintf("  stop      - Stop demo\n");
+  demoprintf("\nExamples:\n");
+  demoprintf("  esc1 50   - Set ESC1 to 50%% throttle\n");
+  demoprintf("  esc2 0    - Set ESC2 to 0%% throttle\n");
+  demoprintf("  arm1      - Arm ESC1 only\n");
+  demoprintf("\nCurrent Status:\n");
   
   for (int i = 0; i < NUM_ESC_CHANNELS; i++)
     {
-      RTT_PRINTF("  ESC%d: %s, %d%% throttle\n", 
+      demoprintf("  ESC%d: %s, %d%% throttle\n", 
              i + 1,
              g_esc_channels[i].armed ? "ARMED" : "DISARMED",
              g_esc_channels[i].current_throttle);
     }
-  RTT_PRINTF("\n");
+  demoprintf("\n");
 }
 
 /****************************************************************************
@@ -526,7 +515,7 @@ static void process_rtt_command(const char *command)
       return;
     }
 
-  RTT_PRINTF("Command: %s\n", command);
+  demoprintf("Command: %s\n", command);
 
   /* Check for simple commands */
   if (strcmp(command, "help") == 0)
@@ -547,11 +536,11 @@ static void process_rtt_command(const char *command)
     }
   else if (strcmp(command, "test") == 0)
     {
-      ra8e1_pwm_demo_test();
+      ra8e1_escs_demo_test();
     }
   else if (strcmp(command, "stop") == 0)
     {
-      RTT_PRINTF("Stopping demo...\n");
+      demoprintf("Stopping demo...\n");
       g_demo_running = false;
     }
   else
@@ -567,7 +556,7 @@ static void process_rtt_command(const char *command)
             }
           else
             {
-              RTT_PRINTF("ERROR: Throttle value must be 0-100%%\n");
+              demoprintf("ERROR: Throttle value must be 0-100%%\n");
             }
         }
       else if (cmd_type == 2)  /* ARM command */
@@ -576,7 +565,7 @@ static void process_rtt_command(const char *command)
         }
       else
         {
-          RTT_PRINTF("ERROR: Unknown command '%s'. Type 'help' for commands.\n", 
+          demoprintf("ERROR: Unknown command '%s'. Type 'help' for commands.\n", 
                  command);
         }
     }
@@ -587,28 +576,39 @@ static void process_rtt_command(const char *command)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ra8e1_pwm_demo_main
+ * Name: ra8e1_escs_demo_init
+ *
+ * Description:
+ *   Initialize the ESCs demo
+ *
+ ****************************************************************************/
+
+int ra8e1_escs_demo_init(void)
+{
+  /* ESCs demo initialization is done within main function */
+  return 0;
+}
+
+/****************************************************************************
+ * Name: ra8e1_escs_demo_main
  *
  * Description:
  *   Main entry point for PWM ESC control demo
  *
  ****************************************************************************/
 
-int ra8e1_pwm_demo_main(int argc, char *argv[])
+int ra8e1_escs_demo_main(int argc, char *argv[])
 {
   int ret;
   int i;
   int cmd_len = 0;
   char ch;
 
-  RTT_PRINTF("\n=== RA8E1 ESC PWM Control Demo ===\n");
-  RTT_PRINTF("Initializing PWM devices...\n");
+  demoprintf("\n=== RA8E1 ESC PWM Control Demo ===\n");
+  demoprintf("Initializing PWM devices...\n");
 
-#ifdef CONFIG_SEGGER_RTT
   /* Initialize RTT */
-  SEGGER_RTT_Init();
-  RTT_PRINTF("RTT initialized - ready for commands\n");
-#endif
+  demoprintf("RTT initialized - ready for commands\n");
 
   /* Initialize all ESC channels */
   for (i = 0; i < NUM_ESC_CHANNELS; i++)
@@ -616,12 +616,12 @@ int ra8e1_pwm_demo_main(int argc, char *argv[])
       ret = esc_pwm_open(i);
       if (ret < 0)
         {
-          RTT_PRINTF("ERROR: Failed to initialize ESC%d: %d\n", i + 1, ret);
+          demoprintf("ERROR: Failed to initialize ESC%d: %d\n", i + 1, ret);
           goto cleanup;
         }
     }
 
-  RTT_PRINTF("All PWM devices initialized successfully\n");
+  demoprintf("All PWM devices initialized successfully\n");
   
   /* Safety: Disarm all ESCs initially */
   esc_disarm_all();
@@ -631,20 +631,14 @@ int ra8e1_pwm_demo_main(int argc, char *argv[])
   g_demo_running = true;
 
   /* Main command loop */
-  RTT_PRINTF("Ready for commands (type 'help' for menu):\n> ");
+  demoprintf("Ready for commands (type 'help' for menu):\n> ");
   
   while (g_demo_running)
     {
-      /* Check for RTT input */
-#ifdef CONFIG_SEGGER_RTT
-      if (RTT_HASKEY())
+      /* Check for input */
+      if (demo_haskey())
         {
-          ch = RTT_GETKEY();
-#else
-      /* Fallback to standard input for testing */
-      if (read(STDIN_FILENO, &ch, 1) == 1)
-        {
-#endif
+          ch = demo_getkey();
           if (ch == '\n' || ch == '\r')
             {
               if (cmd_len > 0)
@@ -652,7 +646,7 @@ int ra8e1_pwm_demo_main(int argc, char *argv[])
                   g_rtt_command[cmd_len] = '\0';
                   process_rtt_command(g_rtt_command);
                   cmd_len = 0;
-                  RTT_PRINTF("> ");
+                  demoprintf("> ");
                 }
             }
           else if (ch == '\b' || ch == 127)  /* Backspace */
@@ -660,13 +654,13 @@ int ra8e1_pwm_demo_main(int argc, char *argv[])
               if (cmd_len > 0)
                 {
                   cmd_len--;
-                  RTT_PRINTF("\b \b");
+                  demoprintf("\b \b");
                 }
             }
           else if (cmd_len < RTT_COMMAND_MAX - 1)
             {
               g_rtt_command[cmd_len++] = ch;
-              RTT_PRINTF("%c", ch);
+              demoprintf("%c", ch);
             }
         }
       
@@ -675,7 +669,7 @@ int ra8e1_pwm_demo_main(int argc, char *argv[])
 
 cleanup:
   /* Cleanup: Disarm all ESCs and close devices */
-  RTT_PRINTF("Cleaning up...\n");
+  demoprintf("Cleaning up...\n");
   esc_disarm_all();
   
   for (i = 0; i < NUM_ESC_CHANNELS; i++)
@@ -683,7 +677,7 @@ cleanup:
       esc_pwm_close(i);
     }
 
-  RTT_PRINTF("Demo stopped\n");
+  demoprintf("Demo stopped\n");
   return ret;
 }
 
@@ -714,19 +708,19 @@ int ra8e1_esc_get_status(int esc_index, struct esc_status_s *status)
 }
 
 /****************************************************************************
- * Name: ra8e1_pwm_demo_test
+ * Name: ra8e1_escs_demo_test
  *
  * Description:
  *   Simple test sequence for ESC control
  *
  ****************************************************************************/
 
-int ra8e1_pwm_demo_test(void)
+int ra8e1_escs_demo_test(void)
 {
   int ret;
   int i;
 
-  RTT_PRINTF("Starting ESC test sequence...\n");
+  demoprintf("Starting ESC test sequence...\n");
 
   /* Test sequence:
    * 1. Arm all ESCs
@@ -738,7 +732,7 @@ int ra8e1_pwm_demo_test(void)
   ret = esc_arm_all();
   if (ret < 0)
     {
-      RTT_PRINTF("ERROR: Failed to arm ESCs\n");
+      demoprintf("ERROR: Failed to arm ESCs\n");
       return ret;
     }
 
@@ -747,7 +741,7 @@ int ra8e1_pwm_demo_test(void)
   /* Gradually increase throttle to 25% */
   for (i = 0; i <= 25; i += 5)
     {
-      RTT_PRINTF("Setting all ESCs to %d%% throttle\n", i);
+      demoprintf("Setting all ESCs to %d%% throttle\n", i);
       
       for (int j = 0; j < NUM_ESC_CHANNELS; j++)
         {
@@ -762,7 +756,7 @@ int ra8e1_pwm_demo_test(void)
   /* Gradually decrease throttle to 0% */
   for (i = 25; i >= 0; i -= 5)
     {
-      RTT_PRINTF("Setting all ESCs to %d%% throttle\n", i);
+      demoprintf("Setting all ESCs to %d%% throttle\n", i);
       
       for (int j = 0; j < NUM_ESC_CHANNELS; j++)
         {
@@ -777,8 +771,8 @@ int ra8e1_pwm_demo_test(void)
   /* Disarm all ESCs */
   esc_disarm_all();
 
-  RTT_PRINTF("ESC test sequence completed\n");
+  demoprintf("ESC test sequence completed\n");
   return OK;
 }
 
-#endif /* CONFIG_EXAMPLES_ESCS */
+#endif /* CONFIG_RA8_PWM_ESCS */

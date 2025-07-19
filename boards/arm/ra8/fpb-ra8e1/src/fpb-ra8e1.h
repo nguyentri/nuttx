@@ -18,8 +18,8 @@
  *
  ****************************************************************************/
 
-#ifndef __BOARDS_ARM_RA8_FPB_RA8E1_SRC_H
-#define __BOARDS_ARM_RA8_FPB_RA8E1_SRC_H
+#ifndef __BOARDS_ARM_RA8_FPBA8E1_SRC_H
+#define __BOARDS_ARM_RA8_FPBA8E1_SRC_H
 
 /****************************************************************************
  * Included Files
@@ -68,36 +68,72 @@
 int ra8e1_bringup(void);
 
 /****************************************************************************
- * Name: ra8e1_gy912_initialize
+ * Name: ra_gpio_initialize
  *
  * Description:
- *   Initialize GY-912 sensor module (ICM-20948 + BMP388)
+ *   Initialize GPIO drivers for use with /apps/examples/gpio
+ *
+ * Return Value:
+ *   OK on success; a negated errno value on failure.
  *
  ****************************************************************************/
 
+#ifdef CONFIG_RA8_GPIO
+int ra_gpio_initialize(void);
+#endif
+
+#ifdef CONFIG_RA8_SPI
+int fpb_ra8e1_spi_initialize(void);
+#endif
+
+#ifdef CONFIG_RA8_SPI_LOOPBACK_DEMO
+int ra8e1_spi_loopback_demo_init(void);
+int ra8e1_spi_loopback_demo_main(int argc, char *argv[]);
+#endif
+
+#ifdef CONFIG_RA8_ADC_BATTERY_MONITOR
+int ra8e1_adc_bms_demo_init(void);
+int ra8e1_adc_bms_demo_main(int argc, FAR char *argv[]);
+#endif
+
+#ifdef CONFIG_RA8_CODE_FLASH
+int ra8e1_code_flash_demo_init(void);
+int ra8e1_code_flash_demo_main(int argc, char *argv[]);
+#endif
+
+#ifdef CONFIG_RA8_DATA_FLASH
+int ra8e1_data_flash_demo_init(void);
+int ra8e1_data_flash_demo_main(int argc, char *argv[]);
+#endif
+
+#ifdef CONFIG_RA8_PWM_ESCS
+int ra8e1_escs_demo_init(void);
+int ra8e1_escs_demo_main(int argc, char *argv[]);
+#endif
+
+#ifdef CONFIG_RA8_SCI_UART
+int ra8e1_gps_demo_init(void);
+int ra8e1_gps_demo_main(int argc, char *argv[]);
+int ra8e1_sbus_demo_init(void);
+int ra8e1_sbus_demo_main(int argc, char *argv[]);
+#endif
+
 #ifdef CONFIG_RA8_I2C
-int ra8e1_gy912_initialize(void);
-int ra8e1_gy912_test(void);
+int ra8e1_i2c_gy912_demo_init(void);
+int ra8e1_i2c_gy912_demo_main(int argc, char *argv[]);
+int ra8e1_i2c_acc_demo_init(void);
+int ra8e1_i2c_acc_demo_main(int argc, char *argv[]);
+int ra8e1_i2c_simple_demo_init(void);
+int ra8e1_i2c_simple_demo_main(int argc, char *argv[]);
+#endif
 
-/* GY-912 Data Structure */
-struct gy912_data_s
-{
-  /* ICM-20948 data */
-  int16_t accel_x;        /* Accelerometer X-axis */
-  int16_t accel_y;        /* Accelerometer Y-axis */
-  int16_t accel_z;        /* Accelerometer Z-axis */
-  int16_t gyro_x;         /* Gyroscope X-axis */
-  int16_t gyro_y;         /* Gyroscope Y-axis */
-  int16_t gyro_z;         /* Gyroscope Z-axis */
-  int16_t temperature_imu; /* Temperature from IMU */
+#ifdef CONFIG_RA8_SPI_GY912
+int ra8e1_spi_gy912_demo_init(void);
+int ra8e1_spi_gy912_demo_main(int argc, FAR char *argv[]);
+#endif
 
-  /* BMP388 data */
-  uint32_t pressure;      /* Pressure data */
-  int32_t temperature_bmp; /* Temperature from BMP388 */
-};
-
-int ra8e1_gy912_read_data(struct gy912_data_s *data);
-void ra8e1_gy912_print_data(const struct gy912_data_s *data);
+#ifdef CONFIG_RA8_SW_BUTTON
+void board_button_initialize(void);
 #endif
 
 #endif /* __ASSEMBLY__ */

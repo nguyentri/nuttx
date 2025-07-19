@@ -18,20 +18,45 @@
  *
  ****************************************************************************/
 
-/* The RA8E1 has 1MB of FLASH beginning at address 0x00000000 and
- * 544KB SRAM (including 32KB TCM).
+/* The RA8E1 has 1MB of FLASH beginning at address 0x02000000 and
+ * 512KB RAM beginning at address 0x22060000, plus TCM memories.
+ * Updated to match FSP memory layout.
  */
 
 MEMORY
 {
-  flash (rx)   : ORIGIN = 0x00000000, LENGTH = 1024K
-  sram (rwx)  : ORIGIN = 0x20000000, LENGTH = 544K
+  /* Main Flash - 1MB */
+  flash (rx)   : ORIGIN = 0x02000000, LENGTH = 0x00100000
+  
+  /* Main RAM - 512KB */
+  sram (rwx)   : ORIGIN = 0x22060000, LENGTH = 0x00080000
+  
+  /* Data Flash - 12KB */
+  data_flash (rx) : ORIGIN = 0x27000000, LENGTH = 0x00003000
+  
+  /* Instruction Tightly Coupled Memory - 16KB */
+  itcm (rwx)   : ORIGIN = 0x00000000, LENGTH = 0x00004000
+  
+  /* Data Tightly Coupled Memory - 16KB */
+  dtcm (rwx)   : ORIGIN = 0x20000000, LENGTH = 0x00004000
+  
+  /* OSPI Flash regions (external) */
+  ospi0_cs0 (rwx) : ORIGIN = 0x80000000, LENGTH = 0x10000000
+  ospi0_cs1 (rx)  : ORIGIN = 0x90000000, LENGTH = 0x10000000
+  
+  /* Option Setting regions */
+  option_ofs0 (r)    : ORIGIN = 0x0300a100, LENGTH = 0x00000004
+  option_ofs2 (r)    : ORIGIN = 0x0300a104, LENGTH = 0x00000004
+  option_dualsel (r) : ORIGIN = 0x0300a110, LENGTH = 0x00000004
+  
+  /* ID Code region */
   idcode (rx)  : ORIGIN = 0x01010018, LENGTH = 0x20
 }
 
 OUTPUT_ARCH(arm)
 EXTERN(_vectors)
 ENTRY(_stext)
+
 SECTIONS
 {
     .text :
@@ -64,14 +89,30 @@ SECTIONS
     .ARM.extab :
     {
         *(.ARM.extab*)
-    } >flash
+    } > flash
 
     .ARM.exidx :
     {
         __exidx_start = ABSOLUTE(.);
         *(.ARM.exidx*)
         __exidx_end = ABSOLUTE(.);
-    } >flash
+    } > flash
+
+    /* Option setting sections */
+    .option_setting_ofs0 :
+    {
+        KEEP(*(.option_setting_ofs0))
+    } > option_ofs0
+
+    .option_setting_ofs2 :
+    {
+        KEEP(*(.option_setting_ofs2))
+    } > option_ofs2
+
+    .option_setting_dualsel :
+    {
+        KEEP(*(.option_setting_dualsel))
+    } > option_dualsel
 
     .id_code :
     {
@@ -101,6 +142,28 @@ SECTIONS
 
     _framfuncs = LOADADDR(.ramfunc);
 
+    /* ITCM sections */
+    .itcm_data :
+    {
+        _sitcm = ABSOLUTE(.);
+        *(.itcm .itcm.*)
+        *(.itcm_code .itcm_code.*)
+        _eitcm = ABSOLUTE(.);
+    } > itcm AT > flash
+
+    _fitcm = LOADADDR(.itcm_data);
+
+    /* DTCM sections */
+    .dtcm_data :
+    {
+        _sdtcm = ABSOLUTE(.);
+        *(.dtcm .dtcm.*)
+        *(.dtcm_code .dtcm_code.*)
+        _edtcm = ABSOLUTE(.);
+    } > dtcm AT > flash
+
+    _fdtcm = LOADADDR(.dtcm_data);
+
     .bss :
     {
         _sbss = ABSOLUTE(.);
@@ -111,8 +174,23 @@ SECTIONS
         _ebss = ABSOLUTE(.);
     } > sram
 
-    /* Stabs debugging sections. */
+    /* ITCM BSS */
+    .itcm_bss (NOLOAD) :
+    {
+        _sitcm_bss = ABSOLUTE(.);
+        *(.itcm_bss .itcm_bss.*)
+        _eitcm_bss = ABSOLUTE(.);
+    } > itcm
 
+    /* DTCM BSS */
+    .dtcm_bss (NOLOAD) :
+    {
+        _sdtcm_bss = ABSOLUTE(.);
+        *(.dtcm_bss .dtcm_bss.*)
+        _edtcm_bss = ABSOLUTE(.);
+    } > dtcm
+
+    /* Stabs debugging sections. */
     .stab 0 : { *(.stab) }
     .stabstr 0 : { *(.stabstr) }
     .stab.excl 0 : { *(.stab.excl) }

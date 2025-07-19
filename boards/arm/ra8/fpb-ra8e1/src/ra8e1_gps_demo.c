@@ -46,18 +46,7 @@
 #include "ra_gpio.h"
 #include "ra_uart.h"
 #include "ra8e1_gps_demo.h"
-
-/* Conditional RTT support */
-#ifdef CONFIG_SEGGER_RTT
-#include "SEGGER_RTT.h"
-#define RTT_PRINTF(...)     SEGGER_RTT_printf(0, __VA_ARGS__)
-#define RTT_HASKEY()        SEGGER_RTT_HasKey()
-#define RTT_GETKEY()        SEGGER_RTT_GetKey()
-#else
-#define RTT_PRINTF(...)     printf(__VA_ARGS__)
-#define RTT_HASKEY()        (false)
-#define RTT_GETKEY()        (0)
-#endif
+#include "ra8e1_demo_log.h"
 
 #ifdef CONFIG_EXAMPLES_GPS
 
@@ -185,11 +174,11 @@ static int gps_uart_initialize(void)
   ret = ra_uart_initialize(&g_gps_uart);
   if (ret < 0)
     {
-      RTT_PRINTF("GPS: Failed to initialize UART: %d\n", ret);
+      demoerr("GPS: Failed to initialize UART: %d\n", ret);
       return ret;
     }
   
-  RTT_PRINTF("GPS: UART3 initialized for 38400 baud, 8N1\n");
+  demoinfo("GPS: UART3 initialized for 38400 baud, 8N1\n");
   return OK;
 }
 
@@ -217,7 +206,7 @@ static void gps_uart_callback(ra_uart_dev_t *dev, uint32_t event)
   if (event & (RA_UART_EVENT_ERR_PARITY | RA_UART_EVENT_ERR_FRAMING | RA_UART_EVENT_ERR_OVERFLOW))
     {
       g_nmea_parser.parse_errors++;
-      RTT_PRINTF("GPS: UART error event: 0x%08x\n", event);
+      demowarn("GPS: UART error event: 0x%08x\n", event);
     }
 }
 
@@ -628,22 +617,22 @@ static int nmea_parse_int(const char *field)
 
 static void gps_print_position(void)
 {
-  RTT_PRINTF("\nGPS Position:\n");
-  RTT_PRINTF("  Fix: %s (Type: %d)\n", 
+  demoprintf("\nGPS Position:\n");
+  demoprintf("  Fix: %s (Type: %d)\n", 
              g_gps_data.fix_valid ? "Valid" : "Invalid", g_gps_data.fix_type);
-  RTT_PRINTF("  Latitude:  %.6f°\n", g_gps_data.latitude);
-  RTT_PRINTF("  Longitude: %.6f°\n", g_gps_data.longitude);
-  RTT_PRINTF("  Altitude:  %.1f m\n", g_gps_data.altitude);
-  RTT_PRINTF("  Speed:     %.1f km/h\n", g_gps_data.speed_kmh);
-  RTT_PRINTF("  Course:    %.1f°\n", g_gps_data.course);
-  RTT_PRINTF("  Time:      %02d:%02d:%02d UTC\n", 
+  demoprintf("  Latitude:  %.6f°\n", g_gps_data.latitude);
+  demoprintf("  Longitude: %.6f°\n", g_gps_data.longitude);
+  demoprintf("  Altitude:  %.1f m\n", g_gps_data.altitude);
+  demoprintf("  Speed:     %.1f km/h\n", g_gps_data.speed_kmh);
+  demoprintf("  Course:    %.1f°\n", g_gps_data.course);
+  demoprintf("  Time:      %02d:%02d:%02d UTC\n", 
              g_gps_data.hour, g_gps_data.minute, g_gps_data.second);
-  RTT_PRINTF("  Date:      %02d/%02d/%04d\n", 
+  demoprintf("  Date:      %02d/%02d/%04d\n", 
              g_gps_data.day, g_gps_data.month, g_gps_data.year);
-  RTT_PRINTF("  Satellites: %d\n", g_gps_data.satellites_used);
-  RTT_PRINTF("  HDOP:      %.1f\n", g_gps_data.hdop);
-  RTT_PRINTF("  VDOP:      %.1f\n", g_gps_data.vdop);
-  RTT_PRINTF("  PDOP:      %.1f\n", g_gps_data.pdop);
+  demoprintf("  Satellites: %d\n", g_gps_data.satellites_used);
+  demoprintf("  HDOP:      %.1f\n", g_gps_data.hdop);
+  demoprintf("  VDOP:      %.1f\n", g_gps_data.vdop);
+  demoprintf("  PDOP:      %.1f\n", g_gps_data.pdop);
 }
 
 /****************************************************************************
@@ -659,11 +648,11 @@ static void gps_print_status(void)
   uint32_t current_time = up_systime();
   uint32_t time_since_last = current_time - g_gps_data.timestamp;
   
-  RTT_PRINTF("\nGPS Status:\n");
-  RTT_PRINTF("  Sentences received: %u\n", g_nmea_parser.sentence_count);
-  RTT_PRINTF("  Parse errors: %u\n", g_nmea_parser.parse_errors);
-  RTT_PRINTF("  Last update: %u ms ago\n", time_since_last);
-  RTT_PRINTF("  Message rate: %.1f Hz\n", 
+  demoprintf("\nGPS Status:\n");
+  demoprintf("  Sentences received: %u\n", g_nmea_parser.sentence_count);
+  demoprintf("  Parse errors: %u\n", g_nmea_parser.parse_errors);
+  demoprintf("  Last update: %u ms ago\n", time_since_last);
+  demoprintf("  Message rate: %.1f Hz\n", 
              g_nmea_parser.sentence_count > 0 ? (float)g_nmea_parser.sentence_count * 1000.0f / current_time : 0.0f);
 }
 
@@ -677,12 +666,12 @@ static void gps_print_status(void)
 
 static void print_menu(void)
 {
-  RTT_PRINTF("\nGPS Demo Commands:\n");
-  RTT_PRINTF("  p - Show position\n");
-  RTT_PRINTF("  s - Show status\n");
-  RTT_PRINTF("  r - Reset counters\n");
-  RTT_PRINTF("  h - Show this menu\n");
-  RTT_PRINTF("  q - Quit demo\n");
+  demoprintf("\nGPS Demo Commands:\n");
+  demoprintf("  p - Show position\n");
+  demoprintf("  s - Show status\n");
+  demoprintf("  r - Reset counters\n");
+  demoprintf("  h - Show this menu\n");
+  demoprintf("  q - Quit demo\n");
 }
 
 /****************************************************************************
@@ -716,7 +705,7 @@ static void process_rtt_command(const char *command)
       case 'R':
         g_nmea_parser.sentence_count = 0;
         g_nmea_parser.parse_errors = 0;
-        RTT_PRINTF("Counters reset\n");
+        demoprintf("Counters reset\n");
         break;
         
       case 'h':
@@ -727,11 +716,11 @@ static void process_rtt_command(const char *command)
       case 'q':
       case 'Q':
         g_demo_running = false;
-        RTT_PRINTF("Exiting GPS demo\n");
+        demoinfo("Exiting GPS demo\n");
         break;
         
       default:
-        RTT_PRINTF("Unknown command: %c\n", command[0]);
+        demoprintf("Unknown command: %c\n", command[0]);
         print_menu();
         break;
     }
@@ -740,6 +729,20 @@ static void process_rtt_command(const char *command)
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: ra8e1_gps_demo_init
+ *
+ * Description:
+ *   Initialize the GPS demo
+ *
+ ****************************************************************************/
+
+int ra8e1_gps_demo_init(void)
+{
+  /* GPS demo initialization is done within main function */
+  return 0;
+}
 
 /****************************************************************************
  * Name: ra8e1_gps_demo_main
@@ -755,10 +758,10 @@ int ra8e1_gps_demo_main(int argc, char *argv[])
   int key;
   uint8_t cmd_pos = 0;
   
-  RTT_PRINTF("\nRA8E1 GPS Demo Starting...\n");
-  RTT_PRINTF("GPS TX: P310 (TXD3) -> GPS RX\n");
-  RTT_PRINTF("GPS RX: P309 (RXD3) <- GPS TX\n");
-  RTT_PRINTF("Configuration: 38400 baud, 8N1\n\n");
+  demoprintf("\nRA8E1 GPS Demo Starting...\n");
+  demoprintf("GPS TX: P310 (TXD3) -> GPS RX\n");
+  demoprintf("GPS RX: P309 (RXD3) <- GPS TX\n");
+  demoprintf("Configuration: 38400 baud, 8N1\n\n");
   
   /* Initialize NMEA parser */
   memset(&g_nmea_parser, 0, sizeof(g_nmea_parser));
@@ -768,25 +771,22 @@ int ra8e1_gps_demo_main(int argc, char *argv[])
   ret = gps_uart_initialize();
   if (ret < 0)
     {
-      RTT_PRINTF("GPS: Failed to initialize UART: %d\n", ret);
+      demoerr("GPS: Failed to initialize UART: %d\n", ret);
       return ret;
     }
   
   print_menu();
   g_demo_running = true;
   
-#ifdef CONFIG_SEGGER_RTT
-  RTT_PRINTF("RTT initialized - ready for commands\n");
-#endif
+  demoinfo("Demo initialized - ready for commands\n");
 
   /* Main demo loop */
   while (g_demo_running)
     {
-      /* Check for RTT input */
-#ifdef CONFIG_SEGGER_RTT
-      if (RTT_HASKEY())
+      /* Check for input */
+      if (demo_haskey())
         {
-          key = RTT_GETKEY();
+          key = demo_getkey();
           if (key >= 0)
             {
               if (key == '\r' || key == '\n')
@@ -811,7 +811,6 @@ int ra8e1_gps_demo_main(int argc, char *argv[])
                 }
             }
         }
-#endif
       
       /* Small delay to prevent overwhelming the system */
       usleep(10000); /* 10ms */
@@ -819,7 +818,7 @@ int ra8e1_gps_demo_main(int argc, char *argv[])
   
   /* Cleanup */
   ra_uart_finalize(&g_gps_uart);
-  RTT_PRINTF("GPS demo finished\n");
+  demoinfo("GPS demo finished\n");
   
   return OK;
 }

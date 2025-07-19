@@ -18,6 +18,7 @@
 #
 # ##############################################################################
 
+# Required RA8 core files
 set(SRCS
     ra_start.c
     ra_timerisr.c
@@ -28,3 +29,70 @@ set(SRCS
     ra_gpio.c
     ra_allocateheap.c
     ra_serial.c)
+
+# FSP Integration support
+if(CONFIG_RA8_FSP_INTEGRATION)
+  list(APPEND SRCS ra_fsp_integration.c)
+endif()
+
+# Module Stop Control
+if(CONFIG_RA8_MSTP)
+  list(APPEND SRCS ra_mstp.c)
+endif()
+
+# Pin mapping support
+if(CONFIG_RA8_PINMAP)
+  list(APPEND SRCS ra_pinmap.c)
+endif()
+
+# ADC driver
+if(CONFIG_RA8_ADC)
+  list(APPEND SRCS ra_adc.c)
+endif()
+
+# I2C driver
+if(CONFIG_RA8_I2C)
+  list(APPEND SRCS ra_i2c.c)
+endif()
+
+# I2C slave driver
+if(CONFIG_RA8_I2C_SLAVE)
+  list(APPEND SRCS ra_i2c_slave.c)
+endif()
+
+# DMAC driver
+if(CONFIG_RA8_DMAC)
+  list(APPEND SRCS ra_dmac.c)
+endif()
+
+# DMA driver
+if(CONFIG_RA_DMA)
+  list(APPEND SRCS ra_dmac.c)
+endif()
+
+# SPI driver
+if(CONFIG_RA8_SPI)
+  list(APPEND SRCS ra_spi.c)
+endif()
+
+# GPT timer driver
+if(CONFIG_RA8_GPT)
+  list(APPEND SRCS ra_gpt.c)
+endif()
+
+# PWM driver
+if(CONFIG_RA8_PWM)
+  list(APPEND SRCS ra_pwm.c)
+endif()
+
+# Enhanced UART+DMA driver
+if(CONFIG_RA8_SCI_UART)
+  list(APPEND SRCS ra_uart.c)
+endif()
+
+# Flash memory driver
+if(CONFIG_RA8_FLASH)
+  list(APPEND SRCS ra_flash.c)
+endif()
+
+target_sources(arch PRIVATE ${SRCS})

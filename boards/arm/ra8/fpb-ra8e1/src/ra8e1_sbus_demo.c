@@ -46,18 +46,7 @@
 #include "ra_gpio.h"
 #include "ra_uart.h"
 #include "ra8e1_sbus_demo.h"
-
-/* Conditional RTT support */
-#ifdef CONFIG_SEGGER_RTT
-#include "SEGGER_RTT.h"
-#define RTT_PRINTF(...)     SEGGER_RTT_printf(0, __VA_ARGS__)
-#define RTT_HASKEY()        SEGGER_RTT_HasKey()
-#define RTT_GETKEY()        SEGGER_RTT_GetKey()
-#else
-#define RTT_PRINTF(...)     printf(__VA_ARGS__)
-#define RTT_HASKEY()        (false)
-#define RTT_GETKEY()        (0)
-#endif
+#include "ra8e1_demo_log.h"
 
 #ifdef CONFIG_EXAMPLES_SBUS
 
@@ -185,11 +174,11 @@ static int sbus_uart_initialize(void)
   ret = ra_uart_initialize(&g_sbus_uart);
   if (ret < 0)
     {
-      RTT_PRINTF("SBUS: Failed to initialize UART: %d\n", ret);
+      demoprintf("SBUS: Failed to initialize UART: %d\n", ret);
       return ret;
     }
   
-  RTT_PRINTF("SBUS: UART2 initialized for 100kbps, even parity, 2 stop bits\n");
+  demoprintf("SBUS: UART2 initialized for 100kbps, even parity, 2 stop bits\n");
   return OK;
 }
 
@@ -267,7 +256,7 @@ static void sbus_uart_callback(ra_uart_dev_t *dev, uint32_t event)
   if (event & (RA_UART_EVENT_ERR_PARITY | RA_UART_EVENT_ERR_FRAMING | RA_UART_EVENT_ERR_OVERFLOW))
     {
       g_sbus_parser.error_count++;
-      RTT_PRINTF("SBUS: UART error event: 0x%08x\n", event);
+      demoprintf("SBUS: UART error event: 0x%08x\n", event);
     }
 }
 
@@ -348,17 +337,17 @@ static void sbus_print_channels(const struct sbus_data_s *data)
 {
   int i;
   
-  RTT_PRINTF("SBUS Channels:\n");
+  demoprintf("SBUS Channels:\n");
   for (i = 0; i < SBUS_NUM_CHANNELS; i += 4)
     {
-      RTT_PRINTF("  CH%02d:%4d  CH%02d:%4d  CH%02d:%4d  CH%02d:%4d\n",
+      demoprintf("  CH%02d:%4d  CH%02d:%4d  CH%02d:%4d  CH%02d:%4d\n",
                  i+1, data->channels[i],
                  i+2, (i+1 < SBUS_NUM_CHANNELS) ? data->channels[i+1] : 0,
                  i+3, (i+2 < SBUS_NUM_CHANNELS) ? data->channels[i+2] : 0,
                  i+4, (i+3 < SBUS_NUM_CHANNELS) ? data->channels[i+3] : 0);
     }
   
-  RTT_PRINTF("Digital: CH17=%d CH18=%d  Status: FrameLost=%d Failsafe=%d\n",
+  demoprintf("Digital: CH17=%d CH18=%d  Status: FrameLost=%d Failsafe=%d\n",
              data->ch17, data->ch18, data->frame_lost, data->failsafe);
 }
 
@@ -375,11 +364,11 @@ static void sbus_print_status(void)
   uint32_t current_time = up_systime();
   uint32_t time_since_last = current_time - g_sbus_data.timestamp;
   
-  RTT_PRINTF("\nSBUS Status:\n");
-  RTT_PRINTF("  Frames received: %u\n", g_sbus_parser.frame_count);
-  RTT_PRINTF("  Errors: %u\n", g_sbus_parser.error_count);
-  RTT_PRINTF("  Last frame: %u ms ago\n", time_since_last);
-  RTT_PRINTF("  Frame rate: %.1f Hz\n", 
+  demoprintf("\nSBUS Status:\n");
+  demoprintf("  Frames received: %u\n", g_sbus_parser.frame_count);
+  demoprintf("  Errors: %u\n", g_sbus_parser.error_count);
+  demoprintf("  Last frame: %u ms ago\n", time_since_last);
+  demoprintf("  Frame rate: %.1f Hz\n", 
              g_sbus_parser.frame_count > 0 ? (float)g_sbus_parser.frame_count * 1000.0f / current_time : 0.0f);
 }
 
@@ -393,12 +382,12 @@ static void sbus_print_status(void)
 
 static void print_menu(void)
 {
-  RTT_PRINTF("\nSBUS Demo Commands:\n");
-  RTT_PRINTF("  c - Show channels\n");
-  RTT_PRINTF("  s - Show status\n");
-  RTT_PRINTF("  r - Reset counters\n");
-  RTT_PRINTF("  h - Show this menu\n");
-  RTT_PRINTF("  q - Quit demo\n");
+  demoprintf("\nSBUS Demo Commands:\n");
+  demoprintf("  c - Show channels\n");
+  demoprintf("  s - Show status\n");
+  demoprintf("  r - Reset counters\n");
+  demoprintf("  h - Show this menu\n");
+  demoprintf("  q - Quit demo\n");
 }
 
 /****************************************************************************
@@ -432,7 +421,7 @@ static void process_rtt_command(const char *command)
       case 'R':
         g_sbus_parser.frame_count = 0;
         g_sbus_parser.error_count = 0;
-        RTT_PRINTF("Counters reset\n");
+        demoprintf("Counters reset\n");
         break;
         
       case 'h':
@@ -443,11 +432,11 @@ static void process_rtt_command(const char *command)
       case 'q':
       case 'Q':
         g_demo_running = false;
-        RTT_PRINTF("Exiting SBUS demo\n");
+        demoprintf("Exiting SBUS demo\n");
         break;
         
       default:
-        RTT_PRINTF("Unknown command: %c\n", command[0]);
+        demoprintf("Unknown command: %c\n", command[0]);
         print_menu();
         break;
     }
@@ -456,6 +445,20 @@ static void process_rtt_command(const char *command)
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: ra8e1_sbus_demo_init
+ *
+ * Description:
+ *   Initialize the SBUS demo
+ *
+ ****************************************************************************/
+
+int ra8e1_sbus_demo_init(void)
+{
+  /* SBUS demo initialization is done within main function */
+  return 0;
+}
 
 /****************************************************************************
  * Name: ra8e1_sbus_demo_main
@@ -471,9 +474,9 @@ int ra8e1_sbus_demo_main(int argc, char *argv[])
   int key;
   uint8_t cmd_pos = 0;
   
-  RTT_PRINTF("\nRA8E1 SBUS Demo Starting...\n");
-  RTT_PRINTF("SBUS: P802 (RXD2) <- RC Receiver SBUS output\n");
-  RTT_PRINTF("Configuration: 100kbps, 8E2, inverted\n\n");
+  demoprintf("\nRA8E1 SBUS Demo Starting...\n");
+  demoprintf("SBUS: P802 (RXD2) <- RC Receiver SBUS output\n");
+  demoprintf("Configuration: 100kbps, 8E2, inverted\n\n");
   
   /* Initialize SBUS parser */
   memset(&g_sbus_parser, 0, sizeof(g_sbus_parser));
@@ -483,25 +486,22 @@ int ra8e1_sbus_demo_main(int argc, char *argv[])
   ret = sbus_uart_initialize();
   if (ret < 0)
     {
-      RTT_PRINTF("SBUS: Failed to initialize UART: %d\n", ret);
+      demoprintf("SBUS: Failed to initialize UART: %d\n", ret);
       return ret;
     }
   
   print_menu();
   g_demo_running = true;
   
-#ifdef CONFIG_SEGGER_RTT
-  RTT_PRINTF("RTT initialized - ready for commands\n");
-#endif
+  demoinfo("Demo initialized - ready for commands\n");
 
   /* Main demo loop */
   while (g_demo_running)
     {
-      /* Check for RTT input */
-#ifdef CONFIG_SEGGER_RTT
-      if (RTT_HASKEY())
+      /* Check for input */
+      if (demo_haskey())
         {
-          key = RTT_GETKEY();
+          key = demo_getkey();
           if (key >= 0)
             {
               if (key == '\r' || key == '\n')
@@ -526,7 +526,6 @@ int ra8e1_sbus_demo_main(int argc, char *argv[])
                 }
             }
         }
-#endif
       
       /* Small delay to prevent overwhelming the system */
       usleep(10000); /* 10ms */
@@ -534,7 +533,7 @@ int ra8e1_sbus_demo_main(int argc, char *argv[])
   
   /* Cleanup */
   ra_uart_finalize(&g_sbus_uart);
-  RTT_PRINTF("SBUS demo finished\n");
+  demoprintf("SBUS demo finished\n");
   
   return OK;
 }

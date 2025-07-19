@@ -93,7 +93,7 @@ config RA8E1_FAMILY
 menu "Cortex-M85 Core Features"
 config ARCH_CORTEXM85
    bool
-   default n
+   default y
    help
      Selects the Arm Cortex-M85 core.
 
@@ -141,51 +141,199 @@ config ARMV8M_HAVE_HELIUM
 
 config ARMV8M_HAVE_SECURITY
    bool
-   default n
+   default y
    help
      Armv8-M Security Extension present.
 
 config ARMV8M_HAVE_MPU
    bool
-   default n
+   default y
    help
      Memory Protection Unit present.
 
 config ARMV8M_HAVE_SMPU
    bool
-   default n
+   default y
    help
      Secure Memory Protection Unit present.
 
 config ARMV8M_HAVE_SYSTICK
    bool
-   default n
+   default y
    help
      SysTick timer present (secure and non-secure).
 
 config ARMV8M_HAVE_CORESIGHT
    bool
-   default n
+   default y
    help
      CoreSight ETM-M85 trace present.
 
 config ARCH_HAVE_CODE_FLASH
    bool
-   default n
+   default y
    help
      1 MB code flash memory.
 
 config ARCH_HAVE_DATA_FLASH
    bool
-   default n
+   default y
    help
      12 KB data flash memory.
 
 config ARCH_HAVE_SRAM
    bool
-   default n
+   default y
    help
      544 KB SRAM including 32 KB TCM.
+
+endmenu
+
+menu "MCU Clocks Configuration"
+
+choice
+   prompt "MCU Clock Source"
+   default RA_CLOCK_HOCO
+   help
+     Select the MCU clock source.
+
+config RA_CLOCK_HOCO
+   bool "HOCO (High-Speed On-Chip Oscillator)"
+
+config RA_CLOCK_MOCO
+   bool "MOCO (Medium-Speed On-Chip Oscillator)"
+
+config RA_CLOCK_LOCO
+   bool "LOCO (Low-Speed On-Chip Oscillator)"
+
+config RA_CLOCK_MAIN
+   bool "Main Oscillator (External Crystal)"
+
+config RA_CLOCK_PLL
+   bool "PLL (Phase-Locked Loop)"
+
+endchoice
+
+config RA_MCU_CLOCK_FREQUENCY
+   int "MCU Core Clock Frequency (Hz)"
+   default 200000000 if RA_CLOCK_PLL
+   default 48000000 if RA_CLOCK_HOCO
+   default 8000000 if RA_CLOCK_MOCO
+   default 32768 if RA_CLOCK_LOCO
+   default 24000000 if RA_CLOCK_MAIN
+   help
+     Set the MCU core clock frequency in Hertz.
+     RA8E1 supports up to 200MHz with PLL enabled.
+
+config RA_MCU_PLL_ENABLE
+   bool "Enable PLL"
+   default y
+   help
+     Enable or disable the PLL clock for frequency multiplication.
+     Required for maximum performance (200MHz).
+
+config RA_ICLK_FREQUENCY
+   int "ICLK Frequency (Hz)"
+   default 200000000
+   help
+     Core clock frequency for Cortex-M85.
+
+config RA_PCLKA_FREQUENCY
+   int "PCLKA Frequency (Hz)"
+   default 100000000
+   help
+     Peripheral clock A frequency (for high-speed peripherals).
+
+config RA_PCLKB_FREQUENCY
+   int "PCLKB Frequency (Hz)"
+   default 50000000
+   help
+     Peripheral clock B frequency (for medium-speed peripherals).
+
+config RA_PCLKC_FREQUENCY
+   int "PCLKC Frequency (Hz)"
+   default 100000000
+   help
+     Peripheral clock C frequency (for high-speed peripherals).
+
+config RA_PCLKD_FREQUENCY
+   int "PCLKD Frequency (Hz)"
+   default 50000000
+   help
+     Peripheral clock D frequency (for medium-speed peripherals).
+
+config RA_FCLK_FREQUENCY
+   int "FCLK Frequency (Hz)"
+   default 50000000
+   help
+     Flash clock frequency (typically 50MHz max).
+
+config RA_BCLK_FREQUENCY
+   int "BCLK Frequency (Hz)"
+   default 100000000
+   help
+     External bus clock frequency.
+
+endmenu
+
+menu "RA8 Flash Configuration"
+
+config RA8_FLASH
+    bool "Enable RA8 Flash Support"
+    default y
+    select MTD
+    ---help---
+        Enable support for RA8 internal flash memory.
+
+if RA8_FLASH
+
+config RA8_CODE_FLASH
+    bool "Enable Code Flash Support"
+    default y
+    ---help---
+        Enable support for RA8 code flash memory.
+        Supports dual bank operation for FOTA.
+
+config RA8_DATA_FLASH
+    bool "Enable Data Flash Support"
+    default y
+    ---help---
+        Enable support for RA8 data flash memory.
+        Suitable for configuration storage and small data.
+
+config RA8_FLASH_DUAL_BANK
+    bool "Enable Dual Bank Support"
+    default y
+    depends on RA8_CODE_FLASH
+    ---help---
+        Enable dual bank support for code flash.
+        Required for Firmware Over The Air (FOTA) updates.
+
+config RA8_FLASH_BANK_SWAP
+    bool "Enable Bank Swap Support"
+    default y
+    depends on RA8_FLASH_DUAL_BANK
+    ---help---
+        Enable bank swap functionality for safe firmware updates.
+
+config RA8_FLASH_WRITE_PROTECTION
+    bool "Enable write protection features"
+    default y
+    depends on RA8_FLASH
+    help
+      Enable flash write protection and security features.
+      Prevents accidental flash corruption.
+
+config RA8_FLASH_ERROR_CORRECTION
+    bool "Enable ECC support"
+    default y
+    depends on RA8_CODE_FLASH
+    help
+      Enable Error Correction Code (ECC) for flash memory.
+      Improves data integrity and reliability.
+
+endif # RA8_FLASH
+
 endmenu
 
 menu "SCI UARTs"
@@ -243,40 +391,109 @@ config RA_SCI9_UART
    default n
    depends on RA_HAVE_SCI9_UART
 
-# Console selection for SCI UARTs
-choice
-   prompt "SCI Serial Console"
-   default NO_SCI_SERIAL_CONSOLE
-   depends on RA_SCI0_UART || RA_SCI1_UART || RA_SCI2_UART || RA_SCI3_UART || RA_SCI4_UART || RA_SCI9_UART
-
-config SCI0_SERIAL_CONSOLE
-   bool "SCI0"
+# Serial driver selections for NuttX serial subsystem
+config SCI0_SERIALDRIVER
+   bool "SCI0 Serial Driver"
+   default n
    depends on RA_SCI0_UART
+   select MCU_SERIAL
+   select ARCH_HAVE_SERIAL_TERMIOS
+   help
+     Enable SCI0 as a standard serial driver (/dev/ttyS0).
+     Disable this if SCI0 is used for dedicated external devices.
 
-config SCI1_SERIAL_CONSOLE
-   bool "SCI1"
+config SCI1_SERIALDRIVER
+   bool "SCI1 Serial Driver"
+   default n
    depends on RA_SCI1_UART
+   select MCU_SERIAL
+   select ARCH_HAVE_SERIAL_TERMIOS
+   help
+     Enable SCI1 as a standard serial driver (/dev/ttyS1).
+     Disable this if SCI1 is used for dedicated external devices.
 
-config SCI2_SERIAL_CONSOLE
-   bool "SCI2"
+config SCI2_SERIALDRIVER
+   bool "SCI2 Serial Driver"
+   default n
    depends on RA_SCI2_UART
+   select MCU_SERIAL
+   select ARCH_HAVE_SERIAL_TERMIOS
+   help
+     Enable SCI2 as a standard serial driver (/dev/ttyS2).
+     Disable this if SCI2 is used for dedicated external devices like SBUS.
 
-config SCI3_SERIAL_CONSOLE
-   bool "SCI3"
+config SCI3_SERIALDRIVER
+   bool "SCI3 Serial Driver"
+   default n
    depends on RA_SCI3_UART
+   select MCU_SERIAL
+   select ARCH_HAVE_SERIAL_TERMIOS
+   help
+     Enable SCI3 as a standard serial driver (/dev/ttyS3).
+     Disable this if SCI3 is used for dedicated external devices like GPS.
 
-config SCI4_SERIAL_CONSOLE
-   bool "SCI4"
+config SCI4_SERIALDRIVER
+   bool "SCI4 Serial Driver"
+   default n
    depends on RA_SCI4_UART
+   select MCU_SERIAL
+   select ARCH_HAVE_SERIAL_TERMIOS
+   help
+     Enable SCI4 as a standard serial driver (/dev/ttyS4).
+     Disable this if SCI4 is used for dedicated external devices.
 
-config SCI9_SERIAL_CONSOLE
-   bool "SCI9"
+config SCI9_SERIALDRIVER
+   bool "SCI9 Serial Driver"
+   default n
    depends on RA_SCI9_UART
+   select MCU_SERIAL
+   select ARCH_HAVE_SERIAL_TERMIOS
+   help
+     Enable SCI9 as a standard serial driver (/dev/ttyS9).
+     SCI9 is typically used as the main console/debug interface.
 
-config NO_SCI_SERIAL_CONSOLE
-   bool "No SCI Console"
-
-endchoice
+# Baud rate configuration for SCI UARTs
+config RA_SCI0_BAUDRATE
+   int "SCI0 Baud Rate (bps)"
+   default 115200
+   depends on RA_SCI0_UART
+   help
+     Set the baud rate for SCI0. Valid ranges depend on hardware limits.
+     
+config RA_SCI1_BAUDRATE
+   int "SCI1 Baud Rate (bps)"
+   default 115200
+   depends on RA_SCI1_UART
+   help
+     Set the baud rate for SCI1.
+     
+config RA_SCI2_BAUDRATE
+   int "SCI2 Baud Rate (bps)"
+   default 115200
+   depends on RA_SCI2_UART
+   help
+     Set the baud rate for SCI2.
+     
+config RA_SCI3_BAUDRATE
+   int "SCI3 Baud Rate (bps)"
+   default 115200
+   depends on RA_SCI3_UART
+   help
+     Set the baud rate for SCI3.
+     
+config RA_SCI4_BAUDRATE
+   int "SCI4 Baud Rate (bps)"
+   default 115200
+   depends on RA_SCI4_UART
+   help
+     Set the baud rate for SCI4.
+     
+config RA_SCI9_BAUDRATE
+   int "SCI9 Baud Rate (bps)"
+   default 115200
+   depends on RA_SCI9_UART
+   help
+     Set the baud rate for SCI9.
 
 # Buffer sizes for SCI UARTs
 config SCI0_RXBUFSIZE
@@ -595,20 +812,42 @@ config RA_HAVE_SPI2
    bool
    default n
 
+config RA8_SPI
+   bool
+   default n
+   select SPI
+
 config RA_SPI0
    bool "SPI0"
    default n
    depends on RA_HAVE_SPI0
+   select RA8_SPI
 
 config RA_SPI1
    bool "SPI1"
    default n
    depends on RA_HAVE_SPI1
+   select RA8_SPI
 
 config RA_SPI2
    bool "SPI2"
    default n
    depends on RA_HAVE_SPI2
+   select RA8_SPI
+
+config RA8_SPI_DMA
+   bool "Use DMA for SPI transfers"
+   default n
+   depends on RA8_SPI && RA_DMA
+   help
+     Use DMA for improved SPI performance and reduced CPU usage.
+
+config RA8_SPI_DEBUG
+   bool "Enable SPI debug output"
+   default n
+   depends on RA8_SPI && DEBUG_FEATURES
+   help
+     Enable debug output for SPI driver operations.
 endmenu
 
 menu "CAN"
@@ -688,10 +927,18 @@ config RA_HAVE_ULPT
    bool
    default n
 
-config RA_GPT
+config RA8_GPT
    bool "General PWM Timer"
    default n
    depends on RA_HAVE_GPT
+   select PWM
+
+config RA8_GPT_PWM
+   bool "GPT PWM Support"
+   default y
+   depends on RA8_GPT
+   help
+     Enable PWM support using GPT timers.
 
 config RA_AGT
    bool "Asynchronous General Purpose Timer"
@@ -702,6 +949,32 @@ config RA_ULPT
    bool "Ultra Low Power Timer"
    default n
    depends on RA_HAVE_ULPT
+
+config RA8_PWM
+   bool "RA8 PWM Driver"
+   default n
+   depends on RA8_GPT
+   select PWM
+   help
+     Enable PWM support using GPT (General PWM Timer) modules.
+
+if RA8_PWM
+
+config RA8_PWM_CHANNELS
+   int "Number of PWM channels"
+   default 4
+   range 1 8
+   help
+     Number of PWM channels to support (1-8).
+     RA8E1 has multiple GPT timers that can generate PWM.
+
+config RA8_PWM_FREQUENCY_LIMIT
+   int "Maximum PWM frequency (Hz)"
+   default 1000000
+   help
+     Maximum allowed PWM frequency to prevent timer overflow.
+
+endif # RA8_PWM
 endmenu
 
 menu "RTC"
@@ -831,4 +1104,110 @@ config RA_DMA_TRANSFER_MODES
      Based on FSP DMAC implementation.
 
 endif # RA_DMA
+endmenu
+
+menu "RA8 Advanced Drivers"
+comment "FSP-based drivers with enhanced functionality"
+
+config RA8_FSP_INTEGRATION
+   bool "Enable FSP Integration Layer"
+   default y
+   help
+     Enable Renesas FSP (Flexible Software Package) integration layer.
+     Provides hardware abstraction and improved driver functionality.
+
+config RA8_MSTP
+   bool "Module Stop Control"
+   default y
+   help
+     Enable Module Stop Control for power management.
+     Required for proper peripheral initialization and power control.
+
+config RA8_PINMAP
+   bool "Pin Mapping Support"
+   default y
+   help
+     Enable pin mapping and configuration support.
+     Required for GPIO and peripheral pin configuration.
+
+config RA8_FLASH
+   bool "Flash Memory Driver"
+   default n
+   select MTD
+   help
+     Enable internal flash memory driver with FSP support.
+     Supports both code flash and data flash operations.
+
+if RA8_FLASH
+
+config RA8_FLASH_DUAL_BANK
+   bool "Dual Bank Support"
+   default y
+   help
+     Enable dual bank flash support for firmware updates.
+
+config RA8_FLASH_DATA
+   bool "Data Flash Support"
+   default y
+   help
+     Enable data flash support for configuration storage.
+
+endif # RA8_FLASH
+
+endmenu
+
+menu "Memory Management"
+comment "Advanced memory allocation options"
+
+choice
+   prompt "Heap Memory Selection"
+   default RA8_HEAP_SRAM
+   help
+     Select the memory region to use for the main heap.
+
+config RA8_HEAP_DTCM
+   bool "DTCM Heap (16KB, fastest access)"
+   help
+     Use DTCM (Data Tightly Coupled Memory) for heap allocation.
+     Provides fastest access but limited to 16KB.
+     Best for real-time applications requiring low latency.
+
+config RA8_HEAP_ITCM
+   bool "ITCM Heap (16KB, instruction cache benefits)"
+   help
+     Use ITCM (Instruction Tightly Coupled Memory) for heap allocation.
+     Normally used for instructions but can be repurposed.
+     Provides fast access with 16KB capacity.
+
+config RA8_HEAP_SRAM
+   bool "SRAM Heap (512KB, balanced performance)"
+   help
+     Use main SRAM for heap allocation.
+     Provides 512KB capacity with good performance.
+     Recommended for most applications.
+
+config RA8_HEAP_EXTERNAL
+   bool "External RAM Heap (large capacity)"
+   help
+     Use external RAM via OSPI for heap allocation.
+     Provides largest capacity but slower access.
+     Suitable for data-intensive applications.
+
+endchoice
+
+config RA8_HEAP_DEBUG
+   bool "Enable heap debugging"
+   default n
+   depends on DEBUG_FEATURES
+   help
+     Enable heap allocation debugging and validation.
+     Adds boundary checking and allocation tracking.
+
+config RA8_STACK_GUARD
+   bool "Enable stack guard"
+   default n
+   help
+     Enable stack overflow protection using MPU.
+     Helps detect stack corruption early.
+
 endmenu

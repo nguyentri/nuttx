@@ -119,7 +119,7 @@
 
 /* FSP-Based Timer Configuration */
 
-#ifdef CONFIG_RA8_SYSTICK_GPT
+#ifdef CONFIG_RA_SYSTICK_GPT
 #  define RA_TIMER_SOURCE_FREQ         RA_PCLKD_FREQUENCY
 #  ifndef RA_GPT_CHANNEL
 #    define RA_GPT_CHANNEL             0
@@ -128,48 +128,48 @@
 
 /* FSP-Based Memory Configuration - Matched to Linker Script */
 
-#ifndef CONFIG_RA8_DTCM_BASE
-#  define CONFIG_RA8_DTCM_BASE         0x20000000  /* DTCM base from linker */
+#ifndef CONFIG_RA_DTCM_BASE
+#  define CONFIG_RA_DTCM_BASE         0x20000000  /* DTCM base from linker */
 #endif
 
-#ifndef CONFIG_RA8_DTCM_SIZE
-#  define CONFIG_RA8_DTCM_SIZE         0x4000      /* 16KB - matches linker */
+#ifndef CONFIG_RA_DTCM_SIZE
+#  define CONFIG_RA_DTCM_SIZE         0x4000      /* 16KB - matches linker */
 #endif
 
-#ifndef CONFIG_RA8_ITCM_BASE
-#  define CONFIG_RA8_ITCM_BASE         0x00000000  /* ITCM base from linker */
+#ifndef CONFIG_RA_ITCM_BASE
+#  define CONFIG_RA_ITCM_BASE         0x00000000  /* ITCM base from linker */
 #endif
 
-#ifndef CONFIG_RA8_ITCM_SIZE
-#  define CONFIG_RA8_ITCM_SIZE         0x4000      /* 16KB - matches linker */
+#ifndef CONFIG_RA_ITCM_SIZE
+#  define CONFIG_RA_ITCM_SIZE         0x4000      /* 16KB - matches linker */
 #endif
 
-#ifndef CONFIG_RA8_SRAM_BASE
-#  define CONFIG_RA8_SRAM_BASE         0x22060000  /* Main SRAM base */
+#ifndef CONFIG_RA_SRAM_BASE
+#  define CONFIG_RA_SRAM_BASE         0x22060000  /* Main SRAM base */
 #endif
 
 #ifndef CONFIG_RA8_SRAM_SIZE
 #  define CONFIG_RA8_SRAM_SIZE         0x80000     /* 512KB - matches linker */
 #endif
 
-#ifndef CONFIG_RA8_EXTERNAL_RAM_BASE
-#  define CONFIG_RA8_EXTERNAL_RAM_BASE 0x80000000  /* OSPI0 CS0 from linker */
+#ifndef CONFIG_RA_EXTERNAL_RAM_BASE
+#  define CONFIG_RA_EXTERNAL_RAM_BASE 0x80000000  /* OSPI0 CS0 from linker */
 #endif
 
-#ifndef CONFIG_RA8_EXTERNAL_RAM_SIZE
-#  define CONFIG_RA8_EXTERNAL_RAM_SIZE 0x1000000   /* 16MB OSPI0 CS0 */
+#ifndef CONFIG_RA_EXTERNAL_RAM_SIZE
+#  define CONFIG_RA_EXTERNAL_RAM_SIZE 0x1000000   /* 16MB OSPI0 CS0 */
 #endif
 
-#ifndef CONFIG_RA8_HEAP_ALIGNMENT
-#  define CONFIG_RA8_HEAP_ALIGNMENT    8          /* 8-byte alignment */
+#ifndef CONFIG_RA_HEAP_ALIGNMENT
+#  define CONFIG_RA_HEAP_ALIGNMENT    8          /* 8-byte alignment */
 #endif
 
-#ifndef CONFIG_RA8_STACK_GUARD_SIZE
-#  define CONFIG_RA8_STACK_GUARD_SIZE  1024       /* 1KB guard */
+#ifndef CONFIG_RA_STACK_GUARD_SIZE
+#  define CONFIG_RA_STACK_GUARD_SIZE  1024       /* 1KB guard */
 #endif
 
 /* Derived memory definitions for compatibility */
-#define CONFIG_RAM_END                  (CONFIG_RA8_SRAM_BASE + CONFIG_RA8_SRAM_SIZE)
+#define CONFIG_RAM_END                  (CONFIG_RA_SRAM_BASE + CONFIG_RA8_SRAM_SIZE)
 
 /* FSP-Based Option Function Select Register Settings */
 

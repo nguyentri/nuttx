@@ -34,7 +34,7 @@ The actual pin assignments depend on your board configuration. Update the board 
 ### Build Steps
 ```bash
 cd nuttx
-make menuconfig  # Enable CONFIG_RA8_PWM_ESCS
+make menuconfig  # Enable CONFIG_RA8E1_PWM_ESCS_DEMO
 make
 ```
 
@@ -141,7 +141,7 @@ The demo provides detailed debug output including:
 ### NuttX Configuration
 Required config options:
 ```
-CONFIG_RA8_PWM_ESCS=y
+CONFIG_RA8E1_PWM_ESCS_DEMO=y
 CONFIG_PWM=y
 CONFIG_RA8_GPT=y
 CONFIG_RA8_GPT_PWM=y

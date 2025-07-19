@@ -74,7 +74,7 @@ int ra8e1_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_RA8_ADC_BATTERY_MONITOR
+#ifdef CONFIG_RA8E1_ADC_BMS_DEMO
   /* Initialize ADC BMS demo */
   ret = ra8e1_adc_bms_demo_init();
   if (ret < 0)
@@ -88,7 +88,7 @@ int ra8e1_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_RA8_CODE_FLASH
+#ifdef CONFIG_RA8E1_CODE_FLASH_DEMO
   /* Initialize Code Flash */
   ret = ra8e1_code_flash_demo_init();
   if (ret < 0)
@@ -102,7 +102,7 @@ int ra8e1_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_RA8_DATA_FLASH
+#ifdef CONFIG_RA8E1_DATA_FLASH_DEMO
   /* Initialize Data Flash */
   ret = ra8e1_data_flash_demo_init();
   if (ret < 0)
@@ -130,7 +130,7 @@ int ra8e1_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_RA8_SCI_UART
+#ifdef CONFIG_RA_SCI_UART
 #ifdef CONFIG_RA8E1_GPS_DEMO
   /* Initialize GPS demo */
   ret = ra8e1_gps_demo_init();
@@ -159,7 +159,8 @@ int ra8e1_bringup(void)
 #endif
 #endif
 
-#ifdef CONFIG_RA8_I2C
+#ifdef CONFIG_RA_I2C
+#ifdef CONFIG_RA8E1_I2C_GY912_DEMO
   /* Initialize I2C GY-912 demo */
   ret = ra8e1_i2c_gy912_demo_init();
   if (ret < 0)
@@ -171,7 +172,9 @@ int ra8e1_bringup(void)
     {
       syslog(LOG_INFO, "I2C GY-912 demo initialized successfully\n");
     }
+#endif
 
+#ifdef CONFIG_RA8E1_I2C_ACC_DEMO
   /* Initialize I2C ACC demo */
   ret = ra8e1_i2c_acc_demo_init();
   if (ret < 0)
@@ -184,6 +187,7 @@ int ra8e1_bringup(void)
       syslog(LOG_INFO, "I2C ACC demo initialized successfully\n");
     }
 
+#ifdef CONFIG_RA8E1_I2C_SIMPLE_DEMO
   /* Initialize I2C Simple demo */
   ret = ra8e1_i2c_simple_demo_init();
   if (ret < 0)
@@ -196,8 +200,9 @@ int ra8e1_bringup(void)
       syslog(LOG_INFO, "I2C Simple demo initialized successfully\n");
     }
 #endif
+#endif
 
-#ifdef CONFIG_RA8_SPI
+#ifdef CONFIG_RA_SPI
   /* Initialize SPI */
   ret = fpb_ra8e1_spi_initialize();
   if (ret < 0)
@@ -211,7 +216,7 @@ int ra8e1_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_RA8_SPI_LOOPBACK_DEMO
+#ifdef CONFIG_RA8E1_SPI_LOOPBACK_DEMO
   /* Initialize SPI loopback demo */
   ret = ra8e1_spi_loopback_demo_init();
   if (ret < 0)
@@ -225,7 +230,7 @@ int ra8e1_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_RA8_SPI_GY912
+#ifdef CONFIG_RA8E1_SPI_GY912_DEMO
   /* Initialize SPI GY-912 demo */
   ret = ra8e1_spi_gy912_demo_init();
   if (ret < 0)
@@ -239,7 +244,7 @@ int ra8e1_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_RA8_SW_BUTTON
+#ifdef CONFIG_RA8E1_SW_BUTTON_DEMO
   /* Initialize buttons */
   board_button_initialize();
 #endif

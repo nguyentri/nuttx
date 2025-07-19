@@ -1,4 +1,3 @@
-
 /****************************************************************************
  * boards/arm/ra8/fpb-ra8e1/src/ra8e1_i2c_acc_demo.c
  *
@@ -44,11 +43,29 @@
 #include <arch/board/board.h>
 
 #include "arm_internal.h"
-#include "ra8e1_i2c_acc_demo.h"
 #include "ra8e1_demo_log.h"
 #include "chip.h"
 #include "ra_gpio.h"
 #include "ra_icu.h"
+
+/* I2C Accelerometer Configuration */
+#define I2C_ACCEL_BUS               0
+#define I2C_ACCEL_FREQUENCY         400000
+#define I2C_ACCEL_ADDR              0x1D
+
+/* ADXL345 Accelerometer Registers */
+#define ADXL345_REG_DEVID           0x00
+#define ADXL345_REG_BW_RATE         0x2C
+#define ADXL345_REG_POWER_CTL       0x2D
+#define ADXL345_REG_INT_ENABLE      0x2E
+#define ADXL345_REG_INT_SOURCE      0x30
+#define ADXL345_REG_DATA_FORMAT     0x31
+#define ADXL345_REG_DATAX0          0x32
+#define ADXL345_REG_DATAX1          0x33
+#define ADXL345_REG_DATAY0          0x34
+#define ADXL345_REG_DATAY1          0x35
+#define ADXL345_REG_DATAZ0          0x36
+#define ADXL345_REG_DATAZ1          0x37
 
 /****************************************************************************
  * Pre-processor Definitions

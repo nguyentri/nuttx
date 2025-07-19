@@ -33,7 +33,6 @@
 #include <nuttx/mtd/mtd.h>
 
 #include "ra_flash.h"
-#include "ra8e1_code_flash_demo.h"
 #include "ra8e1_demo_log.h"
 
 /****************************************************************************

@@ -170,10 +170,10 @@
 #define RA_SPI_SPDCR2(n)         (RA_SPI_BASE(n) + RA_SPI_SPDCR2_OFFSET)
 
 /* SPI Base Addresses */
-#ifdef CONFIG_RA8_SPI0
+#ifdef CONFIG_RA_SPI0
 #define RA_SPI0_BASE             R_SPI0_BASE
 #endif
-#ifdef CONFIG_RA8_SPI1
+#ifdef CONFIG_RA_SPI1
 #define RA_SPI1_BASE             R_SPI1_BASE
 #endif
 

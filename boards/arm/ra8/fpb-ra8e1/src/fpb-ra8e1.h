@@ -68,7 +68,7 @@
 int ra8e1_bringup(void);
 
 /****************************************************************************
- * Name: ra_gpio_initialize
+ * Name: ra8e1_gpio_initialize
  *
  * Description:
  *   Initialize GPIO drivers for use with /apps/examples/gpio
@@ -78,8 +78,8 @@ int ra8e1_bringup(void);
  *
  ****************************************************************************/
 
-#ifdef CONFIG_RA8_GPIO
-int ra_gpio_initialize(void);
+#ifdef CONFIG_RA8E1_GPIO
+int ra8e1_gpio_initialize(void);
 #endif
 
 #ifdef CONFIG_RA8_SPI
@@ -88,52 +88,56 @@ int fpb_ra8e1_spi_initialize(void);
 
 #ifdef CONFIG_RA8_SPI_LOOPBACK_DEMO
 int ra8e1_spi_loopback_demo_init(void);
+int ra8e1_spi_loopback_demo_test(void);
 int ra8e1_spi_loopback_demo_main(int argc, char *argv[]);
 #endif
 
-#ifdef CONFIG_RA8_ADC_BATTERY_MONITOR
+#ifdef CONFIG_RA8_ADC_BMS
 int ra8e1_adc_bms_demo_init(void);
 int ra8e1_adc_bms_demo_main(int argc, FAR char *argv[]);
 #endif
 
-#ifdef CONFIG_RA8_CODE_FLASH
+#ifdef CONFIG_RA8_CODE_FLASH_DEMO
 int ra8e1_code_flash_demo_init(void);
+int ra8e1_code_flash_demo_test(void);
+int ra8e1_code_flash_demo_info(void);
 int ra8e1_code_flash_demo_main(int argc, char *argv[]);
 #endif
 
-#ifdef CONFIG_RA8_DATA_FLASH
+#ifdef CONFIG_RA8_DATA_FLASH_DEMO
 int ra8e1_data_flash_demo_init(void);
+int ra8e1_data_flash_demo_test(void);
 int ra8e1_data_flash_demo_main(int argc, char *argv[]);
 #endif
 
-#ifdef CONFIG_RA8_PWM_ESCS
+#ifdef CONFIG_RA8E1_PWM_ESCS_DEMO
 int ra8e1_escs_demo_init(void);
 int ra8e1_escs_demo_main(int argc, char *argv[]);
 #endif
 
-#ifdef CONFIG_RA8_SCI_UART
+#ifdef CONFIG_RA8_GPS_DEMO
 int ra8e1_gps_demo_init(void);
 int ra8e1_gps_demo_main(int argc, char *argv[]);
+#endif
+
+#ifdef CONFIG_RA8_SBUS_DEMO
 int ra8e1_sbus_demo_init(void);
 int ra8e1_sbus_demo_main(int argc, char *argv[]);
 #endif
 
-#ifdef CONFIG_RA8_I2C
-int ra8e1_i2c_gy912_demo_init(void);
-int ra8e1_i2c_gy912_demo_main(int argc, char *argv[]);
+#ifdef CONFIG_RA8_I2C_ACC_DEMO
 int ra8e1_i2c_acc_demo_init(void);
 int ra8e1_i2c_acc_demo_main(int argc, char *argv[]);
+#endif
+
+#ifdef CONFIG_RA8_I2C_GY912_DEMO
+int ra8e1_i2c_gy912_demo_init(void);
+int ra8e1_i2c_gy912_demo_main(int argc, FAR char *argv[]);
+#endif
+
+#ifdef CONFIG_RA8_I2C_SIMPLE_DEMO
 int ra8e1_i2c_simple_demo_init(void);
 int ra8e1_i2c_simple_demo_main(int argc, char *argv[]);
-#endif
-
-#ifdef CONFIG_RA8_SPI_GY912
-int ra8e1_spi_gy912_demo_init(void);
-int ra8e1_spi_gy912_demo_main(int argc, FAR char *argv[]);
-#endif
-
-#ifdef CONFIG_RA8_SW_BUTTON
-void board_button_initialize(void);
 #endif
 
 #endif /* __ASSEMBLY__ */

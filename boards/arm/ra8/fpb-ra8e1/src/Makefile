@@ -32,27 +32,27 @@ ifeq ($(CONFIG_BOARDCTL),y)
 CSRCS += ra8e1_app_init.c
 endif
 
-ifeq ($(CONFIG_RA8_ADC),y)
-CSRCS += ra8e1_adc_demo.c
+ifeq ($(CONFIG_RA_ADC),y)
+CSRCS += ra8e1_adc_bms_demo.c
 endif
 
 ifeq ($(CONFIG_RA8E1_ADC_BMS_DEMO),y)
 CSRCS += ra8e1_adc_bms_demo.c
 endif
 
-ifeq ($(CONFIG_RA8_CODE_FLASH),y)
+ifeq ($(CONFIG_RA_CODE_FLASH),y)
 CSRCS += ra8e1_code_flash_demo.c
 endif
 
-ifeq ($(CONFIG_RA8_DATA_FLASH),y)
+ifeq ($(CONFIG_RA_DATA_FLASH),y)
 CSRCS += ra8e1_data_flash_demo.c
 endif
 
-ifeq ($(CONFIG_PWM),y)
+ifeq ($(CONFIG_RA_PWM),y)
 CSRCS += ra8e1_escs_demo.c
 endif
 
-ifeq ($(CONFIG_RA8_SCI_UART),y)
+ifeq ($(CONFIG_RA_SCI_UART),y)
 CSRCS += ra8e1_uart.c
 endif
 
@@ -93,18 +93,18 @@ CSRCS += ra8e1_code_flash_demo.c
 endif
 
 # SPI support
-ifeq ($(CONFIG_RA8_SPI),y)
+ifeq ($(CONFIG_RA_SPI),y)
 CSRCS += ra8e1_spi.c
 endif
 
 # SPI Loopback Demo
-ifeq ($(CONFIG_RA8_SPI_LOOPBACK_DEMO),y)
+ifeq ($(CONFIG_RA8E1_SPI_LOOPBACK_DEMO),y)
 CSRCS += ra8e1_spi_loopback_demo.c
 endif
 
 # GY-912 sensor support  
 ifeq ($(CONFIG_RA8E1_SPI_GY912_DEMO),y)
-CSRCS += gy912_spi_demo.c
+CSRCS += ra8e1_spi_gy912_demo.c
 endif
 
 # Button support

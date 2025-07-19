@@ -45,10 +45,35 @@
 #include "chip.h"
 #include "ra_gpio.h"
 #include "ra_uart.h"
-#include "ra8e1_sbus_demo.h"
 #include "ra8e1_demo_log.h"
 
-#ifdef CONFIG_EXAMPLES_SBUS
+/* SBUS Protocol Parameters */
+
+#define SBUS_FRAME_SIZE         25
+#define SBUS_NUM_CHANNELS       16
+#define SBUS_BAUDRATE           100000
+#define SBUS_HEADER_BYTE        0x0F
+#define SBUS_FOOTER_BYTE        0x00
+
+/* SBUS Channel Values */
+
+#define SBUS_CHANNEL_MIN        172
+#define SBUS_CHANNEL_MID        992
+#define SBUS_CHANNEL_MAX        1811
+
+/* SBUS Flags */
+
+#define SBUS_FLAG_CH17          (1 << 0)
+#define SBUS_FLAG_CH18          (1 << 1)
+#define SBUS_FLAG_FRAME_LOST    (1 << 2)
+#define SBUS_FLAG_FAILSAFE      (1 << 3)
+
+/* UART Configuration */
+
+#define SBUS_UART_NUM           2
+#define SBUS_RX_BUFFER_SIZE     64
+
+#ifdef CONFIG_RA8E1_SBUS_DEMO
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -593,4 +618,4 @@ bool ra8e1_sbus_is_valid_frame(const uint8_t *frame)
   return sbus_validate_frame(frame);
 }
 
-#endif /* CONFIG_EXAMPLES_SBUS */
+#endif /* CONFIG_RA8E1_SBUS_DEMO */

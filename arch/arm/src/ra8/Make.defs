@@ -37,37 +37,37 @@ CHIP_CSRCS += ra_timerisr.c
 CHIP_CSRCS += ra_serial.c
 
 # FSP Integration support
-ifeq ($(CONFIG_RA8_FSP_INTEGRATION),y)
+ifeq ($(CONFIG_RA_FSP_INTEGRATION),y)
 CHIP_CSRCS += ra_fsp_integration.c
 endif
 
 # Module Stop Control
-ifeq ($(CONFIG_RA8_MSTP),y)
+ifeq ($(CONFIG_RA_MSTP),y)
 CHIP_CSRCS += ra_mstp.c
 endif
 
 # Pin mapping support
-ifeq ($(CONFIG_RA8_PINMAP),y)
+ifeq ($(CONFIG_RA_PINMAP),y)
 CHIP_CSRCS += ra_pinmap.c
 endif
 
 # ADC driver
-ifeq ($(CONFIG_RA8_ADC),y)
+ifeq ($(CONFIG_RA_ADC),y)
 CHIP_CSRCS += ra_adc.c
 endif
 
 # I2C driver
-ifeq ($(CONFIG_RA8_I2C),y)
+ifeq ($(CONFIG_RA_I2C),y)
 CHIP_CSRCS += ra_i2c.c
 endif
 
 # I2C slave driver
-ifeq ($(CONFIG_RA8_I2C_SLAVE),y)
+ifeq ($(CONFIG_RA_I2C_SLAVE),y)
 CHIP_CSRCS += ra_i2c_slave.c
 endif
 
 # DMAC driver
-ifeq ($(CONFIG_RA8_DMAC),y)
+ifeq ($(CONFIG_RA_DMAC),y)
 CHIP_CSRCS += ra_dmac.c
 endif
 
@@ -77,26 +77,26 @@ CHIP_CSRCS += ra_dmac.c
 endif
 
 # SPI driver
-ifeq ($(CONFIG_RA8_SPI),y)
+ifeq ($(CONFIG_RA_SPI),y)
 CHIP_CSRCS += ra_spi.c
 endif
 
 # GPT timer/PWM driver
-ifeq ($(CONFIG_RA8_GPT),y)
+ifeq ($(CONFIG_RA_GPT),y)
 CHIP_CSRCS += ra_gpt.c
 endif
 
 # PWM driver
-ifeq ($(CONFIG_RA8_PWM),y)
+ifeq ($(CONFIG_RA_PWM),y)
 CHIP_CSRCS += ra_pwm.c
 endif
 
 # Enhanced UART+DMA driver
-ifeq ($(CONFIG_RA8_SCI_UART),y)
+ifeq ($(CONFIG_RA_SCI_UART),y)
 CHIP_CSRCS += ra_uart.c
 endif
 
 # Flash memory driver
-ifeq ($(CONFIG_RA8_FLASH),y)
+ifeq ($(CONFIG_RA_FLASH),y)
 CHIP_CSRCS += ra_flash.c
 endif

@@ -1,4 +1,3 @@
-
 /****************************************************************************
  * boards/arm/ra8/fpb-ra8e1/src/ra8e1_adc_demo.c
  *
@@ -48,6 +47,26 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+ 
+/* ADC Channels *************************************************************/
+
+/* Battery monitoring pins on FPB-RA8E1:
+ * - P004 (AN000): Battery voltage through 5.7:1 voltage divider
+ * - P003 (AN104): Battery current through ACS712-05B current sensor
+ */
+
+#define GPIO_ADC_BATT_VOLTAGE   (PORT_0 | PIN_4)
+#define GPIO_ADC_BATT_CURRENT   (PORT_0 | PIN_3)
+
+/* ADC Channel Numbers */
+
+#define ADC_BATTERY_VOLTAGE_CHANNEL    0
+#define ADC_BATTERY_CURRENT_CHANNEL    104
+
+/* Board ADC Configuration **************************************************/
+
+#define BOARD_ADC_VREF              3300
+#define BOARD_ADC_RESOLUTION        4096
 
 /* ADC Channel Definitions for FPB-RA8E1 */
 

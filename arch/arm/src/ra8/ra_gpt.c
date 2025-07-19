@@ -44,8 +44,8 @@
 
 /* Default PCLKD frequency - typically 120MHz for RA8E1 */
 
-#ifndef CONFIG_RA8_PCLKD_FREQUENCY
-#  define CONFIG_RA8_PCLKD_FREQUENCY    120000000
+#ifndef CONFIG_RA_PCLKD_FREQUENCY
+#  define CONFIG_RA_PCLKD_FREQUENCY    120000000
 #endif
 
 /* Maximum PWM frequency to prevent integer overflow */
@@ -115,35 +115,35 @@ static const struct pwm_ops_s g_pwm_ops =
 
 static struct ra8_gpt_s g_gpt_devs[] =
 {
-#ifdef CONFIG_RA8_GPT0_PWM
+#ifdef CONFIG_RA_GPT0_PWM
   {
     .ops        = &g_pwm_ops,
     .base       = RA8_GPT0_BASE,
-    .pclkd_freq = CONFIG_RA8_PCLKD_FREQUENCY,
+    .pclkd_freq = CONFIG_RA_PCLKD_FREQUENCY,
     .channel    = 0,
   },
 #endif
-#ifdef CONFIG_RA8_GPT1_PWM
+#ifdef CONFIG_RA_GPT1_PWM
   {
     .ops        = &g_pwm_ops,
     .base       = RA8_GPT1_BASE,
-    .pclkd_freq = CONFIG_RA8_PCLKD_FREQUENCY,
+    .pclkd_freq = CONFIG_RA_PCLKD_FREQUENCY,
     .channel    = 1,
   },
 #endif
-#ifdef CONFIG_RA8_GPT2_PWM
+#ifdef CONFIG_RA_GPT2_PWM
   {
     .ops        = &g_pwm_ops,
     .base       = RA8_GPT2_BASE,
-    .pclkd_freq = CONFIG_RA8_PCLKD_FREQUENCY,
+    .pclkd_freq = CONFIG_RA_PCLKD_FREQUENCY,
     .channel    = 2,
   },
 #endif
-#ifdef CONFIG_RA8_GPT3_PWM
+#ifdef CONFIG_RA_GPT3_PWM
   {
     .ops        = &g_pwm_ops,
     .base       = RA8_GPT3_BASE,
-    .pclkd_freq = CONFIG_RA8_PCLKD_FREQUENCY,
+    .pclkd_freq = CONFIG_RA_PCLKD_FREQUENCY,
     .channel    = 3,
   },
 #endif

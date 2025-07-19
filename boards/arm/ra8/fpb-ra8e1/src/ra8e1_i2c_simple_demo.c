@@ -30,17 +30,13 @@
 #include <unistd.h>
 #include "ra8e1_demo_log.h"
 
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
+/* Demo return codes */
+#define I2C_DEMO_OK     0
+#define I2C_DEMO_ERROR -1
 
-/* Basic return codes */
-#define DEMO_OK     0
-#define DEMO_ERROR -1
-
-/* ADXL345 Accelerometer Configuration (based on FSP examples) */
-#define ADXL345_I2C_ADDR        0x1D    /* 7-bit I2C address */
-#define ADXL345_DEVICE_ID       0xE5    /* Expected device ID */
+/* ADXL345 Configuration */
+#define ADXL345_I2C_ADDRESS     0x1D    /* 7-bit I2C address */
+#define ADXL345_DEVICE_ID_VAL   0xE5    /* Expected device ID */
 
 /* ADXL345 Register Addresses (from FSP examples) */
 #define ADXL345_REG_DEVID       0x00    /* Device ID register */

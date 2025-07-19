@@ -53,7 +53,7 @@
 #include "hardware/ra8e1_mstp.h"
 #include "ra_spi.h"
 
-#ifdef CONFIG_RA8_SPI
+#ifdef CONFIG_RA_SPI
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -189,7 +189,7 @@ static void ra_spi_bus_initialize(struct ra_spi_priv_s *priv);
  * Private Data
  ****************************************************************************/
 
-#ifdef CONFIG_RA8_SPI0
+#ifdef CONFIG_RA_SPI0
 static const struct ra_spi_config_s ra_spi0_config =
 {
   .base        = R_SPI0_BASE,
@@ -223,7 +223,7 @@ static struct ra_spi_priv_s ra_spi0_priv =
 };
 #endif
 
-#ifdef CONFIG_RA8_SPI1
+#ifdef CONFIG_RA_SPI1
 static const struct ra_spi_config_s ra_spi1_config =
 {
   .base        = R_SPI1_BASE,
@@ -1193,13 +1193,13 @@ struct spi_dev_s *ra_spibus_initialize(int bus)
   
   spiinfo("Initializing SPI%d\n", bus);
   
-#ifdef CONFIG_RA8_SPI0
+#ifdef CONFIG_RA_SPI0
   if (bus == 0)
     {
       priv = &ra_spi0_priv;
     }
 #endif
-#ifdef CONFIG_RA8_SPI1
+#ifdef CONFIG_RA_SPI1
   if (bus == 1)
     {
       priv = &ra_spi1_priv;
@@ -1236,4 +1236,4 @@ struct spi_dev_s *ra_spibus_initialize(int bus)
   return (struct spi_dev_s *)priv;
 }
 
-#endif /* CONFIG_RA8_SPI */
+#endif /* CONFIG_RA_SPI */

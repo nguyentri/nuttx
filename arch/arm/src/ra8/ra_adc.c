@@ -45,7 +45,7 @@
 #include "hardware/ra_adc.h"
 #include "ra_gpio.h"
 
-#ifdef CONFIG_RA8_ADC
+#ifdef CONFIG_RA_ADC
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -91,7 +91,7 @@ struct ra8_adc_priv_s
   uint32_t chanlist;                  /* Configured channel list */
   uint8_t nchannels;                  /* Number of configured channels */
   
-#ifdef CONFIG_RA8_ADC_DTC
+#ifdef CONFIG_RA_ADC_DTC
   /* DTC related fields */
   bool dtc_enable;                    /* DTC transfer enabled */
   uint32_t *dma_buffer;               /* DMA buffer for multi-channel data */
@@ -140,7 +140,7 @@ static void ra8_adc_modifyreg(FAR struct ra8_adc_priv_s *priv,
 static int  ra8_adc_configure(FAR struct ra8_adc_priv_s *priv);
 static void ra8_adc_enable_channels(FAR struct ra8_adc_priv_s *priv);
 
-#ifdef CONFIG_RA8_ADC_DTC
+#ifdef CONFIG_RA_ADC_DTC
 /* DTC functions */
 
 static int  ra8_adc_setup_dtc(FAR struct ra8_adc_priv_s *priv);
@@ -178,7 +178,7 @@ static const struct ra8_adc_chan_s g_adc0_channels[] =
   /* Add more channels as needed */
 };
 
-#ifdef CONFIG_RA8_ADC1
+#ifdef CONFIG_RA_ADC1
 /* ADC1 channel configuration */
 
 static const struct ra8_adc_chan_s g_adc1_channels[] =
@@ -202,7 +202,7 @@ static struct ra8_adc_priv_s g_adc0_priv =
   .mode       = RA8_ADC_MODE_SINGLE_SCAN,
   .trigger    = RA8_ADC_TRIGGER_SOFTWARE,
   .alignment  = RA8_ADC_ALIGNMENT_RIGHT,
-#ifdef CONFIG_RA8_ADC_DTC
+#ifdef CONFIG_RA_ADC_DTC
   .dtc_enable = true,
 #endif
 };
@@ -215,7 +215,7 @@ static struct adc_dev_s g_adc0_dev =
   .ad_priv = &g_adc0_priv,
 };
 
-#ifdef CONFIG_RA8_ADC1
+#ifdef CONFIG_RA_ADC1
 /* ADC1 private data */
 
 static struct ra8_adc_priv_s g_adc1_priv =
@@ -227,7 +227,7 @@ static struct ra8_adc_priv_s g_adc1_priv =
   .mode       = RA8_ADC_MODE_SINGLE_SCAN,
   .trigger    = RA8_ADC_TRIGGER_SOFTWARE,
   .alignment  = RA8_ADC_ALIGNMENT_RIGHT,
-#ifdef CONFIG_RA8_ADC_DTC
+#ifdef CONFIG_RA_ADC_DTC
   .dtc_enable = true,
 #endif
 };
@@ -379,7 +379,7 @@ static int ra8_adc_configure(FAR struct ra8_adc_priv_s *priv)
   return OK;
 }
 
-#ifdef CONFIG_RA8_ADC_DTC
+#ifdef CONFIG_RA_ADC_DTC
 /****************************************************************************
  * Name: ra8_adc_setup_dtc
  *
@@ -464,7 +464,7 @@ static void ra8_adc_cleanup_dtc(FAR struct ra8_adc_priv_s *priv)
 
   priv->buffer_size = 0;
 }
-#endif /* CONFIG_RA8_ADC_DTC */
+#endif /* CONFIG_RA_ADC_DTC */
 
 /****************************************************************************
  * Name: ra8_adc_interrupt
@@ -489,7 +489,7 @@ static int ra8_adc_interrupt(int irq, FAR void *context, FAR void *arg)
     {
       /* Scan has completed */
 
-#ifdef CONFIG_RA8_ADC_DTC
+#ifdef CONFIG_RA_ADC_DTC
       if (priv->dtc_enable && priv->cb->au_receive_batch != NULL)
         {
           /* Handle batch transfer with DTC */
@@ -607,7 +607,7 @@ static int ra8_adc_setup(FAR struct adc_dev_s *dev)
       return ret;
     }
 
-#ifdef CONFIG_RA8_ADC_DTC
+#ifdef CONFIG_RA_ADC_DTC
   /* Setup DTC if enabled */
 
   ret = ra8_adc_setup_dtc(priv);
@@ -624,7 +624,7 @@ static int ra8_adc_setup(FAR struct adc_dev_s *dev)
   if (ret < 0)
     {
       aerr("ERROR: Failed to attach interrupt for ADC%d: %d\n", priv->intf, ret);
-#ifdef CONFIG_RA8_ADC_DTC
+#ifdef CONFIG_RA_ADC_DTC
       ra8_adc_cleanup_dtc(priv);
 #endif
       return ret;
@@ -659,7 +659,7 @@ static void ra8_adc_shutdown(FAR struct adc_dev_s *dev)
 
   ra8_adc_putreg(priv, RA_ADC_ADCSR_OFFSET, 0);
 
-#ifdef CONFIG_RA8_ADC_DTC
+#ifdef CONFIG_RA_ADC_DTC
   /* Cleanup DTC resources */
 
   ra8_adc_cleanup_dtc(priv);
@@ -778,7 +778,7 @@ FAR struct adc_dev_s *ra8_adc_initialize(int intf, uint32_t chanlist,
         dev = &g_adc0_dev;
         break;
 
-#ifdef CONFIG_RA8_ADC1
+#ifdef CONFIG_RA_ADC1
       case 1:
         dev = &g_adc1_dev;
         break;
@@ -806,7 +806,7 @@ FAR struct adc_dev_s *ra8_adc_initialize(int intf, uint32_t chanlist,
       channels = g_adc0_channels;
       num_channels = sizeof(g_adc0_channels) / sizeof(g_adc0_channels[0]);
     }
-#ifdef CONFIG_RA8_ADC1
+#ifdef CONFIG_RA_ADC1
   else
     {
       channels = g_adc1_channels;
@@ -830,4 +830,4 @@ FAR struct adc_dev_s *ra8_adc_initialize(int intf, uint32_t chanlist,
   return dev;
 }
 
-#endif /* CONFIG_RA8_ADC */
+#endif /* CONFIG_RA_ADC */

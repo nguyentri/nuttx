@@ -37,7 +37,6 @@
 #include <nuttx/fs/nxffs.h>
 
 #include "ra_flash.h"
-#include "ra8e1_data_flash_demo.h"
 #include "ra8e1_demo_log.h"
 
 /****************************************************************************

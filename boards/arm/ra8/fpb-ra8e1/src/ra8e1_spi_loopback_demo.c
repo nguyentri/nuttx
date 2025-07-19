@@ -39,6 +39,16 @@
 #include <arch/board/board.h>
 #include "ra8e1_demo_log.h"
 
+/* SPI Configuration */
+#define SPI_LOOPBACK_BUFFER_SIZE    32
+#define SPI_LOOPBACK_FREQUENCY      1000000  /* 1 MHz */
+#define SPI_LOOPBACK_MODE           SPIDEV_MODE0
+
+/* Test Commands */
+#define SPI_TEST_WRITE_AND_READ     1
+#define SPI_TEST_WRITE_READ         2
+#define SPI_TEST_EXIT               3
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/

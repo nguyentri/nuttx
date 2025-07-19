@@ -105,25 +105,25 @@ static const struct pwm_ops_s g_pwm_ops =
 
 static struct ra8_pwm_s g_pwm_devs[] =
 {
-#ifdef CONFIG_RA8_PWM0
+#ifdef CONFIG_RA_PWM0
   {
     .ops     = &g_pwm_ops,
     .channel = 0,
   },
 #endif
-#ifdef CONFIG_RA8_PWM1
+#ifdef CONFIG_RA_PWM1
   {
     .ops     = &g_pwm_ops,
     .channel = 1,
   },
 #endif
-#ifdef CONFIG_RA8_PWM2
+#ifdef CONFIG_RA_PWM2
   {
     .ops     = &g_pwm_ops,
     .channel = 2,
   },
 #endif
-#ifdef CONFIG_RA8_PWM3
+#ifdef CONFIG_RA_PWM3
   {
     .ops     = &g_pwm_ops,
     .channel = 3,

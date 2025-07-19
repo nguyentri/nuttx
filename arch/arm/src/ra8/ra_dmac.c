@@ -26,7 +26,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#ifdef CONFIG_RA8_DMAC
+#ifdef CONFIG_RA_DMAC
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -134,4 +134,4 @@ int ra_dmac_stop(int channel)
   return 0;  /* OK */
 }
 
-#endif /* CONFIG_RA8_DMAC */
+#endif /* CONFIG_RA_DMAC */

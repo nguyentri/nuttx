@@ -159,14 +159,14 @@ static int gpout_write(struct gpio_dev_s *dev, bool value)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ra_gpio_initialize
+ * Name: ra8e1_gpio_initialize
  *
  * Description:
  *   Initialize GPIO drivers for use with /apps/examples/gpio
  *
  ****************************************************************************/
 
-int ra_gpio_initialize(void)
+int ra8e1_gpio_initialize(void)
 {
   int pincount = 0;
   int i;

@@ -45,29 +45,37 @@
 #include "chip.h"
 #include "ra_gpio.h"
 #include "ra_uart.h"
-#include "ra8e1_gps_demo.h"
 #include "ra8e1_demo_log.h"
 
-#ifdef CONFIG_EXAMPLES_GPS
+/* GPS NMEA Parameters */
+
+#define GPS_BAUDRATE            38400
+#define GPS_UART_NUM            3
+#define GPS_RX_BUFFER_SIZE      128
+#define GPS_TX_BUFFER_SIZE      64
+
+/* NMEA Sentence Types */
+
+#define NMEA_MAX_SENTENCE_LEN   82
+#define NMEA_MAX_FIELDS         20
+
+/* GPS Fix Types */
+
+#define GPS_FIX_INVALID         0
+#define GPS_FIX_GPS             1
+#define GPS_FIX_DGPS            2
+#define GPS_FIX_PPS             3
+#define GPS_FIX_RTK             4
+#define GPS_FIX_FLOAT_RTK       5
+#define GPS_FIX_ESTIMATED       6
+#define GPS_FIX_MANUAL          7
+#define GPS_FIX_SIMULATION      8
+
+#ifdef CONFIG_RA8E1_GPS_DEMO
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
-/* GPS NMEA Parameters */
-#define GPS_BAUDRATE            38400    /* GPS baud rate */
-#define GPS_UART_NUM            3        /* UART3 for GPS */
-#define GPS_RX_BUFFER_SIZE      128      /* RX buffer size */
-#define GPS_TX_BUFFER_SIZE      64       /* TX buffer size */
-
-/* NMEA Sentence Parameters */
-#define NMEA_MAX_SENTENCE_LEN   82       /* Maximum NMEA sentence length */
-#define NMEA_MAX_FIELDS         20       /* Maximum fields in NMEA sentence */
-#define NMEA_START_CHAR         '$'      /* NMEA start character */
-#define NMEA_CHECKSUM_CHAR      '*'      /* NMEA checksum delimiter */
-
-/* Buffer Configuration */
-#define RTT_BUFFER_SIZE         64       /* RTT command buffer size */
 
 /****************************************************************************
  * Private Types
@@ -102,8 +110,7 @@ static struct gps_data_s g_gps_data;
 static uint8_t g_gps_rx_buffer[GPS_RX_BUFFER_SIZE];
 static uint8_t g_gps_tx_buffer[GPS_TX_BUFFER_SIZE];
 
-/* RTT command buffer */
-static char g_rtt_buffer[RTT_BUFFER_SIZE];
+/* Demo running flag */
 static volatile bool g_demo_running = false;
 
 /****************************************************************************
@@ -851,4 +858,4 @@ int ra8e1_gps_parse(const char *nmea_sentence, struct gps_data_s *gps_data)
   return -ENOTSUP;
 }
 
-#endif /* CONFIG_EXAMPLES_GPS */
+#endif /* CONFIG_RA8E1_GPS_DEMO */

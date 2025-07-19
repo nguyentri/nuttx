@@ -31,37 +31,37 @@ set(SRCS
     ra_serial.c)
 
 # FSP Integration support
-if(CONFIG_RA8_FSP_INTEGRATION)
+if(CONFIG_RA_FSP_INTEGRATION)
   list(APPEND SRCS ra_fsp_integration.c)
 endif()
 
 # Module Stop Control
-if(CONFIG_RA8_MSTP)
+if(CONFIG_RA_MSTP)
   list(APPEND SRCS ra_mstp.c)
 endif()
 
 # Pin mapping support
-if(CONFIG_RA8_PINMAP)
+if(CONFIG_RA_PINMAP)
   list(APPEND SRCS ra_pinmap.c)
 endif()
 
 # ADC driver
-if(CONFIG_RA8_ADC)
+if(CONFIG_RA_ADC)
   list(APPEND SRCS ra_adc.c)
 endif()
 
 # I2C driver
-if(CONFIG_RA8_I2C)
+if(CONFIG_RA_I2C)
   list(APPEND SRCS ra_i2c.c)
 endif()
 
 # I2C slave driver
-if(CONFIG_RA8_I2C_SLAVE)
+if(CONFIG_RA_I2C_SLAVE)
   list(APPEND SRCS ra_i2c_slave.c)
 endif()
 
 # DMAC driver
-if(CONFIG_RA8_DMAC)
+if(CONFIG_RA_DMAC)
   list(APPEND SRCS ra_dmac.c)
 endif()
 
@@ -71,27 +71,27 @@ if(CONFIG_RA_DMA)
 endif()
 
 # SPI driver
-if(CONFIG_RA8_SPI)
+if(CONFIG_RA_SPI)
   list(APPEND SRCS ra_spi.c)
 endif()
 
 # GPT timer driver
-if(CONFIG_RA8_GPT)
+if(CONFIG_RA_GPT)
   list(APPEND SRCS ra_gpt.c)
 endif()
 
 # PWM driver
-if(CONFIG_RA8_PWM)
+if(CONFIG_RA_PWM)
   list(APPEND SRCS ra_pwm.c)
 endif()
 
 # Enhanced UART+DMA driver
-if(CONFIG_RA8_SCI_UART)
+if(CONFIG_RA_SCI_UART)
   list(APPEND SRCS ra_uart.c)
 endif()
 
 # Flash memory driver
-if(CONFIG_RA8_FLASH)
+if(CONFIG_RA_FLASH)
   list(APPEND SRCS ra_flash.c)
 endif()
 

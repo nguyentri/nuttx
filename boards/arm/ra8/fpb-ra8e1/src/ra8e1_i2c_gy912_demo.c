@@ -39,11 +39,14 @@
 #include "arm_internal.h"
 #include "chip.h"
 #include "ra_gpio.h"
-#include "ra_i2c.h" 
+#include "ra_i2c.h"
 #include "gy912.h"
 
-#include "ra8e1_i2c_gy912_demo.h"
 #include "ra8e1_demo_log.h"
+
+#define I2C_GY912_DEMO_VERSION        "1.0.0"
+#define I2C_GY912_BUFFER_SIZE         64
+#define I2C_GY912_MAX_CHANNELS        2
 
 #ifdef CONFIG_RA8_I2C
 

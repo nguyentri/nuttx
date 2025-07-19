@@ -40,7 +40,7 @@
  ****************************************************************************/
 
 /* FSP-based timer configuration */
-#ifdef CONFIG_RA8_SYSTICK_GPT
+#ifdef CONFIG_RA_SYSTICK_GPT
 #  include "hardware/ra_gpt.h"
 #  include "ra_mstp.h"
 #  define RA_TIMER_CLOCK    (RA_PCLKD_FREQUENCY)
@@ -61,7 +61,7 @@
 #endif
 
 /* FSP-based timer validation */
-#ifdef CONFIG_RA8_SYSTICK_GPT
+#ifdef CONFIG_RA_SYSTICK_GPT
 #  if RA_TIMER_RELOAD > 0xFFFFFFFF
 #    error GPT timer reload value exceeds 32-bit range
 #  endif
@@ -90,7 +90,7 @@ static int ra_timerisr(int irq, uint32_t *regs, void *arg)
 }
 #endif
 
-#ifdef CONFIG_RA8_SYSTICK_GPT
+#ifdef CONFIG_RA_SYSTICK_GPT
 /****************************************************************************
  * Function:  ra_gpt_timerisr
  *
@@ -130,7 +130,7 @@ void up_timer_initialize(void)
 {
   uint32_t regval;
 
-#ifdef CONFIG_RA8_SYSTICK_GPT
+#ifdef CONFIG_RA_SYSTICK_GPT
   /* FSP-based GPT timer initialization */
   
   /* Enable GPT module clock */

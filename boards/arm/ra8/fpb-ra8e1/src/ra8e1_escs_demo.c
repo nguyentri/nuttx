@@ -1,4 +1,3 @@
-
 /****************************************************************************
  * boards/arm/ra8/fpb-ra8e1/src/ra8e1_pwm_demo.c
  *
@@ -42,10 +41,10 @@
 #include "arm_internal.h"
 #include "chip.h"
 #include "ra_gpio.h"
-#include "ra8e1_escs_demo.h"
 #include "ra8e1_demo_log.h"
 
-#ifdef CONFIG_RA8_PWM_ESCS
+
+#ifdef CONFIG_RA8E1_PWM_ESCS
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -58,11 +57,6 @@
 #define ESC_PWM_MIN_US          1000     /* Minimum pulse width (microseconds) */
 #define ESC_PWM_MAX_US          2000     /* Maximum pulse width (microseconds) */
 #define ESC_PWM_ARM_US          1000     /* Arming pulse width */
-
-/* RTT Command Buffer Size */
-
-#define RTT_BUFFER_SIZE         64
-#define RTT_COMMAND_MAX         16
 
 /* PWM Device Paths */
 
@@ -101,12 +95,6 @@ static struct esc_channel_s g_esc_channels[NUM_ESC_CHANNELS] =
   { 2, "/dev/pwm2", -1, 0, false },  /* ESC3 - GPT2 */
   { 3, "/dev/pwm3", -1, 0, false },  /* ESC4 - GPT3 */
 };
-
-/* RTT command buffer and status */
-
-static char g_rtt_buffer[RTT_BUFFER_SIZE];
-static char g_rtt_command[RTT_COMMAND_MAX];
-static volatile bool g_demo_running = false;
 
 /****************************************************************************
  * Private Function Prototypes
@@ -775,4 +763,4 @@ int ra8e1_escs_demo_test(void)
   return OK;
 }
 
-#endif /* CONFIG_RA8_PWM_ESCS */
+#endif /* CONFIG_RA8E1_PWM_ESCS */

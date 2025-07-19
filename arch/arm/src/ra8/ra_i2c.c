@@ -54,7 +54,7 @@
 #include "hardware/ra8e1_mstp.h"
 #include "ra_i2c.h"
 
-#ifdef CONFIG_RA8_I2C
+#ifdef CONFIG_RA_I2C
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -177,7 +177,7 @@ static int ra_i2c_init(struct ra_i2c_priv_s *priv);
 static int ra_i2c_deinit(struct ra_i2c_priv_s *priv);
 
 /* DTC functions */
-#ifdef CONFIG_RA8_I2C_DTC
+#ifdef CONFIG_RA_I2C_DTC
 static int ra_i2c_dtc_setup(struct ra_i2c_priv_s *priv);
 static int ra_i2c_dtc_start_rx(struct ra_i2c_priv_s *priv, uint8_t *buffer, uint32_t len);
 static int ra_i2c_dtc_start_tx(struct ra_i2c_priv_s *priv, const uint8_t *buffer, uint32_t len);
@@ -207,7 +207,7 @@ static const struct i2c_ops_s ra_i2c_ops =
 };
 
 /* I2C device configuration */
-#ifdef CONFIG_RA8_I2C0
+#ifdef CONFIG_RA_I2C0
 static const struct ra_i2c_config_s ra_i2c0_config =
 {
   .base         = RA_I2C0_BASE,
@@ -224,7 +224,7 @@ static const struct ra_i2c_config_s ra_i2c0_config =
   .sda_pin      = (5 << 8) | 11,  /* P511 (SDA1) */
 
   /* DTC configuration */
-#ifdef CONFIG_RA8_I2C_DTC
+#ifdef CONFIG_RA_I2C_DTC
   .dtc_rx_ch    = 0,
   .dtc_tx_ch    = 1,
   .dtc_rx_event = 0x35,  /* EVENT_IIC0_RXI */
@@ -245,7 +245,7 @@ static struct ra_i2c_priv_s ra_i2c0_priv =
 };
 #endif
 
-#ifdef CONFIG_RA8_I2C1
+#ifdef CONFIG_RA_I2C1
 static const struct ra_i2c_config_s ra_i2c1_config =
 {
   .base         = RA_I2C1_BASE,
@@ -262,7 +262,7 @@ static const struct ra_i2c_config_s ra_i2c1_config =
   .sda_pin      = (5 << 8) | 11,  /* P511 (SDA1) */
 
   /* DTC configuration */
-#ifdef CONFIG_RA8_I2C_DTC
+#ifdef CONFIG_RA_I2C_DTC
   .dtc_rx_ch    = 2,
   .dtc_tx_ch    = 3,
   .dtc_rx_event = 0x3A,  /* EVENT_IIC1_RXI */
@@ -283,7 +283,7 @@ static struct ra_i2c_priv_s ra_i2c1_priv =
 };
 #endif
 
-#ifdef CONFIG_RA8_I2C2
+#ifdef CONFIG_RA_I2C2
 static const struct ra_i2c_config_s ra_i2c2_config =
 {
   .base         = RA_I2C2_BASE,
@@ -300,7 +300,7 @@ static const struct ra_i2c_config_s ra_i2c2_config =
   .sda_pin      = (3 << 8) | 1,   /* P301 */
 
   /* DTC configuration */
-#ifdef CONFIG_RA8_I2C_DTC
+#ifdef CONFIG_RA_I2C_DTC
   .dtc_rx_ch    = 4,
   .dtc_tx_ch    = 5,
   .dtc_rx_event = 0x40,  /* EVENT_IIC2_RXI (estimated) */
@@ -1038,7 +1038,7 @@ static int ra_i2c_init(struct ra_i2c_priv_s *priv)
   priv->frequency = 0;  /* Force frequency setting */
   ra_i2c_setfrequency((struct i2c_master_s *)priv, I2C_FREQ_STANDARD);
 
-#ifdef CONFIG_RA8_I2C_DTC
+#ifdef CONFIG_RA_I2C_DTC
   /* Setup DTC if enabled */
   priv->use_dtc = true;
   ra_i2c_dtc_setup(priv);
@@ -1077,7 +1077,7 @@ static int ra_i2c_deinit(struct ra_i2c_priv_s *priv)
   irq_detach(config->irq_eri);
 #endif
 
-#ifdef CONFIG_RA8_I2C_DTC
+#ifdef CONFIG_RA_I2C_DTC
   /* Cleanup DTC */
   ra_i2c_dtc_cleanup(priv);
 #endif
@@ -1279,7 +1279,7 @@ static int ra_i2c_isr_timeout(int irq, void *context, void *arg)
 }
 #endif /* !CONFIG_I2C_POLLED */
 
-#ifdef CONFIG_RA8_I2C_DTC
+#ifdef CONFIG_RA_I2C_DTC
 /****************************************************************************
  * Name: ra_i2c_dtc_setup
  *
@@ -1348,7 +1348,7 @@ static void ra_i2c_dtc_cleanup(struct ra_i2c_priv_s *priv)
   /* TODO: Implement DTC cleanup */
   i2cinfo("DTC cleanup for I2C%d\n", priv->config->bus);
 }
-#endif /* CONFIG_RA8_I2C_DTC */
+#endif /* CONFIG_RA_I2C_DTC */
 
 /****************************************************************************
  * Name: ra_i2cbus_initialize
@@ -1376,19 +1376,19 @@ struct i2c_master_s *ra_i2cbus_initialize(int port)
   /* Get I2C private structure */
   switch (port)
     {
-#ifdef CONFIG_RA8_I2C0
+#ifdef CONFIG_RA_I2C0
       case 0:
         priv = &ra_i2c0_priv;
         break;
 #endif
 
-#ifdef CONFIG_RA8_I2C1
+#ifdef CONFIG_RA_I2C1
       case 1:
         priv = &ra_i2c1_priv;
         break;
 #endif
 
-#ifdef CONFIG_RA8_I2C2
+#ifdef CONFIG_RA_I2C2
       case 2:
         priv = &ra_i2c2_priv;
         break;
@@ -1440,4 +1440,4 @@ int ra_i2cbus_uninitialize(struct i2c_master_s *dev)
   return OK;
 }
 
-#endif /* CONFIG_RA8_I2C */
+#endif /* CONFIG_RA_I2C */

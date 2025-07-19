@@ -48,6 +48,6 @@
  * IRQ header file included by arch/ra8/irq.h.
  */
 
-#define ARMV8M_PERIPHERAL_INTERRUPTS  53
+#define ARMV8M_PERIPHERAL_INTERRUPTS  0x182
 
 #endif /* __ARCH_ARM_SRC_RA_CHIP_H */

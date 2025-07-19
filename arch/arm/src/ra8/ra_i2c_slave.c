@@ -45,7 +45,7 @@
 #include "hardware/ra_i2c.h"
 #include "ra_i2c.h"
 
-#ifdef CONFIG_RA8_I2C_SLAVE
+#ifdef CONFIG_RA_I2C_SLAVE
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -137,7 +137,7 @@ static const struct i2c_slave_ops_s ra_i2c_slave_ops =
 };
 
 /* I2C slave device configuration */
-#ifdef CONFIG_RA8_I2C0_SLAVE
+#ifdef CONFIG_RA_I2C0_SLAVE
 static const struct ra_i2c_config_s ra_i2c0_slave_config =
 {
   .base         = RA_I2C0_BASE,
@@ -167,7 +167,7 @@ static struct ra_i2c_slave_priv_s ra_i2c0_slave_priv =
 };
 #endif
 
-#ifdef CONFIG_RA8_I2C1_SLAVE
+#ifdef CONFIG_RA_I2C1_SLAVE
 static const struct ra_i2c_config_s ra_i2c1_slave_config =
 {
   .base         = RA_I2C1_BASE,
@@ -744,13 +744,13 @@ struct i2c_slave_s *ra_i2c_slave_initialize(int port)
   /* Get I2C slave private structure */
   switch (port)
     {
-#ifdef CONFIG_RA8_I2C0_SLAVE
+#ifdef CONFIG_RA_I2C0_SLAVE
       case 0:
         priv = &ra_i2c0_slave_priv;
         break;
 #endif
 
-#ifdef CONFIG_RA8_I2C1_SLAVE
+#ifdef CONFIG_RA_I2C1_SLAVE
       case 1:
         priv = &ra_i2c1_slave_priv;
         break;
@@ -802,4 +802,4 @@ int ra_i2c_slave_uninitialize(struct i2c_slave_s *dev)
   return OK;
 }
 
-#endif /* CONFIG_RA8_I2C_SLAVE */
+#endif /* CONFIG_RA_I2C_SLAVE */

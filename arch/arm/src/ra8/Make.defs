@@ -36,11 +36,6 @@ CHIP_CSRCS += ra_allocateheap.c
 CHIP_CSRCS += ra_timerisr.c
 CHIP_CSRCS += ra_serial.c
 
-# FSP Integration support
-ifeq ($(CONFIG_RA_FSP_INTEGRATION),y)
-CHIP_CSRCS += ra_fsp_integration.c
-endif
-
 # Module Stop Control
 ifeq ($(CONFIG_RA_MSTP),y)
 CHIP_CSRCS += ra_mstp.c

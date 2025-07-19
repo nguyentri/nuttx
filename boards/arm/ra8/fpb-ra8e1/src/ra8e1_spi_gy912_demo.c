@@ -22,6 +22,7 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
+#ifdef CONFIG_RA8E1_SPI_GY912_DEMO
 
 #include <nuttx/config.h>
 
@@ -44,7 +45,7 @@
 #include "board.h"
 #include "ra8e1_demo_log.h"
 
-#ifdef CONFIG_RA8_SPI
+#ifdef CONFIG_RA_SPI
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -1042,7 +1043,7 @@ int ra_spi0_cmddata(struct spi_dev_s *dev, uint32_t devid, bool cmd)
 }
 #endif
 
-#endif /* CONFIG_RA8_SPI */
+#endif /* CONFIG_RA_SPI */
 
 #if CONFIG_SPI_GY912_SAMPLE
 
@@ -1239,3 +1240,5 @@ int ra8e1_spi_gy912_demo_main(int argc, FAR char *argv[])
 }
 
 #endif /* CONFIG_SPI_GY912_SAMPLE */
+
+#endif /* CONFIG_RA8E1_SPI_GY912_DEMO */

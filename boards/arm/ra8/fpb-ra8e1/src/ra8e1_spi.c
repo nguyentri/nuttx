@@ -54,7 +54,7 @@
 
 int fpb_ra8e1_spi_initialize(void)
 {
-#ifdef CONFIG_RA8_SPI
+#ifdef CONFIG_RA_SPI
   struct spi_dev_s *spi0;
   struct spi_dev_s *spi1;
   int ret;
@@ -106,7 +106,7 @@ int fpb_ra8e1_spi_initialize(void)
 
   syslog(LOG_INFO, "All SPI interfaces initialized for loopback demo\n");
 
-#endif /* CONFIG_RA8_SPI */
+#endif /* CONFIG_RA_SPI */
 
   return 0;
 }
@@ -119,7 +119,7 @@ int fpb_ra8e1_spi_initialize(void)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_RA8_SPI
+#ifdef CONFIG_RA_SPI
 void ra8_spi0select(FAR struct spi_dev_s *dev, uint32_t devid,
                      bool selected)
 {
@@ -244,4 +244,4 @@ uint8_t ra8_spi1status(FAR struct spi_dev_s *dev, uint32_t devid)
 }
 #endif
 
-#endif /* CONFIG_RA8_SPI */
+#endif /* CONFIG_RA_SPI */

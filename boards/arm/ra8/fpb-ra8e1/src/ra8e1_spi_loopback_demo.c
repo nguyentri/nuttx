@@ -21,6 +21,7 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
+#ifdef CONFIG_RA8E1_SPI_LOOPBACK_DEMO
 
 #include <nuttx/config.h>
 
@@ -493,3 +494,5 @@ int ra8e1_spi_loopback_demo_main(int argc, char *argv[])
   demoprintf("\nSPI Loopback Demo completed successfully!\n");
   return OK;
 }
+
+#endif /* CONFIG_RA8E1_SPI_LOOPBACK_DEMO */

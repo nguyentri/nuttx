@@ -130,7 +130,6 @@ int ra8e1_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_RA_SCI_UART
 #ifdef CONFIG_RA8E1_GPS_DEMO
   /* Initialize GPS demo */
   ret = ra8e1_gps_demo_init();
@@ -157,9 +156,7 @@ int ra8e1_bringup(void)
       syslog(LOG_INFO, "SBUS demo initialized successfully\n");
     }
 #endif
-#endif
 
-#ifdef CONFIG_RA_I2C
 #ifdef CONFIG_RA8E1_I2C_GY912_DEMO
   /* Initialize I2C GY-912 demo */
   ret = ra8e1_i2c_gy912_demo_init();
@@ -244,7 +241,7 @@ int ra8e1_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_RA8E1_SW_BUTTON_DEMO
+#ifdef CONFIG_RA8E1_SW_BUTTON
   /* Initialize buttons */
   board_button_initialize();
 #endif

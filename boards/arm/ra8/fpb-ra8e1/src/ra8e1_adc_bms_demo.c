@@ -21,6 +21,8 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
+ 
+#ifdef RA8E1_ADC_BMS_DEMO
 
 #include <nuttx/config.h>
 
@@ -42,7 +44,6 @@
 #include "board.h"
 #include "ra8e1_demo_log.h"
 
-#ifdef CONFIG_RA8_ADC
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -152,7 +153,7 @@ static bool g_adc_initialized = false;
 
 /* DTC buffer for batch ADC operations */
 
-#ifdef CONFIG_RA8_ADC_DTC
+#ifdef CONFIG_RA_ADC_DTC
 static uint32_t g_adc_buffer[ADC_DTC_BUFFER_SIZE];
 static uint8_t g_channel_buffer[ADC_DTC_BUFFER_SIZE];
 #endif
@@ -437,7 +438,7 @@ static int ra8e1_adc_read_battery_data(void)
   return OK;
 }
 
-#ifdef CONFIG_RA8_ADC_DTC
+#ifdef CONFIG_RA_ADC_DTC
 /****************************************************************************
  * Name: ra8e1_adc_read_batch_dtc
  *
@@ -559,7 +560,7 @@ static int ra8e1_adc_read_battery_data_dtc(void)
 
   return OK;
 }
-#endif /* CONFIG_RA8_ADC_DTC */
+#endif /* CONFIG_RA_ADC_DTC */
 
 /****************************************************************************
  * Public Functions
@@ -606,7 +607,7 @@ void ra8e1_adc_initialize(void)
 
   /* Perform initial battery reading */
 
-#ifdef CONFIG_RA8_ADC_DTC
+#ifdef CONFIG_RA_ADC_DTC
   ret = ra8e1_adc_read_battery_data_dtc();
 #else
   ret = ra8e1_adc_read_battery_data();
@@ -732,7 +733,7 @@ int ra8e1_get_battery_status(struct battery_status_s *status)
 
   /* Update battery data */
 
-#ifdef CONFIG_RA8_ADC_DTC
+#ifdef CONFIG_RA_ADC_DTC
   ret = ra8e1_adc_read_battery_data_dtc();
 #else
   ret = ra8e1_adc_read_battery_data();
@@ -806,7 +807,7 @@ int ra8e1_adc_sample_demo(void)
   return OK;
 }
 
-#endif /* CONFIG_RA8_ADC */
+#endif /* CONFIG_RA_ADC */
 
 
 
@@ -850,7 +851,7 @@ static void show_usage(FAR const char *progname, int exitcode)
  * Name: print_battery_status
  ****************************************************************************/
 
-#ifdef CONFIG_RA8_ADC_BATTERY_MONITOR
+#ifdef CONFIG_RA_ADC_BATTERY_MONITOR
 static void print_battery_status(FAR struct battery_status_s *status, bool verbose)
 {
   const char *charge_level = "Unknown";
@@ -924,7 +925,7 @@ int ra8e1_adc_bms_demo_init(void)
 
 int ra8e1_adc_bms_demo_main(int argc, FAR char *argv[])
 {
-#ifdef CONFIG_RA8_ADC_BATTERY_MONITOR
+#ifdef CONFIG_RA_ADC_BATTERY_MONITOR
   struct battery_status_s status;
   int sample_count = 10;
   int delay_ms = 1000;
@@ -1094,7 +1095,7 @@ int ra8e1_adc_bms_demo_main(int argc, FAR char *argv[])
 
 #else
   demoprintf("Error: ADC battery monitoring not enabled in configuration\n");
-  demoprintf("Please enable CONFIG_RA8_ADC_BATTERY_MONITOR\n");
+  demoprintf("Please enable CONFIG_RA_ADC_BATTERY_MONITOR\n");
   return EXIT_FAILURE;
 #endif
 }

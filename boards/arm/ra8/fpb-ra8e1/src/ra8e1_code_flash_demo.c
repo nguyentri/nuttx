@@ -21,6 +21,7 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
+#ifdef CONFIG_RA8E1_CODE_FLASH_DEMO
 
 #include <nuttx/config.h>
 
@@ -367,3 +368,4 @@ int ra8e1_code_flash_demo_main(int argc, char *argv[])
 
   return OK;
 }
+#endif /* CONFIG_RA8E1_CODE_FLASH_DEMO */

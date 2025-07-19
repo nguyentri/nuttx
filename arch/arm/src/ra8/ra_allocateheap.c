@@ -27,22 +27,69 @@
 #include <nuttx/config.h>
 
 #include <sys/types.h>
+#include <stdint.h>
+#include <stdbool.h>
 #include <assert.h>
 #include <debug.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/board.h>
 #include <nuttx/kmalloc.h>
+#include <nuttx/syslog/syslog.h>
 
 #include <arch/board/board.h>
 
 #include "mpu.h"
 #include "arm_internal.h"
-#include "chip.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
+/* FSP-Based Memory Configuration - Matched to Linker Script */
+
+#ifndef CONFIG_RA_DTCM_BASE
+#  define CONFIG_RA_DTCM_BASE         0x20000000  /* DTCM base from linker */
+#endif
+
+#ifndef CONFIG_RA_DTCM_SIZE
+#  define CONFIG_RA_DTCM_SIZE         0x4000      /* 16KB - matches linker */
+#endif
+
+#ifndef CONFIG_RA_ITCM_BASE
+#  define CONFIG_RA_ITCM_BASE         0x00000000  /* ITCM base from linker */
+#endif
+
+#ifndef CONFIG_RA_ITCM_SIZE
+#  define CONFIG_RA_ITCM_SIZE         0x4000      /* 16KB - matches linker */
+#endif
+
+#ifndef CONFIG_RA_SRAM_BASE
+#  define CONFIG_RA_SRAM_BASE         0x22060000  /* Main SRAM base */
+#endif
+
+#ifndef CONFIG_RA8_SRAM_SIZE
+#  define CONFIG_RA8_SRAM_SIZE         0x80000     /* 512KB - matches linker */
+#endif
+
+#ifndef CONFIG_RA_EXTERNAL_RAM_BASE
+#  define CONFIG_RA_EXTERNAL_RAM_BASE 0x80000000  /* OSPI0 CS0 from linker */
+#endif
+
+#ifndef CONFIG_RA_EXTERNAL_RAM_SIZE
+#  define CONFIG_RA_EXTERNAL_RAM_SIZE 0x1000000   /* 16MB OSPI0 CS0 */
+#endif
+
+#ifndef CONFIG_RA_HEAP_ALIGNMENT
+#  define CONFIG_RA_HEAP_ALIGNMENT    8          /* 8-byte alignment */
+#endif
+
+#ifndef CONFIG_RA_STACK_GUARD_SIZE
+#  define CONFIG_RA_STACK_GUARD_SIZE  1024       /* 1KB guard */
+#endif
+
+/* Derived memory definitions for compatibility */
+#define CONFIG_RAM_END                  (CONFIG_RA_SRAM_BASE + CONFIG_RA8_SRAM_SIZE)
 
 /****************************************************************************
  * Private Data
@@ -212,4 +259,97 @@ void up_allocate_heap(void **heap_start, size_t *heap_size)
       PANIC();
     }
 #endif
+}
+
+/****************************************************************************
+ * Name: ra_validate_memory_map
+ *
+ * Description:
+ *   Validate memory configuration against FSP requirements and linker script
+ *
+ ****************************************************************************/
+
+bool ra_validate_memory_map(void)
+{
+  bool valid = true;
+
+#ifdef CONFIG_RA_DTCM_HEAP
+  /* Validate DTCM configuration against linker script */
+  /* Linker: dtcm (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00004000 */
+  if (CONFIG_RA_DTCM_BASE != 0x20000000)
+    {
+      syslog(LOG_ERR, "DTCM base mismatch: config=0x%08lx linker=0x20000000\n", 
+             (unsigned long)CONFIG_RA_DTCM_BASE);
+      valid = false;
+    }
+
+  if (CONFIG_RA_DTCM_SIZE != 0x4000)
+    {
+      syslog(LOG_ERR, "DTCM size mismatch: config=%d linker=16384 bytes\n", 
+             CONFIG_RA_DTCM_SIZE);
+      valid = false;
+    }
+#endif
+
+#ifdef CONFIG_RA_ITCM_HEAP
+  /* Validate ITCM configuration against linker script */
+  /* Linker: itcm (rwx) : ORIGIN = 0x00000000, LENGTH = 0x00004000 */
+  if (CONFIG_RA_ITCM_BASE != 0x00000000)
+    {
+      syslog(LOG_ERR, "ITCM base mismatch: config=0x%08lx linker=0x00000000\n", 
+             (unsigned long)CONFIG_RA_ITCM_BASE);
+      valid = false;
+    }
+
+  if (CONFIG_RA_ITCM_SIZE != 0x4000)
+    {
+      syslog(LOG_ERR, "ITCM size mismatch: config=%d linker=16384 bytes\n", 
+             CONFIG_RA_ITCM_SIZE);
+      valid = false;
+    }
+#endif
+
+#ifdef CONFIG_RA_EXTERNAL_RAM_HEAP
+  /* Validate external RAM configuration against linker script */
+  /* Linker: ospi0_cs0 (rwx) : ORIGIN = 0x80000000, LENGTH = 0x10000000 */
+  if (CONFIG_RA_EXTERNAL_RAM_BASE != 0x80000000)
+    {
+      syslog(LOG_ERR, "External RAM base mismatch: config=0x%08lx linker=0x80000000\n", 
+             (unsigned long)CONFIG_RA_EXTERNAL_RAM_BASE);
+      valid = false;
+    }
+
+  if (CONFIG_RA_EXTERNAL_RAM_SIZE > 0x10000000)
+    {
+      syslog(LOG_ERR, "External RAM size exceeds linker: config=%d max=268435456 bytes\n", 
+             CONFIG_RA_EXTERNAL_RAM_SIZE);
+      valid = false;
+    }
+#endif
+
+  /* Validate main SRAM configuration */
+  /* Linker: sram (rwx) : ORIGIN = 0x22060000, LENGTH = 0x00080000 */
+  if (CONFIG_RA_SRAM_BASE != 0x22060000)
+    {
+      syslog(LOG_ERR, "SRAM base mismatch: config=0x%08lx linker=0x22060000\n", 
+             (unsigned long)CONFIG_RA_SRAM_BASE);
+      valid = false;
+    }
+
+  if (CONFIG_RA8_SRAM_SIZE != 0x80000)
+    {
+      syslog(LOG_ERR, "SRAM size mismatch: config=%d linker=524288 bytes\n", 
+             CONFIG_RA8_SRAM_SIZE);
+      valid = false;
+    }
+
+  /* Validate heap alignment is power of 2 */
+  if ((CONFIG_RA_HEAP_ALIGNMENT & (CONFIG_RA_HEAP_ALIGNMENT - 1)) != 0)
+    {
+      syslog(LOG_ERR, "Heap alignment must be power of 2: %d\n", 
+             CONFIG_RA_HEAP_ALIGNMENT);
+      valid = false;
+    }
+
+  return valid;
 }

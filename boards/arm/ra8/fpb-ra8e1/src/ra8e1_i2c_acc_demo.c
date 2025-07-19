@@ -21,6 +21,7 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
+#ifdef CONFIG_RA8E1_I2C_ACC_DEMO
 
 #include <nuttx/config.h>
 
@@ -653,7 +654,7 @@ int ra8e1_i2c_acc_demo_main(int argc, char *argv[])
   return OK;
 }
 
-#endif /* CONFIG_RA8_I2C */
+#endif /* CONFIG_RA_I2C */
     {
       demoerr("ERROR: Failed to setup I2C: %d\n", ret);
       return;

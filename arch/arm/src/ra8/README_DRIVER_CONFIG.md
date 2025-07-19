@@ -74,10 +74,6 @@ CHIP_CSRCS += ra_gpio.c ra_lowputc.c ra_allocateheap.c
 CHIP_CSRCS += ra_timerisr.c ra_serial.c
 
 # FSP Integration
-ifeq ($(CONFIG_RA8_FSP_INTEGRATION),y)
-CHIP_CSRCS += ra_fsp_integration.c
-endif
-
 # Module Stop Control
 ifeq ($(CONFIG_RA8_MSTP),y)
 CHIP_CSRCS += ra_mstp.c
@@ -110,7 +106,6 @@ endif()
 
 | Driver | KConfig Option | Source File | Description |
 |--------|----------------|-------------|-------------|
-| FSP Integration | `CONFIG_RA8_FSP_INTEGRATION` | `ra_fsp_integration.c` | Hardware abstraction layer |
 | Module Stop | `CONFIG_RA8_MSTP` | `ra_mstp.c` | Power management |
 | Pin Mapping | `CONFIG_RA8_PINMAP` | `ra_pinmap.c` | Pin configuration |
 | ADC | `CONFIG_RA8_ADC` | `ra_adc.c` | 12-bit ADC with DTC |

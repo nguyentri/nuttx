@@ -108,7 +108,7 @@ CSRCS += ra8e1_spi_gy912_demo.c
 endif
 
 # Button support
-ifeq ($(CONFIG_RA8_SW_BUTTON),y)
+ifeq ($(CONFIG_RA8E1_SW_BUTTON),y)
 CSRCS += ra8e1_buttons.c
 endif
 

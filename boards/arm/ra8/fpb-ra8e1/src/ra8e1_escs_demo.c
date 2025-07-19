@@ -21,6 +21,7 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
+#ifdef CONFIG_RA8E1_ESCS_DEMO
 
 #include <nuttx/config.h>
 
@@ -764,3 +765,5 @@ int ra8e1_escs_demo_test(void)
 }
 
 #endif /* CONFIG_RA8E1_PWM_ESCS */
+
+#endif /* CONFIG_RA8E1_ESCS_DEMO */

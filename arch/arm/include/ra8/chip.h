@@ -66,6 +66,11 @@
 #define NVIC_SYSH_PRIORITY_MAX        0x00 /* Zero is maximum priority */
 #define NVIC_SYSH_PRIORITY_STEP       0x10 /* Four bits of interrupt priority used */
 
+/* Vector Table Entries *****************************************************/
+/* RA8E1 has 96 external interrupt vectors + 16 Cortex-M85 core vectors = 112 total */
+
+#define RA8E1_IRQ_NEXTERNAL          96    /* 96 external interrupt vectors */
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/

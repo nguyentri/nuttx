@@ -32,11 +32,7 @@ CONFIG_RA8_SCI_UART               # Enhanced UART+DMA
 
 **Conditional Compilation Added:**
 ```makefile
-# FSP Integration support
-ifeq ($(CONFIG_RA8_FSP_INTEGRATION),y)
-CHIP_CSRCS += ra_fsp_integration.c
-endif
-
+ 
 # Module Stop Control
 ifeq ($(CONFIG_RA8_MSTP),y)
 CHIP_CSRCS += ra_mstp.c
@@ -83,9 +79,6 @@ endif
 **CMake Conditional Compilation:**
 ```cmake
 # FSP Integration support
-if(CONFIG_RA8_FSP_INTEGRATION)
-  list(APPEND SRCS ra_fsp_integration.c)
-endif()
 
 # Module Stop Control
 if(CONFIG_RA8_MSTP)
@@ -111,7 +104,6 @@ endif()
 
 | Driver | KConfig | Make.defs | CMakeLists.txt | Source File |
 |--------|---------|-----------|----------------|-------------|
-| FSP Integration | ✅ | ✅ | ✅ | `ra_fsp_integration.c` |
 | Module Stop | ✅ | ✅ | ✅ | `ra_mstp.c` |
 | Pin Mapping | ✅ | ✅ | ✅ | `ra_pinmap.c` |
 | ADC | ✅ | ✅ | ✅ | `ra_adc.c` |

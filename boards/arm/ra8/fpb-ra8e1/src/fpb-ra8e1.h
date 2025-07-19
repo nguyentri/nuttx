@@ -82,29 +82,29 @@ int ra8e1_bringup(void);
 int ra8e1_gpio_initialize(void);
 #endif
 
-#ifdef CONFIG_RA8_SPI
+#ifdef CONFIG_RA_SPI
 int fpb_ra8e1_spi_initialize(void);
 #endif
 
-#ifdef CONFIG_RA8_SPI_LOOPBACK_DEMO
+#ifdef CONFIG_RA_SPI_LOOPBACK_DEMO
 int ra8e1_spi_loopback_demo_init(void);
 int ra8e1_spi_loopback_demo_test(void);
 int ra8e1_spi_loopback_demo_main(int argc, char *argv[]);
 #endif
 
-#ifdef CONFIG_RA8_ADC_BMS
+#ifdef CONFIG_RA_ADC_BMS
 int ra8e1_adc_bms_demo_init(void);
 int ra8e1_adc_bms_demo_main(int argc, FAR char *argv[]);
 #endif
 
-#ifdef CONFIG_RA8_CODE_FLASH_DEMO
+#ifdef CONFIG_RA_CODE_FLASH_DEMO
 int ra8e1_code_flash_demo_init(void);
 int ra8e1_code_flash_demo_test(void);
 int ra8e1_code_flash_demo_info(void);
 int ra8e1_code_flash_demo_main(int argc, char *argv[]);
 #endif
 
-#ifdef CONFIG_RA8_DATA_FLASH_DEMO
+#ifdef CONFIG_RA_DATA_FLASH_DEMO
 int ra8e1_data_flash_demo_init(void);
 int ra8e1_data_flash_demo_test(void);
 int ra8e1_data_flash_demo_main(int argc, char *argv[]);
@@ -115,27 +115,27 @@ int ra8e1_escs_demo_init(void);
 int ra8e1_escs_demo_main(int argc, char *argv[]);
 #endif
 
-#ifdef CONFIG_RA8_GPS_DEMO
+#ifdef CONFIG_RA_GPS_DEMO
 int ra8e1_gps_demo_init(void);
 int ra8e1_gps_demo_main(int argc, char *argv[]);
 #endif
 
-#ifdef CONFIG_RA8_SBUS_DEMO
+#ifdef CONFIG_RA_SBUS_DEMO
 int ra8e1_sbus_demo_init(void);
 int ra8e1_sbus_demo_main(int argc, char *argv[]);
 #endif
 
-#ifdef CONFIG_RA8_I2C_ACC_DEMO
+#ifdef CONFIG_RA_I2C_ACC_DEMO
 int ra8e1_i2c_acc_demo_init(void);
 int ra8e1_i2c_acc_demo_main(int argc, char *argv[]);
 #endif
 
-#ifdef CONFIG_RA8_I2C_GY912_DEMO
+#ifdef CONFIG_RA_I2C_GY912_DEMO
 int ra8e1_i2c_gy912_demo_init(void);
 int ra8e1_i2c_gy912_demo_main(int argc, FAR char *argv[]);
 #endif
 
-#ifdef CONFIG_RA8_I2C_SIMPLE_DEMO
+#ifdef CONFIG_RA_I2C_SIMPLE_DEMO
 int ra8e1_i2c_simple_demo_init(void);
 int ra8e1_i2c_simple_demo_main(int argc, char *argv[]);
 #endif

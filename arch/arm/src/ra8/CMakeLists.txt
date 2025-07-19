@@ -30,11 +30,6 @@ set(SRCS
     ra_allocateheap.c
     ra_serial.c)
 
-# FSP Integration support
-if(CONFIG_RA_FSP_INTEGRATION)
-  list(APPEND SRCS ra_fsp_integration.c)
-endif()
-
 # Module Stop Control
 if(CONFIG_RA_MSTP)
   list(APPEND SRCS ra_mstp.c)

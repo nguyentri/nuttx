@@ -68,7 +68,13 @@
 #  define RA_IRQ_IELSR29      (RA_IRQ_FIRST + 29)  /* 29:  Event selected in the ICU.IELSR29 register */
 #  define RA_IRQ_IELSR30      (RA_IRQ_FIRST + 30)  /* 30:  Event selected in the ICU.IELSR30 register */
 #  define RA_IRQ_IELSR31      (RA_IRQ_FIRST + 31)  /* 31:  Event selected in the ICU.IELSR31 register */
-#  define RA_IRQ_NEXTINT      (32)
+
+/* RA8E1 supports additional external interrupt vectors beyond IELSR 0-31.
+ * According to FSP BSP configuration, RA8E1 has 96 total external interrupt vectors.
+ * The first 32 are configurable via IELSR registers, the remaining 64 are direct
+ * peripheral interrupt vectors.
+ */
+#  define RA_IRQ_NEXTINT      (RA8E1_IRQ_NEXTERNAL)  /* 96 external interrupt vectors for RA8E1 */
 
 #if (CONFIG_RA_SCI0_UART)
 #define SCI0_RXI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive data full */

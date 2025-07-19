@@ -21,6 +21,7 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
+#ifdef CONFIG_RA8E1_I2C_SIMPLE_DEMO
 
 #include <stdio.h>
 #include <stdint.h>
@@ -452,3 +453,5 @@ int ra8e1_i2c_simple_demo_main(int argc, char *argv[])
   
   return DEMO_OK;
 }
+
+#endif /* CONFIG_RA8E1_I2C_SIMPLE_DEMO */

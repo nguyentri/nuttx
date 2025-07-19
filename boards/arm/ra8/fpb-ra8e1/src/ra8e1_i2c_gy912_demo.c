@@ -21,6 +21,7 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
+#ifdef CONFIG_RA8E1_I2C_GY912_DEMO
 
 #include <nuttx/config.h>
 
@@ -48,7 +49,7 @@
 #define I2C_GY912_BUFFER_SIZE         64
 #define I2C_GY912_MAX_CHANNELS        2
 
-#ifdef CONFIG_RA8_I2C
+#ifdef CONFIG_RA_I2C
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -662,4 +663,6 @@ int ra8e1_i2c_gy912_demo_main(int argc, char *argv[])
   return ra8e1_i2c_gy912_demo_test();
 }
 
-#endif /* CONFIG_RA8_I2C */
+#endif /* CONFIG_RA_I2C */
+
+#endif /* CONFIG_RA8E1_I2C_GY912_DEMO */

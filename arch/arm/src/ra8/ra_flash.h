@@ -39,12 +39,12 @@
 #define RA_FLASH_CODE_BLOCK_SIZE     8192   /* 8KB Code Flash block size */
 #define RA_FLASH_DATA_BLOCK_SIZE     64     /* 64B Data Flash block size */
 
-/* Flash memory areas */
+/* Flash memory areas - Updated to match RA8E1 FSP specification */
 
 #define RA_FLASH_CODE_START         0x00000000
 #define RA_FLASH_CODE_SIZE          0x00100000  /* 1MB Code Flash */
-#define RA_FLASH_DATA_START         0x40100000
-#define RA_FLASH_DATA_SIZE          0x00002000  /* 8KB Data Flash */
+#define RA_FLASH_DATA_START         0x08000000  /* Data Flash starts at different address */
+#define RA_FLASH_DATA_SIZE          0x00003000  /* 12KB Data Flash (RA8E1 has 12KB) */
 
 /****************************************************************************
  * Public Types

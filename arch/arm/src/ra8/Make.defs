@@ -27,13 +27,13 @@ include armv8-m/Make.defs
 # Required RA files
 
 CHIP_CSRCS += ra_start.c
-CHIP_CSRCS += ra_clockconfig.c
+CHIP_CSRCS += ra_clock.c
 CHIP_CSRCS += ra_irq.c
 CHIP_CSRCS += ra_icu.c
 CHIP_CSRCS += ra_gpio.c
 CHIP_CSRCS += ra_lowputc.c
-CHIP_CSRCS += ra_allocateheap.c
-CHIP_CSRCS += ra_timerisr.c
+CHIP_CSRCS += ra_mem_mng.c
+CHIP_CSRCS += ra_gpt.c
 CHIP_CSRCS += ra_serial.c
 
 # ADC driver
@@ -64,11 +64,6 @@ endif
 # SPI driver
 ifeq ($(CONFIG_RA_SPI),y)
 CHIP_CSRCS += ra_spi.c
-endif
-
-# GPT timer/PWM driver
-ifeq ($(CONFIG_RA_GPT),y)
-CHIP_CSRCS += ra_gpt.c
 endif
 
 # PWM driver

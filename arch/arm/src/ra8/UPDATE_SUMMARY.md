@@ -118,12 +118,12 @@ endif()
 
 ### Core Required Files (Always Compiled)
 - `ra_start.c` - System startup
-- `ra_clockconfig.c` - Clock configuration
+- `ra_clock.c` - Clock configuration
 - `ra_irq.c` - Interrupt handling
 - `ra_icu.c` - Interrupt controller
 - `ra_gpio.c` - GPIO operations
 - `ra_lowputc.c` - Low-level console
-- `ra_allocateheap.c` - Memory allocation
+- `ra_mem_mng.c` - Memory allocation
 - `ra_timerisr.c` - System timer
 - `ra_serial.c` - Basic serial support
 

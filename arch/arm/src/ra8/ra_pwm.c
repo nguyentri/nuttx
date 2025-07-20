@@ -63,7 +63,7 @@
 
 /* This structure represents the state of one PWM timer */
 
-struct ra8_pwm_s
+struct ra_pwm_s
 {
   const struct pwm_ops_s *ops;     /* PWM operations */
   uint8_t channel;                 /* PWM channel number */
@@ -103,7 +103,7 @@ static const struct pwm_ops_s g_pwm_ops =
 
 /* PWM device configurations */
 
-static struct ra8_pwm_s g_pwm_devs[] =
+static struct ra_pwm_s g_pwm_devs[] =
 {
 #ifdef CONFIG_RA_PWM0
   {
@@ -132,7 +132,7 @@ static struct ra8_pwm_s g_pwm_devs[] =
 /* Add more channels as needed */
 };
 
-#define NPWM_DEVS (sizeof(g_pwm_devs) / sizeof(struct ra8_pwm_s))
+#define NPWM_DEVS (sizeof(g_pwm_devs) / sizeof(struct ra_pwm_s))
 
 /****************************************************************************
  * Private Functions
@@ -156,14 +156,14 @@ static struct ra8_pwm_s g_pwm_devs[] =
 
 static int pwm_setup(struct pwm_lowerhalf_s *dev)
 {
-  struct ra8_pwm_s *priv = (struct ra8_pwm_s *)dev;
+  struct ra_pwm_s *priv = (struct ra_pwm_s *)dev;
   struct pwm_lowerhalf_s *gpt_dev;
 
   pwminfo("PWM%d setup\n", priv->channel);
 
   /* Get the underlying GPT device */
 
-  gpt_dev = ra8_gpt_initialize(priv->channel);
+  gpt_dev = ra_gpt_initialize(priv->channel);
   if (gpt_dev == NULL)
     {
       pwmerr("ERROR: Failed to initialize GPT%d\n", priv->channel);
@@ -193,14 +193,14 @@ static int pwm_setup(struct pwm_lowerhalf_s *dev)
 
 static int pwm_shutdown(struct pwm_lowerhalf_s *dev)
 {
-  struct ra8_pwm_s *priv = (struct ra8_pwm_s *)dev;
+  struct ra_pwm_s *priv = (struct ra_pwm_s *)dev;
   struct pwm_lowerhalf_s *gpt_dev;
 
   pwminfo("PWM%d shutdown\n", priv->channel);
 
   /* Get the underlying GPT device */
 
-  gpt_dev = ra8_gpt_initialize(priv->channel);
+  gpt_dev = ra_gpt_initialize(priv->channel);
   if (gpt_dev == NULL)
     {
       return -ENODEV;
@@ -230,7 +230,7 @@ static int pwm_shutdown(struct pwm_lowerhalf_s *dev)
 static int pwm_start(struct pwm_lowerhalf_s *dev,
                      const struct pwm_info_s *info)
 {
-  struct ra8_pwm_s *priv = (struct ra8_pwm_s *)dev;
+  struct ra_pwm_s *priv = (struct ra_pwm_s *)dev;
   struct pwm_lowerhalf_s *gpt_dev;
   int ret;
 
@@ -241,7 +241,7 @@ static int pwm_start(struct pwm_lowerhalf_s *dev,
 
   /* Get the underlying GPT device */
 
-  gpt_dev = ra8_gpt_initialize(priv->channel);
+  gpt_dev = ra_gpt_initialize(priv->channel);
   if (gpt_dev == NULL)
     {
       return -ENODEV;
@@ -274,14 +274,14 @@ static int pwm_start(struct pwm_lowerhalf_s *dev,
 
 static int pwm_stop(struct pwm_lowerhalf_s *dev)
 {
-  struct ra8_pwm_s *priv = (struct ra8_pwm_s *)dev;
+  struct ra_pwm_s *priv = (struct ra_pwm_s *)dev;
   struct pwm_lowerhalf_s *gpt_dev;
 
   pwminfo("PWM%d stop\n", priv->channel);
 
   /* Get the underlying GPT device */
 
-  gpt_dev = ra8_gpt_initialize(priv->channel);
+  gpt_dev = ra_gpt_initialize(priv->channel);
   if (gpt_dev == NULL)
     {
       return -ENODEV;
@@ -312,14 +312,14 @@ static int pwm_stop(struct pwm_lowerhalf_s *dev)
 static int pwm_ioctl(struct pwm_lowerhalf_s *dev, int cmd,
                      unsigned long arg)
 {
-  struct ra8_pwm_s *priv = (struct ra8_pwm_s *)dev;
+  struct ra_pwm_s *priv = (struct ra_pwm_s *)dev;
   struct pwm_lowerhalf_s *gpt_dev;
 
   pwminfo("PWM%d ioctl: cmd=%d arg=%08lx\n", priv->channel, cmd, arg);
 
   /* Get the underlying GPT device */
 
-  gpt_dev = ra8_gpt_initialize(priv->channel);
+  gpt_dev = ra_gpt_initialize(priv->channel);
   if (gpt_dev == NULL)
     {
       return -ENODEV;
@@ -335,7 +335,7 @@ static int pwm_ioctl(struct pwm_lowerhalf_s *dev, int cmd,
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ra8_pwm_initialize
+ * Name: ra_pwm_initialize
  *
  * Description:
  *   Initialize one PWM channel for use with the upper_level PWM driver.
@@ -349,9 +349,9 @@ static int pwm_ioctl(struct pwm_lowerhalf_s *dev, int cmd,
  *
  ****************************************************************************/
 
-struct pwm_lowerhalf_s *ra8_pwm_initialize(int channel)
+struct pwm_lowerhalf_s *ra_pwm_initialize(int channel)
 {
-  struct ra8_pwm_s *lower;
+  struct ra_pwm_s *lower;
   int i;
 
   pwminfo("PWM%d initialize\n", channel);
@@ -377,7 +377,7 @@ struct pwm_lowerhalf_s *ra8_pwm_initialize(int channel)
 }
 
 /****************************************************************************
- * Name: ra8_pwm_setup
+ * Name: ra_pwm_setup
  *
  * Description:
  *   Configure the PWM channel.
@@ -391,7 +391,7 @@ struct pwm_lowerhalf_s *ra8_pwm_initialize(int channel)
  *
  ****************************************************************************/
 
-int ra8_pwm_setup(struct pwm_lowerhalf_s *dev, 
+int ra_pwm_setup(struct pwm_lowerhalf_s *dev, 
                   const struct pwm_info_s *info)
 {
   if (dev == NULL || info == NULL)
@@ -403,7 +403,7 @@ int ra8_pwm_setup(struct pwm_lowerhalf_s *dev,
 }
 
 /****************************************************************************
- * Name: ra8_pwm_shutdown
+ * Name: ra_pwm_shutdown
  *
  * Description:
  *   Disable the PWM channel.
@@ -416,7 +416,7 @@ int ra8_pwm_setup(struct pwm_lowerhalf_s *dev,
  *
  ****************************************************************************/
 
-int ra8_pwm_shutdown(struct pwm_lowerhalf_s *dev)
+int ra_pwm_shutdown(struct pwm_lowerhalf_s *dev)
 {
   if (dev == NULL)
     {
@@ -427,7 +427,7 @@ int ra8_pwm_shutdown(struct pwm_lowerhalf_s *dev)
 }
 
 /****************************************************************************
- * Name: ra8_pwm_start
+ * Name: ra_pwm_start
  *
  * Description:
  *   Start the PWM output.
@@ -441,7 +441,7 @@ int ra8_pwm_shutdown(struct pwm_lowerhalf_s *dev)
  *
  ****************************************************************************/
 
-int ra8_pwm_start(struct pwm_lowerhalf_s *dev,
+int ra_pwm_start(struct pwm_lowerhalf_s *dev,
                   const struct pwm_info_s *info)
 {
   if (dev == NULL || info == NULL)
@@ -453,7 +453,7 @@ int ra8_pwm_start(struct pwm_lowerhalf_s *dev,
 }
 
 /****************************************************************************
- * Name: ra8_pwm_stop
+ * Name: ra_pwm_stop
  *
  * Description:
  *   Stop the PWM output.
@@ -466,7 +466,7 @@ int ra8_pwm_start(struct pwm_lowerhalf_s *dev,
  *
  ****************************************************************************/
 
-int ra8_pwm_stop(struct pwm_lowerhalf_s *dev)
+int ra_pwm_stop(struct pwm_lowerhalf_s *dev)
 {
   if (dev == NULL)
     {
@@ -477,7 +477,7 @@ int ra8_pwm_stop(struct pwm_lowerhalf_s *dev)
 }
 
 /****************************************************************************
- * Name: ra8_pwm_ioctl
+ * Name: ra_pwm_ioctl
  *
  * Description:
  *   Handle PWM ioctl commands.
@@ -492,7 +492,7 @@ int ra8_pwm_stop(struct pwm_lowerhalf_s *dev)
  *
  ****************************************************************************/
 
-int ra8_pwm_ioctl(struct pwm_lowerhalf_s *dev, int cmd, unsigned long arg)
+int ra_pwm_ioctl(struct pwm_lowerhalf_s *dev, int cmd, unsigned long arg)
 {
   if (dev == NULL)
     {

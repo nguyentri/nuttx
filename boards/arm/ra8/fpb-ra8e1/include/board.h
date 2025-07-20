@@ -36,30 +36,6 @@
 
 /* Clocking for FPB-RA8E1 Board ***********************************************/
 
-/* This is the canonical configuration:
- *   System Clock source      : HOCO
- *   ICLK(Hz)                 : 64000000
- *   PCLKA(Hz)                : 64000000
- *   PCLKB(Hz)                : 64000000
- *   PCLKC(Hz)                : 64000000
- *   PCLKD(Hz)                : 64000000
- *   FCLK(Hz)                 : 64000000
- *   USBCLK(Hz)               : 0
- */
-
-/* Clock selection HOCO, MOCO, LOCO, PLL */
-
-#define RA_CKSEL  R_SYSTEM_SCKSCR_CKSEL_HOCO
-#define RA_HOCO_FREQUENCY  R_OFS1_HOCOFRQ1_64MHZ
-#define RA_ICLK_FREQUENCY  64000000
-
-#define RA_ICK_DIV       R_SYSTEM_SCKDIVCR_ICK_DIV_1
-#define RA_FCK_DIV       R_SYSTEM_SCKDIVCR_FCK_DIV_1
-#define RA_PCKA_DIV      R_SYSTEM_SCKDIVCR_PCKA_DIV_1
-#define RA_PCKB_DIV      R_SYSTEM_SCKDIVCR_PCKB_DIV_1
-#define RA_PCKC_DIV      R_SYSTEM_SCKDIVCR_PCKC_DIV_1
-#define RA_PCKD_DIV      R_SYSTEM_SCKDIVCR_PCKD_DIV_1
-
 /* Alternate function pin selections */
 
 #define GPIO_SCI2_RX   GPIO_RXD2_MISO2_SCL2_1  /* P301 */
@@ -186,5 +162,27 @@
 /* User Button - SW1 on P009 using IRQ13 */
 #define GPIO_SW1         (gpio_pinset_t){ PORT0, PIN9, (GPIO_INPUT | GPIO_PULLUP | GPIO_INT_FALLING)}
 #define SW1_IRQ           RA_IRQ_FIRST + 13  /* External IRQ13 */
+
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
+
+#ifndef __ASSEMBLY__
+
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C"
+{
+#else
+#define EXTERN extern
+#endif
+
+
+#undef EXTERN
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __ASSEMBLY__ */
 
 #endif /* __BOARDS_ARM_RA8_FPB_RA8E1_INCLUDE_BOARD_H */

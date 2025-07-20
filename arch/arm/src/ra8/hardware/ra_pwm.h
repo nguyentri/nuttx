@@ -48,7 +48,7 @@
 
 /* PWM channel configuration */
 
-struct ra8_pwm_channel_s
+struct ra_pwm_channel_s
 {
   uint8_t channel;                 /* PWM channel number (0-13) */
   uint8_t mode;                    /* PWM mode flags */
@@ -60,10 +60,10 @@ struct ra8_pwm_channel_s
 
 /* PWM driver configuration */
 
-struct ra8_pwm_config_s
+struct ra_pwm_config_s
 {
   uint8_t nchannels;               /* Number of PWM channels */
-  const struct ra8_pwm_channel_s *channels; /* PWM channel configurations */
+  const struct ra_pwm_channel_s *channels; /* PWM channel configurations */
   uint32_t base_frequency;         /* Base timer frequency in Hz */
   uint32_t default_frequency;      /* Default PWM frequency in Hz */
 };
@@ -87,7 +87,7 @@ extern "C"
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ra8_pwm_initialize
+ * Name: ra_pwm_initialize
  *
  * Description:
  *   Initialize the PWM driver for the specified timer channel.
@@ -101,10 +101,10 @@ extern "C"
  *
  ****************************************************************************/
 
-struct pwm_lowerhalf_s *ra8_pwm_initialize(int channel);
+struct pwm_lowerhalf_s *ra_pwm_initialize(int channel);
 
 /****************************************************************************
- * Name: ra8_pwm_setup
+ * Name: ra_pwm_setup
  *
  * Description:
  *   Configure the PWM channel.
@@ -118,11 +118,11 @@ struct pwm_lowerhalf_s *ra8_pwm_initialize(int channel);
  *
  ****************************************************************************/
 
-int ra8_pwm_setup(struct pwm_lowerhalf_s *dev, 
+int ra_pwm_setup(struct pwm_lowerhalf_s *dev, 
                   const struct pwm_info_s *info);
 
 /****************************************************************************
- * Name: ra8_pwm_shutdown
+ * Name: ra_pwm_shutdown
  *
  * Description:
  *   Disable the PWM channel.
@@ -135,10 +135,10 @@ int ra8_pwm_setup(struct pwm_lowerhalf_s *dev,
  *
  ****************************************************************************/
 
-int ra8_pwm_shutdown(struct pwm_lowerhalf_s *dev);
+int ra_pwm_shutdown(struct pwm_lowerhalf_s *dev);
 
 /****************************************************************************
- * Name: ra8_pwm_start
+ * Name: ra_pwm_start
  *
  * Description:
  *   Start the PWM output.
@@ -152,11 +152,11 @@ int ra8_pwm_shutdown(struct pwm_lowerhalf_s *dev);
  *
  ****************************************************************************/
 
-int ra8_pwm_start(struct pwm_lowerhalf_s *dev,
+int ra_pwm_start(struct pwm_lowerhalf_s *dev,
                   const struct pwm_info_s *info);
 
 /****************************************************************************
- * Name: ra8_pwm_stop
+ * Name: ra_pwm_stop
  *
  * Description:
  *   Stop the PWM output.
@@ -169,10 +169,10 @@ int ra8_pwm_start(struct pwm_lowerhalf_s *dev,
  *
  ****************************************************************************/
 
-int ra8_pwm_stop(struct pwm_lowerhalf_s *dev);
+int ra_pwm_stop(struct pwm_lowerhalf_s *dev);
 
 /****************************************************************************
- * Name: ra8_pwm_ioctl
+ * Name: ra_pwm_ioctl
  *
  * Description:
  *   Handle PWM ioctl commands.
@@ -187,7 +187,7 @@ int ra8_pwm_stop(struct pwm_lowerhalf_s *dev);
  *
  ****************************************************************************/
 
-int ra8_pwm_ioctl(struct pwm_lowerhalf_s *dev, int cmd, unsigned long arg);
+int ra_pwm_ioctl(struct pwm_lowerhalf_s *dev, int cmd, unsigned long arg);
 
 #undef EXTERN
 #ifdef __cplusplus

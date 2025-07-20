@@ -787,7 +787,7 @@ static int up_rxinterrupt(int irq, void *context, void *arg)
 {
   struct uart_dev_s *dev = (struct uart_dev_s *)arg;
 
-  ra_clear_ir(irq);
+  ra_icu_clear_irq(irq);
   uart_recvchars(dev);
   return OK;
 }
@@ -804,7 +804,7 @@ static int up_txinterrupt(int irq, void *context, void *arg)
 {
   struct uart_dev_s *dev = (struct uart_dev_s *)arg;
 
-  ra_clear_ir(irq);
+  ra_icu_clear_irq(irq);
   uart_xmitchars(dev);
 
   return OK;

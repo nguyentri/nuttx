@@ -53,12 +53,12 @@ extern "C"
 #endif
 
 /* Legacy functions */
-void ra_attach_icu(void);
-void ra_clear_ir(int irq);
+void ra_icu_attach_all(void);
+void ra_icu_clear_irq(int irq);
 
 /* Enhanced ICU driver functions */
 void ra_icu_initialize(void);
-int ra_icu_attach(int icu_irq, int (*handler)(int, void *, void *), void *arg);
+int ra_icu_attach_irq(int icu_irq, int (*handler)(int, void *, void *), void *arg);
 int ra_icu_detach(int icu_irq);
 void ra_icu_enable(int icu_irq);
 void ra_icu_disable(int icu_irq);

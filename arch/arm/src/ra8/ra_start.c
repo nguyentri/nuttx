@@ -32,7 +32,7 @@
 #include "arch/board/board.h"
 #include "arm_internal.h"
 #include "nvic.h"
-#include "ra_clockconfig.h"
+#include "ra_clock.h"
 #include "ra_lowputc.h"
 #include "ra_start.h"
 
@@ -107,7 +107,7 @@ void __start(void)
       *dest++ = *src++;
     }
 
-  ra_clockconfig();
+  ra_clock();
   arm_fpuconfig();
   ra_lowsetup();
   showprogress('A');

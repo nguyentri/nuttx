@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/ra8/ra_allocateheap.c
+ * arch/arm/src/ra8/ra_mem_mng.c
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -87,9 +87,6 @@
 #ifndef CONFIG_RA_STACK_GUARD_SIZE
 #  define CONFIG_RA_STACK_GUARD_SIZE  1024       /* 1KB guard */
 #endif
-
-/* Derived memory definitions for compatibility */
-#define CONFIG_RAM_END                  (CONFIG_RA_SRAM_BASE + CONFIG_RA8_SRAM_SIZE)
 
 /****************************************************************************
  * Private Data
@@ -262,14 +259,14 @@ void up_allocate_heap(void **heap_start, size_t *heap_size)
 }
 
 /****************************************************************************
- * Name: ra_validate_memory_map
+ * Name: ra_mem_validate
  *
  * Description:
  *   Validate memory configuration against FSP requirements and linker script
  *
  ****************************************************************************/
 
-bool ra_validate_memory_map(void)
+bool ra_mem_validate(void)
 {
   bool valid = true;
 

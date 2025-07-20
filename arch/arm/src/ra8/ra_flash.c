@@ -31,10 +31,12 @@
 #include <assert.h>
 #include <errno.h>
 #include <debug.h>
+#include <inttypes.h>
 
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
 #include <nuttx/mtd/mtd.h>
+#include <nuttx/fs/ioctl.h>
 
 #include "arm_internal.h"
 #include "hardware/r_flash.h"
@@ -46,6 +48,9 @@
 
 #define FLASH_TIMEOUT_MS                10000
 #define FLASH_KEY_CODE                  0x0000FFFFU
+
+/* Return codes */
+#define OK                              0
 
 /****************************************************************************
  * Private Types
@@ -92,13 +97,15 @@ static struct ra_flash_dev_s g_code_flash =
     .bread  = ra_flash_bread,
     .bwrite = ra_flash_bwrite,
     .read   = ra_flash_read,
+#ifdef CONFIG_MTD_BYTE_WRITE
     .write  = ra_flash_write,
+#endif
     .ioctl  = ra_flash_ioctl,
   },
-  .base       = RA8_CODE_FLASH_START,
-  .size       = RA8_CODE_FLASH_SIZE,
-  .blocksize  = RA8_CODE_FLASH_BLOCK_SIZE,
-  .nblocks    = RA8_CODE_FLASH_SIZE / RA8_CODE_FLASH_BLOCK_SIZE,
+  .base       = RA_FLASH_CODE_START,
+  .size       = RA_FLASH_CODE_SIZE,
+  .blocksize  = RA_FLASH_CODE_BLOCK_SIZE,
+  .nblocks    = RA_FLASH_CODE_SIZE / RA_FLASH_CODE_BLOCK_SIZE,
   .data_flash = false,
 };
 
@@ -112,13 +119,15 @@ static struct ra_flash_dev_s g_data_flash =
     .bread  = ra_flash_bread,
     .bwrite = ra_flash_bwrite,
     .read   = ra_flash_read,
+#ifdef CONFIG_MTD_BYTE_WRITE
     .write  = ra_flash_write,
+#endif
     .ioctl  = ra_flash_ioctl,
   },
-  .base       = RA8_DATA_FLASH_START,
-  .size       = RA8_DATA_FLASH_SIZE,
-  .blocksize  = RA8_DATA_FLASH_BLOCK_SIZE,
-  .nblocks    = RA8_DATA_FLASH_SIZE / RA8_DATA_FLASH_BLOCK_SIZE,
+  .base       = RA_FLASH_DATA_START,
+  .size       = RA_FLASH_DATA_SIZE,
+  .blocksize  = RA_FLASH_DATA_BLOCK_SIZE,
+  .nblocks    = RA_FLASH_DATA_SIZE / RA_FLASH_DATA_BLOCK_SIZE,
   .data_flash = true,
 };
 
@@ -444,7 +453,7 @@ static ssize_t ra_flash_read(struct mtd_dev_s *dev, off_t offset,
 /****************************************************************************
  * Name: ra_flash_write
  ****************************************************************************/
-
+#ifdef CONFIG_MTD_BYTE_WRITE
 static ssize_t ra_flash_write(struct mtd_dev_s *dev, off_t offset,
                               size_t nbytes, const uint8_t *buffer)
 {
@@ -486,6 +495,7 @@ static ssize_t ra_flash_write(struct mtd_dev_s *dev, off_t offset,
 
   return written;
 }
+#endif /* CONFIG_MTD_BYTE_WRITE */
 
 /****************************************************************************
  * Name: ra_flash_ioctl
@@ -525,7 +535,7 @@ static int ra_flash_ioctl(struct mtd_dev_s *dev, int cmd, unsigned long arg)
         }
         break;
 
-      case MTDIOC_XIPBASE:
+      case BIOC_XIPBASE:
         {
           void **ppv = (void**)((uintptr_t)arg);
 

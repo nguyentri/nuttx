@@ -453,7 +453,7 @@ static int accel_setup_interrupt(void)
     }
 
   /* Attach interrupt handler */
-  ret = irq_attach(RA_IRQ_ICU_IRQ0 + ACCEL_INT_IRQ, accel_interrupt_handler, NULL);
+  ret = irq_attach(ACCEL_INT_IRQ, accel_interrupt_handler, NULL);
   if (ret < 0)
     {
       demoerr("Failed to attach interrupt handler: %d\n", ret);
@@ -470,7 +470,7 @@ static int accel_setup_interrupt(void)
     }
 
   /* Enable the interrupt */
-  up_enable_irq(RA_IRQ_ICU_IRQ0 + ACCEL_INT_IRQ);
+  up_enable_irq(ACCEL_INT_IRQ);
 
   demoinfo("Accelerometer interrupt configured on IRQ%d\n", ACCEL_INT_IRQ);
   return OK;

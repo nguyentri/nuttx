@@ -31,7 +31,7 @@
 
 #include "chip.h"
 #include "hardware/ra_memorymap.h"
-#if defined(CONFIG_RA8E1_FAMILY)
+#if defined(CONFIG_RA8E1_GROUP)
 #  include "hardware/ra8e1_icu.h"
 #else
 #  error "Unsupported RA memory map"
@@ -40,85 +40,6 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
-/* ICU Register Offsets *********************************************************/
-
-#define R_ICU_IRQCR_OFFSET(n)              (0x0000 + (n) * 0x0001)
-#define R_ICU_NMICR_OFFSET                 0x0010
-#define R_ICU_SWIRQ_S_OFFSET               0x6010
-#define R_ICU_SWIRQ_NS_OFFSET              0x6020
-#define R_ICU_IENMIER_OFFSET               0x6060
-#define R_ICU_NMIER_OFFSET                 0x6100
-#define R_ICU_NMICLR_OFFSET                0x6110
-#define R_ICU_NMISR_OFFSET                 0x6120
-#define R_ICU_WUPEN_OFFSET                 0x61A0
-#define R_ICU_WUPEN1_OFFSET                0x61A4
-
-/* ICU Register Addresses *******************************************************/
-
-#define R_ICU_IRQCR(n)                     (R_ICU_BASE + R_ICU_IRQCR_OFFSET(n))
-#define R_ICU_NMICR                        (R_ICU_BASE + R_ICU_NMICR_OFFSET)
-#define R_ICU_SWIRQ_S                      (R_ICU_BASE + R_ICU_SWIRQ_S_OFFSET)
-#define R_ICU_SWIRQ_NS                     (R_ICU_BASE + R_ICU_SWIRQ_NS_OFFSET)
-#define R_ICU_IENMIER                      (R_ICU_BASE + R_ICU_IENMIER_OFFSET)
-#define R_ICU_NMIER                        (R_ICU_BASE + R_ICU_NMIER_OFFSET)
-#define R_ICU_NMICLR                       (R_ICU_BASE + R_ICU_NMICLR_OFFSET)
-#define R_ICU_NMISR                        (R_ICU_BASE + R_ICU_NMISR_OFFSET)
-#define R_ICU_WUPEN                        (R_ICU_BASE + R_ICU_WUPEN_OFFSET)
-#define R_ICU_WUPEN1                       (R_ICU_BASE + R_ICU_WUPEN1_OFFSET)
-
-/* ICU Register Bitfield Definitions ********************************************/
-
-/* IRQCR - IRQ Control Register */
-
-#define R_ICU_IRQCR_IRQMD_SHIFT            0
-#define R_ICU_IRQCR_IRQMD_MASK             (0x03 << R_ICU_IRQCR_IRQMD_SHIFT)
-#define R_ICU_IRQCR_FCLKSEL_SHIFT          4
-#define R_ICU_IRQCR_FCLKSEL_MASK           (0x03 << R_ICU_IRQCR_FCLKSEL_SHIFT)
-#define R_ICU_IRQCR_FLTEN                  (1 << 7)
-
-/* NMICR - NMI Pin Interrupt Control Register */
-
-#define R_ICU_NMICR_NMIMD                  (1 << 0)
-#define R_ICU_NMICR_NFCLKSEL_SHIFT         4
-#define R_ICU_NMICR_NFCLKSEL_MASK          (0x03 << R_ICU_NMICR_NFCLKSEL_SHIFT)
-#define R_ICU_NMICR_NFLTEN                 (1 << 7)
-
-/* NMIER - Non-Maskable Interrupt Enable Register */
-
-#define R_ICU_NMIER_IWDTEN                 (1 << 0)
-#define R_ICU_NMIER_WDTEN                  (1 << 1)
-#define R_ICU_NMIER_LVD1EN                 (1 << 2)
-#define R_ICU_NMIER_LVD2EN                 (1 << 3)
-#define R_ICU_NMIER_OSTEN                  (1 << 6)
-#define R_ICU_NMIER_NMIEN                  (1 << 7)
-#define R_ICU_NMIER_BUSEN                  (1 << 12)
-#define R_ICU_NMIER_CMEN                   (1 << 13)
-#define R_ICU_NMIER_LUEN                   (1 << 15)
-
-/* NMICLR - Non-Maskable Interrupt Status Clear Register */
-
-#define R_ICU_NMICLR_IWDTCLR               (1 << 0)
-#define R_ICU_NMICLR_WDTCLR                (1 << 1)
-#define R_ICU_NMICLR_LVD1CLR               (1 << 2)
-#define R_ICU_NMICLR_LVD2CLR               (1 << 3)
-#define R_ICU_NMICLR_OSTCLR                (1 << 6)
-#define R_ICU_NMICLR_NMICLR                (1 << 7)
-#define R_ICU_NMICLR_BUSCLR                (1 << 12)
-#define R_ICU_NMICLR_CMCLR                 (1 << 13)
-#define R_ICU_NMICLR_LUCLR                 (1 << 15)
-
-/* NMISR - Non-Maskable Interrupt Status Register */
-
-#define R_ICU_NMISR_IWDTST                 (1 << 0)
-#define R_ICU_NMISR_WDTST                  (1 << 1)
-#define R_ICU_NMISR_LVD1ST                 (1 << 2)
-#define R_ICU_NMISR_LVD2ST                 (1 << 3)
-#define R_ICU_NMISR_OSTST                  (1 << 6)
-#define R_ICU_NMISR_NMIST                  (1 << 7)
-#define R_ICU_NMISR_BUSST                  (1 << 12)
-#define R_ICU_NMISR_CMST                   (1 << 13)
-#define R_ICU_NMISR_LUST                   (1 << 15)
 
 /* ELC Event Definitions - Updated from FSP bsp_elc.h */
 

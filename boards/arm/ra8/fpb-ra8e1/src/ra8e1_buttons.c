@@ -63,7 +63,7 @@ static int button_handler(int irq, void *context, void *arg)
   ra_gpiowrite(GPIO_LED2, g_led2_state);
   
   /* Clear the interrupt flag */
-  ra_clear_ir(irq);
+  ra_icu_clear_irq(irq);
   
   return 0;
 }

@@ -92,50 +92,6 @@
 #define PFS_PSEL_ETHERNET            (0x19 << R_PFS_PSEL_SHIFT)
 #define PFS_PSEL_CEU                 (0x1A << R_PFS_PSEL_SHIFT)
 
-/* Port definitions for GPIO configuration */
-
-#define PORT0                        0
-#define PORT1                        1
-#define PORT2                        2
-#define PORT3                        3
-#define PORT4                        4
-#define PORT5                        5
-#define PORT6                        6
-#define PORT7                        7
-#define PORT8                        8
-#define PORT9                        9
-#define PORT10                       10
-#define PORT11                       11
-#define PORT12                       12
-#define PORT13                       13
-#define PORT14                       14
-
-#define PIN0                         0
-#define PIN1                         1
-#define PIN2                         2
-#define PIN3                         3
-#define PIN4                         4
-#define PIN5                         5
-#define PIN6                         6
-#define PIN7                         7
-#define PIN8                         8
-#define PIN9                         9
-#define PIN10                        10
-#define PIN11                        11
-#define PIN12                        12
-#define PIN13                        13
-#define PIN14                        14
-#define PIN15                        15
-
-/* GPIO pin configuration structure */
-
-typedef struct
-{
-  uint8_t port;
-  uint8_t pin;
-  uint32_t cfg;
-} gpio_pinset_t;
-
 /* SCI Alternative */
 
 #define GPIO_RXD0_MISO0_SCL0_1              (gpio_pinset_t){ PORT1,PIN0, (PFS_PSEL_SCI | R_PFS_PMR)}

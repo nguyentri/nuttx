@@ -241,7 +241,7 @@ int ra8e1_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_RA8E1_SW_BUTTON
+#ifdef CONFIG_RA8E1_SWITCH
   /* Initialize buttons */
   board_button_initialize();
 #endif

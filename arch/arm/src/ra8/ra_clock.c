@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/ra8/ra_clockconfig.c
+ * arch/arm/src/ra8/ra_clock.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -34,7 +34,7 @@
 #include <arch/board/board.h>
 
 #include "arm_internal.h"
-#include "ra_clockconfig.h"
+#include "ra_clock.h"
 #include "hardware/ra_flash.h"
 #include "hardware/ra_system.h"
 #include "hardware/ra_option_setting.h"
@@ -125,7 +125,7 @@ __attribute__((__used__)) =
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ra_clockconfig
+ * Name: ra_clock
  *
  * Description:
  *   Called to initialize the RA.  This does whatever setup is needed to
@@ -134,7 +134,7 @@ __attribute__((__used__)) =
  *
  ****************************************************************************/
 
-void ra_clockconfig(void)
+void ra_clock(void)
 {
   /* FSP-based clock configuration sequence */
   
@@ -251,12 +251,12 @@ static void ra_update_clock_config(void)
   switch (clock_source)
     {
       case 0: /* HOCO */
-        g_fsp_clock_config.system_clock_freq = CONFIG_RA8_HOCO_FREQUENCY;
+        g_fsp_clock_config.system_clock_freq = CONFIG_RA_HOCO_FREQUENCY;
         g_fsp_clock_config.hoco_enabled = true;
         break;
         
       case 1: /* MOCO */
-        g_fsp_clock_config.system_clock_freq = CONFIG_RA8_MOCO_FREQUENCY;
+        g_fsp_clock_config.system_clock_freq = CONFIG_RA_MOCO_FREQUENCY;
         g_fsp_clock_config.moco_enabled = true;
         break;
         
@@ -266,7 +266,7 @@ static void ra_update_clock_config(void)
         break;
         
       default:
-        g_fsp_clock_config.system_clock_freq = CONFIG_RA8_HOCO_FREQUENCY;
+        g_fsp_clock_config.system_clock_freq = CONFIG_RA_HOCO_FREQUENCY;
         break;
     }
 

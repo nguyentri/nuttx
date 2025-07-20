@@ -241,8 +241,7 @@ void up_irqinitialize(void)
   irq_attach(RA_IRQ_HARDFAULT, arm_hardfault, NULL);
 
   /* Attach the ICU events to the IRQ vector table */
-
-  ra_attach_icu();
+  ra_icu_attach_all();
 
   ra_prioritize_syscall(NVIC_SYSH_SVCALL_PRIORITY);
 

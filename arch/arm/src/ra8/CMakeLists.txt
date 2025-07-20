@@ -22,12 +22,12 @@
 set(SRCS
     ra_start.c
     ra_timerisr.c
-    ra_clockconfig.c
+    ra_clock.c
     ra_irq.c
     ra_lowputc.c
     ra_icu.c
     ra_gpio.c
-    ra_allocateheap.c
+    ra_mem_mng.c
     ra_serial.c)
 
 # ADC driver

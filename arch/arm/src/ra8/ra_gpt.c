@@ -32,11 +32,16 @@
 
 #include <nuttx/arch.h>
 #include <nuttx/timers/pwm.h>
+#include <nuttx/clock.h>
+#include <nuttx/timers/arch_timer.h>
 #include <arch/board/board.h>
 
 #include "chip.h"
 #include "arm_internal.h"
+#include "nvic.h"
 #include "hardware/ra_gpt.h"
+#include "ra_mstp.h"
+#include "ra_clock.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -52,13 +57,40 @@
 
 #define MAX_PWM_FREQ                    1000000
 
+/* Timer ISR configuration */
+#ifdef CONFIG_RA_SYSTICK_GPT
+#  define RA_TIMER_CLOCK    (RA_PCLKD_FREQUENCY)
+#  define RA_TIMER_RELOAD   ((RA_TIMER_CLOCK / CLK_TCK) - 1)
+#  define RA_GPT_CHANNEL    0
+#  define RA_IRQ_GPT0_COMPARE_A    (RA_IRQ_FIRST + 48)  /* GPT0 Compare A interrupt */
+#else
+#  define SYSTICK_CLOCK     (RA_ICLK_FREQUENCY)
+#  define SYSTICK_RELOAD    ((SYSTICK_CLOCK / CLK_TCK) - 1)
+#endif
+
+/* The size of the reload field is 24 bits.  Verify that the reload value
+ * will fit in the reload register.
+ */
+#define SYSTICK_MAX 0x00ffffff
+#if defined(SYSTICK_RELOAD) && SYSTICK_RELOAD > SYSTICK_MAX
+#  error SYSTICK_RELOAD exceeds the range of the RELOAD register
+#endif
+
+/* FSP-based timer validation */
+#ifdef CONFIG_RA_SYSTICK_GPT
+#  if RA_TIMER_RELOAD > 0xFFFFFFFF
+#    error GPT timer reload value exceeds 32-bit range
+#  endif
+#endif
+
+#ifdef CONFIG_RA_GPT_TIMER
 /****************************************************************************
  * Private Types
  ****************************************************************************/
 
 /* This structure represents the state of one GPT timer */
 
-struct ra8_gpt_s
+struct ra_gpt_s
 {
   const struct pwm_ops_s *ops;     /* PWM operations */
   uint32_t base;                   /* GPT peripheral base address */
@@ -74,8 +106,8 @@ struct ra8_gpt_s
 
 /* Register access helpers */
 
-static inline uint32_t gpt_getreg(struct ra8_gpt_s *priv, int offset);
-static inline void gpt_putreg(struct ra8_gpt_s *priv, int offset, 
+static inline uint32_t gpt_getreg(struct ra_gpt_s *priv, int offset);
+static inline void gpt_putreg(struct ra_gpt_s *priv, int offset, 
                               uint32_t value);
 
 /* PWM driver methods */
@@ -90,9 +122,19 @@ static int gpt_ioctl(struct pwm_lowerhalf_s *dev, int cmd,
 
 /* Initialization helpers */
 
-static int gpt_configure(struct ra8_gpt_s *priv);
+static int gpt_configure(struct ra_gpt_s *priv);
 static uint32_t gpt_calculate_prescaler(uint32_t frequency, uint32_t pclkd);
-static void gpt_dumpregs(struct ra8_gpt_s *priv, const char *msg);
+static void gpt_dumpregs(struct ra_gpt_s *priv, const char *msg);
+
+/* Timer interrupt functions */
+
+#if !defined(CONFIG_ARMV8M_SYSTICK) && !defined(CONFIG_TIMER_ARCH)
+static int ra_timerisr(int irq, uint32_t *regs, void *arg);
+#endif
+
+#ifdef CONFIG_RA_SYSTICK_GPT
+static int ra_gpt_timerisr(int irq, uint32_t *regs, void *arg);
+#endif
 
 /****************************************************************************
  * Private Data
@@ -101,8 +143,7 @@ static void gpt_dumpregs(struct ra8_gpt_s *priv, const char *msg);
 /* This is the list of lower half PWM driver methods used by the upper half
  * driver
  */
-
-static const struct pwm_ops_s g_pwm_ops =
+static const struct pwm_ops_s g_gpt_ops =
 {
   .setup      = gpt_setup,
   .shutdown   = gpt_shutdown,
@@ -112,37 +153,36 @@ static const struct pwm_ops_s g_pwm_ops =
 };
 
 /* GPT device configurations */
-
-static struct ra8_gpt_s g_gpt_devs[] =
+static struct ra_gpt_s g_gpt_devs[] =
 {
-#ifdef CONFIG_RA_GPT0_PWM
+#ifdef CONFIG_RA_GPT0_TIMER
   {
-    .ops        = &g_pwm_ops,
-    .base       = RA8_GPT0_BASE,
+    .ops        = &g_gpt_ops,
+    .base       = RA_GPT0_BASE,
     .pclkd_freq = CONFIG_RA_PCLKD_FREQUENCY,
     .channel    = 0,
   },
 #endif
-#ifdef CONFIG_RA_GPT1_PWM
+#ifdef CONFIG_RA_GPT1_TIMER
   {
-    .ops        = &g_pwm_ops,
-    .base       = RA8_GPT1_BASE,
+    .ops        = &g_gpt_ops,
+    .base       = RA_GPT1_BASE,
     .pclkd_freq = CONFIG_RA_PCLKD_FREQUENCY,
     .channel    = 1,
   },
 #endif
-#ifdef CONFIG_RA_GPT2_PWM
+#ifdef CONFIG_RA_GPT2_TIMER
   {
-    .ops        = &g_pwm_ops,
-    .base       = RA8_GPT2_BASE,
+    .ops        = &g_gpt_ops,
+    .base       = RA_GPT2_BASE,
     .pclkd_freq = CONFIG_RA_PCLKD_FREQUENCY,
     .channel    = 2,
   },
 #endif
-#ifdef CONFIG_RA_GPT3_PWM
+#ifdef CONFIG_RA_GPT3_TIMER
   {
-    .ops        = &g_pwm_ops,
-    .base       = RA8_GPT3_BASE,
+    .ops        = &g_gpt_ops,
+    .base       = RA_GPT3_BASE,
     .pclkd_freq = CONFIG_RA_PCLKD_FREQUENCY,
     .channel    = 3,
   },
@@ -150,7 +190,7 @@ static struct ra8_gpt_s g_gpt_devs[] =
 /* Add more channels as needed */
 };
 
-#define NGPT_DEVS (sizeof(g_gpt_devs) / sizeof(struct ra8_gpt_s))
+#define NGPT_DEVS (sizeof(g_gpt_devs) / sizeof(struct ra_gpt_s))
 
 /****************************************************************************
  * Private Functions
@@ -171,7 +211,7 @@ static struct ra8_gpt_s g_gpt_devs[] =
  *
  ****************************************************************************/
 
-static inline uint32_t gpt_getreg(struct ra8_gpt_s *priv, int offset)
+static inline uint32_t gpt_getreg(struct ra_gpt_s *priv, int offset)
 {
   return getreg32(priv->base + offset);
 }
@@ -192,7 +232,7 @@ static inline uint32_t gpt_getreg(struct ra8_gpt_s *priv, int offset)
  *
  ****************************************************************************/
 
-static inline void gpt_putreg(struct ra8_gpt_s *priv, int offset,
+static inline void gpt_putreg(struct ra_gpt_s *priv, int offset,
                               uint32_t value)
 {
   putreg32(value, priv->base + offset);
@@ -213,21 +253,21 @@ static inline void gpt_putreg(struct ra8_gpt_s *priv, int offset,
  *
  ****************************************************************************/
 
-static void gpt_dumpregs(struct ra8_gpt_s *priv, const char *msg)
+static void gpt_dumpregs(struct ra_gpt_s *priv, const char *msg)
 {
 #ifdef CONFIG_DEBUG_PWM_INFO
   pwminfo("%s:\n", msg);
   pwminfo("  GTCR:    %08x  GTPR:    %08x  GTCNT:   %08x\n",
-          gpt_getreg(priv, RA8_GPT_GTCR_OFFSET),
-          gpt_getreg(priv, RA8_GPT_GTPR_OFFSET),
-          gpt_getreg(priv, RA8_GPT_GTCNT_OFFSET));
+          gpt_getreg(priv, RA_GPT_GTCR_OFFSET),
+          gpt_getreg(priv, RA_GPT_GTPR_OFFSET),
+          gpt_getreg(priv, RA_GPT_GTCNT_OFFSET));
   pwminfo("  GTCCRA:  %08x  GTCCRB:  %08x  GTIOR:   %08x\n",
-          gpt_getreg(priv, RA8_GPT_GTCCRA_OFFSET),
-          gpt_getreg(priv, RA8_GPT_GTCCRB_OFFSET),
-          gpt_getreg(priv, RA8_GPT_GTIOR_OFFSET));
+          gpt_getreg(priv, RA_GPT_GTCCRA_OFFSET),
+          gpt_getreg(priv, RA_GPT_GTCCRB_OFFSET),
+          gpt_getreg(priv, RA_GPT_GTIOR_OFFSET));
   pwminfo("  GTINTAD: %08x  GTST:    %08x\n",
-          gpt_getreg(priv, RA8_GPT_GTINTAD_OFFSET),
-          gpt_getreg(priv, RA8_GPT_GTST_OFFSET));
+          gpt_getreg(priv, RA_GPT_GTINTAD_OFFSET),
+          gpt_getreg(priv, RA_GPT_GTST_OFFSET));
 #endif
 }
 
@@ -283,7 +323,7 @@ static uint32_t gpt_calculate_prescaler(uint32_t frequency, uint32_t pclkd)
  *
  ****************************************************************************/
 
-static int gpt_configure(struct ra8_gpt_s *priv)
+static int gpt_configure(struct ra_gpt_s *priv)
 {
   uint32_t regval;
 
@@ -291,42 +331,42 @@ static int gpt_configure(struct ra8_gpt_s *priv)
 
   /* Disable write protection */
 
-  gpt_putreg(priv, RA8_GPT_GTWP_OFFSET, GPT_GTWP_PRKEY);
+  gpt_putreg(priv, RA_GPT_GTWP_OFFSET, GPT_GTWP_PRKEY);
 
   /* Stop the timer if it's running */
 
-  regval = gpt_getreg(priv, RA8_GPT_GTCR_OFFSET);
+  regval = gpt_getreg(priv, RA_GPT_GTCR_OFFSET);
   regval &= ~GPT_GTCR_CST;
-  gpt_putreg(priv, RA8_GPT_GTCR_OFFSET, regval);
+  gpt_putreg(priv, RA_GPT_GTCR_OFFSET, regval);
 
   /* Configure timer for saw-wave PWM mode (up-counting) */
 
   regval = GPT_GTCR_MD_SAW_WAVE_UP | GPT_GTCR_TPCS_PCLKD_1;
-  gpt_putreg(priv, RA8_GPT_GTCR_OFFSET, regval);
+  gpt_putreg(priv, RA_GPT_GTCR_OFFSET, regval);
 
   /* Configure I/O pins for PWM output */
 
   regval = GPT_GTIOR_GTIOA_INITIAL_LOW | GPT_GTIOR_GTIOB_INITIAL_LOW;
-  gpt_putreg(priv, RA8_GPT_GTIOR_OFFSET, regval);
+  gpt_putreg(priv, RA_GPT_GTIOR_OFFSET, regval);
 
   /* Initialize counter and period */
 
-  gpt_putreg(priv, RA8_GPT_GTCNT_OFFSET, 0);
-  gpt_putreg(priv, RA8_GPT_GTPR_OFFSET, 0xffff);
+  gpt_putreg(priv, RA_GPT_GTCNT_OFFSET, 0);
+  gpt_putreg(priv, RA_GPT_GTPR_OFFSET, 0xffff);
 
   /* Initialize compare registers */
 
-  gpt_putreg(priv, RA8_GPT_GTCCRA_OFFSET, 0);
-  gpt_putreg(priv, RA8_GPT_GTCCRB_OFFSET, 0);
+  gpt_putreg(priv, RA_GPT_GTCCRA_OFFSET, 0);
+  gpt_putreg(priv, RA_GPT_GTCCRB_OFFSET, 0);
 
   /* Clear all interrupt flags */
 
-  regval = gpt_getreg(priv, RA8_GPT_GTST_OFFSET);
-  gpt_putreg(priv, RA8_GPT_GTST_OFFSET, regval);
+  regval = gpt_getreg(priv, RA_GPT_GTST_OFFSET);
+  gpt_putreg(priv, RA_GPT_GTST_OFFSET, regval);
 
   /* Re-enable write protection */
 
-  gpt_putreg(priv, RA8_GPT_GTWP_OFFSET, 
+  gpt_putreg(priv, RA_GPT_GTWP_OFFSET, 
              GPT_GTWP_PRKEY | GPT_GTWP_WP | GPT_GTWP_CMNWP);
 
   gpt_dumpregs(priv, "After configuration");
@@ -351,7 +391,7 @@ static int gpt_configure(struct ra8_gpt_s *priv)
 
 static int gpt_setup(struct pwm_lowerhalf_s *dev)
 {
-  struct ra8_gpt_s *priv = (struct ra8_gpt_s *)dev;
+  struct ra_gpt_s *priv = (struct ra_gpt_s *)dev;
 
   pwminfo("GPT%d setup\n", priv->channel);
 
@@ -376,31 +416,31 @@ static int gpt_setup(struct pwm_lowerhalf_s *dev)
 
 static int gpt_shutdown(struct pwm_lowerhalf_s *dev)
 {
-  struct ra8_gpt_s *priv = (struct ra8_gpt_s *)dev;
+  struct ra_gpt_s *priv = (struct ra_gpt_s *)dev;
   uint32_t regval;
 
   pwminfo("GPT%d shutdown\n", priv->channel);
 
   /* Disable write protection */
 
-  gpt_putreg(priv, RA8_GPT_GTWP_OFFSET, GPT_GTWP_PRKEY);
+  gpt_putreg(priv, RA_GPT_GTWP_OFFSET, GPT_GTWP_PRKEY);
 
   /* Stop the timer */
 
-  regval = gpt_getreg(priv, RA8_GPT_GTCR_OFFSET);
+  regval = gpt_getreg(priv, RA_GPT_GTCR_OFFSET);
   regval &= ~GPT_GTCR_CST;
-  gpt_putreg(priv, RA8_GPT_GTCR_OFFSET, regval);
+  gpt_putreg(priv, RA_GPT_GTCR_OFFSET, regval);
 
   /* Reset the timer to its default state */
 
-  gpt_putreg(priv, RA8_GPT_GTCNT_OFFSET, 0);
-  gpt_putreg(priv, RA8_GPT_GTCCRA_OFFSET, 0);
-  gpt_putreg(priv, RA8_GPT_GTCCRB_OFFSET, 0);
-  gpt_putreg(priv, RA8_GPT_GTIOR_OFFSET, 0);
+  gpt_putreg(priv, RA_GPT_GTCNT_OFFSET, 0);
+  gpt_putreg(priv, RA_GPT_GTCCRA_OFFSET, 0);
+  gpt_putreg(priv, RA_GPT_GTCCRB_OFFSET, 0);
+  gpt_putreg(priv, RA_GPT_GTIOR_OFFSET, 0);
 
   /* Re-enable write protection */
 
-  gpt_putreg(priv, RA8_GPT_GTWP_OFFSET, 
+  gpt_putreg(priv, RA_GPT_GTWP_OFFSET, 
              GPT_GTWP_PRKEY | GPT_GTWP_WP | GPT_GTWP_CMNWP);
 
   priv->started = false;
@@ -425,7 +465,7 @@ static int gpt_shutdown(struct pwm_lowerhalf_s *dev)
 static int gpt_start(struct pwm_lowerhalf_s *dev,
                      const struct pwm_info_s *info)
 {
-  struct ra8_gpt_s *priv = (struct ra8_gpt_s *)dev;
+  struct ra_gpt_s *priv = (struct ra_gpt_s *)dev;
   uint32_t prescaler;
   uint32_t timer_freq;
   uint32_t period;
@@ -469,46 +509,46 @@ static int gpt_start(struct pwm_lowerhalf_s *dev,
 
   /* Disable write protection */
 
-  gpt_putreg(priv, RA8_GPT_GTWP_OFFSET, GPT_GTWP_PRKEY);
+  gpt_putreg(priv, RA_GPT_GTWP_OFFSET, GPT_GTWP_PRKEY);
 
   /* Stop the timer */
 
-  regval = gpt_getreg(priv, RA8_GPT_GTCR_OFFSET);
+  regval = gpt_getreg(priv, RA_GPT_GTCR_OFFSET);
   regval &= ~GPT_GTCR_CST;
-  gpt_putreg(priv, RA8_GPT_GTCR_OFFSET, regval);
+  gpt_putreg(priv, RA_GPT_GTCR_OFFSET, regval);
 
   /* Configure the prescaler */
 
   regval = GPT_GTCR_MD_SAW_WAVE_UP | (prescaler << GPT_GTCR_TPCS_SHIFT);
-  gpt_putreg(priv, RA8_GPT_GTCR_OFFSET, regval);
+  gpt_putreg(priv, RA_GPT_GTCR_OFFSET, regval);
 
   /* Set the period */
 
-  gpt_putreg(priv, RA8_GPT_GTPR_OFFSET, period - 1);
+  gpt_putreg(priv, RA_GPT_GTPR_OFFSET, period - 1);
 
   /* Set the duty cycles */
 
-  gpt_putreg(priv, RA8_GPT_GTCCRA_OFFSET, duty_a);
-  gpt_putreg(priv, RA8_GPT_GTCCRB_OFFSET, duty_b);
+  gpt_putreg(priv, RA_GPT_GTCCRA_OFFSET, duty_a);
+  gpt_putreg(priv, RA_GPT_GTCCRB_OFFSET, duty_b);
 
   /* Reset the counter */
 
-  gpt_putreg(priv, RA8_GPT_GTCNT_OFFSET, 0);
+  gpt_putreg(priv, RA_GPT_GTCNT_OFFSET, 0);
 
   /* Configure I/O pins for PWM output */
 
   regval = GPT_GTIOR_GTIOA_INITIAL_LOW | GPT_GTIOR_GTIOB_INITIAL_LOW;
-  gpt_putreg(priv, RA8_GPT_GTIOR_OFFSET, regval);
+  gpt_putreg(priv, RA_GPT_GTIOR_OFFSET, regval);
 
   /* Start the timer */
 
-  regval = gpt_getreg(priv, RA8_GPT_GTCR_OFFSET);
+  regval = gpt_getreg(priv, RA_GPT_GTCR_OFFSET);
   regval |= GPT_GTCR_CST;
-  gpt_putreg(priv, RA8_GPT_GTCR_OFFSET, regval);
+  gpt_putreg(priv, RA_GPT_GTCR_OFFSET, regval);
 
   /* Re-enable write protection */
 
-  gpt_putreg(priv, RA8_GPT_GTWP_OFFSET, 
+  gpt_putreg(priv, RA_GPT_GTWP_OFFSET, 
              GPT_GTWP_PRKEY | GPT_GTWP_WP | GPT_GTWP_CMNWP);
 
   gpt_dumpregs(priv, "After start");
@@ -535,28 +575,28 @@ static int gpt_start(struct pwm_lowerhalf_s *dev,
 
 static int gpt_stop(struct pwm_lowerhalf_s *dev)
 {
-  struct ra8_gpt_s *priv = (struct ra8_gpt_s *)dev;
+  struct ra_gpt_s *priv = (struct ra_gpt_s *)dev;
   uint32_t regval;
 
   pwminfo("GPT%d stop\n", priv->channel);
 
   /* Disable write protection */
 
-  gpt_putreg(priv, RA8_GPT_GTWP_OFFSET, GPT_GTWP_PRKEY);
+  gpt_putreg(priv, RA_GPT_GTWP_OFFSET, GPT_GTWP_PRKEY);
 
   /* Stop the timer */
 
-  regval = gpt_getreg(priv, RA8_GPT_GTCR_OFFSET);
+  regval = gpt_getreg(priv, RA_GPT_GTCR_OFFSET);
   regval &= ~GPT_GTCR_CST;
-  gpt_putreg(priv, RA8_GPT_GTCR_OFFSET, regval);
+  gpt_putreg(priv, RA_GPT_GTCR_OFFSET, regval);
 
   /* Disable PWM outputs */
 
-  gpt_putreg(priv, RA8_GPT_GTIOR_OFFSET, 0);
+  gpt_putreg(priv, RA_GPT_GTIOR_OFFSET, 0);
 
   /* Re-enable write protection */
 
-  gpt_putreg(priv, RA8_GPT_GTWP_OFFSET, 
+  gpt_putreg(priv, RA_GPT_GTWP_OFFSET, 
              GPT_GTWP_PRKEY | GPT_GTWP_WP | GPT_GTWP_CMNWP);
 
   gpt_dumpregs(priv, "After stop");
@@ -584,7 +624,7 @@ static int gpt_stop(struct pwm_lowerhalf_s *dev)
 static int gpt_ioctl(struct pwm_lowerhalf_s *dev, int cmd,
                      unsigned long arg)
 {
-  struct ra8_gpt_s *priv = (struct ra8_gpt_s *)dev;
+  struct ra_gpt_s *priv = (struct ra_gpt_s *)dev;
   int ret = OK;
 
   pwminfo("GPT%d ioctl: cmd=%d arg=%08lx\n", priv->channel, cmd, arg);
@@ -606,7 +646,7 @@ static int gpt_ioctl(struct pwm_lowerhalf_s *dev, int cmd,
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ra8_gpt_initialize
+ * Name: ra_gpt_initialize
  *
  * Description:
  *   Initialize one timer for use with the upper_level PWM driver.
@@ -620,9 +660,9 @@ static int gpt_ioctl(struct pwm_lowerhalf_s *dev, int cmd,
  *
  ****************************************************************************/
 
-struct pwm_lowerhalf_s *ra8_gpt_initialize(int channel)
+struct pwm_lowerhalf_s *ra_gpt_initialize(int channel)
 {
-  struct ra8_gpt_s *lower;
+  struct ra_gpt_s *lower;
   int i;
 
   pwminfo("GPT%d initialize\n", channel);
@@ -646,3 +686,129 @@ struct pwm_lowerhalf_s *ra8_gpt_initialize(int channel)
 
   return (struct pwm_lowerhalf_s *)lower;
 }
+
+#endif /* CONFIG_RA_GPT_TIMER */
+
+/****************************************************************************
+ * Function:  ra_timerisr
+ *
+ * Description:
+ *   The timer ISR will perform a variety of services for various portions
+ *   of the systems.
+ *
+ ****************************************************************************/
+
+#if !defined(CONFIG_ARMV8M_SYSTICK) && !defined(CONFIG_TIMER_ARCH)
+static int ra_timerisr(int irq, uint32_t *regs, void *arg)
+{
+  /* Process timer interrupt */
+
+  nxsched_process_timer();
+  return 0;
+}
+#endif
+
+#ifdef CONFIG_RA_SYSTICK_GPT
+/****************************************************************************
+ * Function:  ra_gpt_timerisr
+ *
+ * Description:
+ *   GPT-based timer interrupt handler for FSP compatibility
+ *
+ ****************************************************************************/
+
+static int ra_gpt_timerisr(int irq, uint32_t *regs, void *arg)
+{
+  /* Clear GPT compare match flag */
+  uint32_t regaddr = RA_GPT_BASE + RA_GPT_GTSTR_OFFSET;
+  uint32_t channel_mask = (1 << RA_GPT_CHANNEL);
+  
+  putreg32(channel_mask, regaddr);
+  
+  /* Process timer interrupt */
+  nxsched_process_timer();
+  return 0;
+}
+#endif
+
+/****************************************************************************
+ * Function:  up_timer_initialize
+ *
+ * Description:
+ *   This function is called during start-up to initialize
+ *   the timer interrupt.
+ *
+ ****************************************************************************/
+
+void up_timer_initialize(void)
+{
+  uint32_t regval;
+
+#ifdef CONFIG_RA_SYSTICK_GPT
+  /* FSP-based GPT timer initialization */
+  
+  /* Enable GPT module clock */
+  ra_mstp_start(RA_MSTP_GPT_1);
+  
+  /* Stop GPT channel */
+  putreg32((1 << RA_GPT_CHANNEL), RA_GPT_BASE + RA_GPT_GTSTP_OFFSET);
+  
+  /* Configure GPT channel for periodic mode */
+  regval = (RA_GPT_GTWP_WP_KEY << RA_GPT_GTWP_WP_SHIFT) |
+           (1 << RA_GPT_CHANNEL);
+  putreg32(regval, RA_GPT_BASE + RA_GPT_GTWP_OFFSET);
+  
+  /* Set count direction and mode */
+  putreg32(0, RA_GPT_BASE + RA_GPT_GTUD_OFFSET + (RA_GPT_CHANNEL * 4));
+  putreg32(0, RA_GPT_BASE + RA_GPT_GTCR_OFFSET + (RA_GPT_CHANNEL * 4));
+  
+  /* Set period (compare match A) */
+  putreg32(RA_TIMER_RELOAD, 
+           RA_GPT_BASE + RA_GPT_GTPR_OFFSET + (RA_GPT_CHANNEL * 4));
+  
+  /* Enable compare match A interrupt */
+  regval = (1 << 16); /* GTCCRA interrupt enable */
+  putreg32(regval, RA_GPT_BASE + RA_GPT_GTIER_OFFSET + (RA_GPT_CHANNEL * 4));
+  
+  /* Attach the GPT interrupt vector */
+  irq_attach(RA_IRQ_GPT0_COMPARE_A + RA_GPT_CHANNEL, 
+             (xcpt_t)ra_gpt_timerisr, NULL);
+  
+  /* Enable GPT interrupt */
+  up_enable_irq(RA_IRQ_GPT0_COMPARE_A + RA_GPT_CHANNEL);
+  
+  /* Start GPT timer */
+  putreg32((1 << RA_GPT_CHANNEL), RA_GPT_BASE + RA_GPT_GTSTR_OFFSET);
+  
+#elif defined(CONFIG_ARMV8M_SYSTICK) && defined(CONFIG_TIMER_ARCH)
+  /* ARM Cortex-M systick with timer arch */
+  up_timer_set_lowerhalf(systick_initialize(true, SYSTICK_CLOCK, -1));
+  
+#else
+  /* Standard ARM Cortex-M SysTick configuration */
+  
+  /* Set the SysTick interrupt to the default priority */
+  regval = getreg32(NVIC_SYSH12_15_PRIORITY);
+  regval &= ~NVIC_SYSH_PRIORITY_PR15_MASK;
+  regval |= (NVIC_SYSH_PRIORITY_DEFAULT << NVIC_SYSH_PRIORITY_PR15_SHIFT);
+  putreg32(regval, NVIC_SYSH12_15_PRIORITY);
+
+  /* Configure SysTick to interrupt at the requested rate */
+  putreg32(SYSTICK_RELOAD, NVIC_SYSTICK_RELOAD);
+
+  /* Attach the timer interrupt vector */
+  irq_attach(RA_IRQ_SYSTICK, (xcpt_t)ra_timerisr, NULL);
+
+  /* Enable SysTick interrupts */
+  putreg32((NVIC_SYSTICK_CTRL_CLKSOURCE | NVIC_SYSTICK_CTRL_TICKINT |
+            NVIC_SYSTICK_CTRL_ENABLE), NVIC_SYSTICK_CTRL);
+
+  /* And enable the timer interrupt */
+  up_enable_irq(RA_IRQ_SYSTICK);
+#endif
+}
+
+/****************************************************************************
+ * End of file
+ ****************************************************************************/
+ 

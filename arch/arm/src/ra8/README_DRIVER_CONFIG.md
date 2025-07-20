@@ -69,8 +69,8 @@ The Make.defs file now includes conditional compilation for all drivers:
 
 ```makefile
 # Core required files (always included)
-CHIP_CSRCS += ra_start.c ra_clockconfig.c ra_irq.c ra_icu.c
-CHIP_CSRCS += ra_gpio.c ra_lowputc.c ra_allocateheap.c
+CHIP_CSRCS += ra_start.c ra_clock.c ra_irq.c ra_icu.c
+CHIP_CSRCS += ra_gpio.c ra_lowputc.c ra_mem_mng.c
 CHIP_CSRCS += ra_timerisr.c ra_serial.c
 
 # FSP Integration
@@ -88,7 +88,7 @@ CMake configuration now properly handles conditional compilation:
 
 ```cmake
 # Core files
-set(SRCS ra_start.c ra_timerisr.c ra_clockconfig.c ...)
+set(SRCS ra_start.c ra_timerisr.c ra_clock.c ...)
 
 # Conditional drivers
 if(CONFIG_RA8_SPI)

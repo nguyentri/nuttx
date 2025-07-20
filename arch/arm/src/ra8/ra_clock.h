@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/ra8/ra_clockconfig.h
+ * arch/arm/src/ra8/ra_clock.h
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -208,7 +208,7 @@ extern "C"
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ra_clockconfig
+ * Name: ra_clock
  *
  * Description:
  *   Called to initialize the RA.  This does whatever setup is needed to
@@ -217,7 +217,7 @@ extern "C"
  *
  ****************************************************************************/
 
-void ra_clockconfig(void);
+void ra_clock(void);
 
 /****************************************************************************
  * Name: ra_get_clock_config
@@ -250,14 +250,14 @@ void ra_print_clock_info(void);
 uint32_t ra_get_peripheral_clock(int peripheral_id);
 
 /****************************************************************************
- * Name: ra_validate_memory_map
+ * Name: ra_mem_validate
  *
  * Description:
  *   Validate memory configuration against FSP requirements
  *
  ****************************************************************************/
 
-bool ra_validate_memory_map(void);
+bool ra_mem_validate(void);
 
 #undef EXTERN
 #if defined(__cplusplus)

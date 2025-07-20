@@ -241,48 +241,6 @@ config RA_MCU_PLL_ENABLE
    help
      Enable or disable the PLL clock for frequency multiplication.
      Required for maximum performance (200MHz).
-
-config RA_ICLK_FREQUENCY
-   int "ICLK Frequency (Hz)"
-   default 200000000
-   help
-     Core clock frequency for Cortex-M85.
-
-config RA_PCLKA_FREQUENCY
-   int "PCLKA Frequency (Hz)"
-   default 100000000
-   help
-     Peripheral clock A frequency (for high-speed peripherals).
-
-config RA_PCLKB_FREQUENCY
-   int "PCLKB Frequency (Hz)"
-   default 50000000
-   help
-     Peripheral clock B frequency (for medium-speed peripherals).
-
-config RA_PCLKC_FREQUENCY
-   int "PCLKC Frequency (Hz)"
-   default 100000000
-   help
-     Peripheral clock C frequency (for high-speed peripherals).
-
-config RA_PCLKD_FREQUENCY
-   int "PCLKD Frequency (Hz)"
-   default 50000000
-   help
-     Peripheral clock D frequency (for medium-speed peripherals).
-
-config RA_FCLK_FREQUENCY
-   int "FCLK Frequency (Hz)"
-   default 50000000
-   help
-     Flash clock frequency (typically 50MHz max).
-
-config RA_BCLK_FREQUENCY
-   int "BCLK Frequency (Hz)"
-   default 100000000
-   help
-     External bus clock frequency.
 endmenu
 
 menu "Memory Configuration"
@@ -414,7 +372,7 @@ menu "RA8 Flash Configuration"
 
 config RA_FLASH
     bool "Enable RA8 Flash Support"
-    default y
+    default n
     select MTD
     ---help---
         Enable support for RA8 internal flash memory.
@@ -423,21 +381,21 @@ if RA_FLASH
 
 config RA_CODE_FLASH
     bool "Enable Code Flash Support"
-    default y
+    default n
     ---help---
         Enable support for RA8 code flash memory.
         Supports dual bank operation for FOTA.
 
 config RA_DATA_FLASH
     bool "Enable Data Flash Support"
-    default y
+    default n
     ---help---
         Enable support for RA8 data flash memory.
         Suitable for configuration storage and small data.
 
 config RA_FLASH_DUAL_BANK
     bool "Enable Dual Bank Support"
-    default y
+    default n
     depends on RA_CODE_FLASH
     ---help---
         Enable dual bank support for code flash.
@@ -445,14 +403,14 @@ config RA_FLASH_DUAL_BANK
 
 config RA_FLASH_BANK_SWAP
     bool "Enable Bank Swap Support"
-    default y
+    default n
     depends on RA_FLASH_DUAL_BANK
     ---help---
         Enable bank swap functionality for safe firmware updates.
 
 config RA_FLASH_WRITE_PROTECTION
     bool "Enable write protection features"
-    default y
+    default n
     depends on RA_FLASH
     help
       Enable flash write protection and security features.
@@ -460,7 +418,7 @@ config RA_FLASH_WRITE_PROTECTION
 
 config RA_FLASH_ERROR_CORRECTION
     bool "Enable ECC support"
-    default y
+    default n
     depends on RA_CODE_FLASH
     help
       Enable Error Correction Code (ECC) for flash memory.
@@ -499,31 +457,37 @@ config RA_SCI0_UART
    bool "SCI0 UART"
    default n
    depends on RA_HAVE_SCI0_UART
+   select SCI0_SERIALDRIVER
 
 config RA_SCI1_UART
    bool "SCI1 UART"
    default n
    depends on RA_HAVE_SCI1_UART
+   select SCI1_SERIALDRIVER
 
 config RA_SCI2_UART
    bool "SCI2 UART"
    default n
    depends on RA_HAVE_SCI2_UART
+   select SCI2_SERIALDRIVER
 
 config RA_SCI3_UART
    bool "SCI3 UART"
    default n
    depends on RA_HAVE_SCI3_UART
+   select SCI3_SERIALDRIVER
 
 config RA_SCI4_UART
    bool "SCI4 UART"
    default n
    depends on RA_HAVE_SCI4_UART
+   select SCI4_SERIALDRIVER
 
 config RA_SCI9_UART
    bool "SCI9 UART"
    default n
    depends on RA_HAVE_SCI9_UART
+   select SCI9_SERIALDRIVER
 
 # Serial driver selections for NuttX serial subsystem
 config RA_SCI0_SERIALDRIVER
@@ -1019,7 +983,7 @@ config RA_GPT
      Enable General Purpose Timer (GPT) support.
      Required for PWM and other timer-based functions.
 
-config RA_GPT_PWM
+config RA_GPT_TIMER
    bool "GPT PWM support"
    default n
    depends on RA_GPT
@@ -1030,27 +994,27 @@ config RA_GPT_PWM
 config RA_GPT0_PWM
    bool "GPT0 PWM support"
    default n
-   depends on RA_GPT_PWM && RA_HAVE_GPT0
+   depends on RA_GPT_TIMER && RA_HAVE_GPT0
 
 config RA_GPT1_PWM
    bool "GPT1 PWM support"
    default n
-   depends on RA_GPT_PWM && RA_HAVE_GPT1
+   depends on RA_GPT_TIMER && RA_HAVE_GPT1
 
 config RA_GPT2_PWM
    bool "GPT2 PWM support"
    default n
-   depends on RA_GPT_PWM && RA_HAVE_GPT2
+   depends on RA_GPT_TIMER && RA_HAVE_GPT2
 
 config RA_GPT3_PWM
    bool "GPT3 PWM support"
    default n
-   depends on RA_GPT_PWM && RA_HAVE_GPT3
+   depends on RA_GPT_TIMER && RA_HAVE_GPT3
 
 config RA_PWM
    bool "PWM support"
    default n
-   depends on RA_GPT_PWM
+   depends on RA_GPT_TIMER
    select PWM
    help
      Enable Pulse Width Modulation (PWM) support using GPT timers.
@@ -1253,7 +1217,7 @@ config RA_GPT
    depends on RA_HAVE_GPT
    select PWM
 
-config RA_GPT_PWM
+config RA_GPT_TIMER
    bool "GPT PWM Support"
    default y
    depends on RA_GPT
@@ -1429,13 +1393,6 @@ endmenu
 menu "RA8 Advanced Drivers"
 comment "FSP-based drivers with enhanced functionality"
 
-config RA_FSP_INTEGRATION
-   bool "Enable FSP Integration Layer"
-   default y
-   help
-     Enable Renesas FSP (Flexible Software Package) integration layer.
-     Provides hardware abstraction and improved driver functionality.
-
 config RA_MSTP
    bool "Module Stop Control"
    default y
@@ -1462,72 +1419,16 @@ if RA_FLASH_LEGACY
 
 config RA_FLASH_DUAL_BANK_LEGACY
    bool "Dual Bank Support"
-   default y
+   default n
    help
      Enable dual bank flash support for firmware updates.
 
 config RA_FLASH_DATA_LEGACY
    bool "Data Flash Support"
-   default y
+   default n
    help
      Enable data flash support for configuration storage.
 
 endif # RA_FLASH_LEGACY
-
-endmenu
-
-menu "Memory Management"
-comment "Advanced memory allocation options"
-
-choice
-   prompt "Heap Memory Selection"
-   default RA_HEAP_SRAM
-   help
-     Select the memory region to use for the main heap.
-
-config RA_HEAP_DTCM
-   bool "DTCM Heap (16KB, fastest access)"
-   help
-     Use DTCM (Data Tightly Coupled Memory) for heap allocation.
-     Provides fastest access but limited to 16KB.
-     Best for real-time applications requiring low latency.
-
-config RA_HEAP_ITCM
-   bool "ITCM Heap (16KB, instruction cache benefits)"
-   help
-     Use ITCM (Instruction Tightly Coupled Memory) for heap allocation.
-     Normally used for instructions but can be repurposed.
-     Provides fast access with 16KB capacity.
-
-config RA_HEAP_SRAM
-   bool "SRAM Heap (512KB, balanced performance)"
-   help
-     Use main SRAM for heap allocation.
-     Provides 512KB capacity with good performance.
-     Recommended for most applications.
-
-config RA_HEAP_EXTERNAL
-   bool "External RAM Heap (large capacity)"
-   help
-     Use external RAM via OSPI for heap allocation.
-     Provides largest capacity but slower access.
-     Suitable for data-intensive applications.
-
-endchoice
-
-config RA_HEAP_DEBUG
-   bool "Enable heap debugging"
-   default n
-   depends on DEBUG_FEATURES
-   help
-     Enable heap allocation debugging and validation.
-     Adds boundary checking and allocation tracking.
-
-config RA_STACK_GUARD
-   bool "Enable stack guard"
-   default n
-   help
-     Enable stack overflow protection using MPU.
-     Helps detect stack corruption early.
 
 endmenu

@@ -20,7 +20,7 @@
 
 include $(TOPDIR)/Make.defs
 
-CSRCS = ra8e1_boot.c ra8e1_bringup.c
+CSRCS = ra8e1_boot.c ra8e1_bringup.c ra8e1_app_init.c
 
 ifeq ($(CONFIG_ARCH_LEDS),y)
 CSRCS += ra8e1_auto_leds.c
@@ -28,32 +28,30 @@ else
 CSRCS += ra8e1_user_leds.c
 endif
 
-ifeq ($(CONFIG_BOARDCTL),y)
-CSRCS += ra8e1_app_init.c
+ifeq ($(CONFIG_RA8E1_SWITCH),y)
+CSRCS += ra8e1_buttons.c
 endif
 
-ifeq ($(CONFIG_RA_ADC),y)
-CSRCS += ra8e1_adc_bms_demo.c
+############################################################################
+# Peripheral initialization, User Driver interfaces on FPB-RA8E1
+############################################################################
+ifeq ($(CONFIG_RA_SPI),y)
+CSRCS += ra8e1_spi.c
 endif
 
+############################################################################
+# Application specific support CONFIG_BOARDCTL
+############################################################################
 ifeq ($(CONFIG_RA8E1_ADC_BMS_DEMO),y)
 CSRCS += ra8e1_adc_bms_demo.c
 endif
 
-ifeq ($(CONFIG_RA_CODE_FLASH),y)
+ifeq ($(CONFIG_RA8E1_CODE_FLASH_DEMO),y)
 CSRCS += ra8e1_code_flash_demo.c
 endif
 
-ifeq ($(CONFIG_RA_DATA_FLASH),y)
+ifeq ($(CONFIG_RA8E1_DATA_FLASH_DEMO),y)
 CSRCS += ra8e1_data_flash_demo.c
-endif
-
-ifeq ($(CONFIG_RA_PWM),y)
-CSRCS += ra8e1_escs_demo.c
-endif
-
-ifeq ($(CONFIG_RA_SCI_UART),y)
-CSRCS += ra8e1_uart.c
 endif
 
 ifeq ($(CONFIG_RA8E1_GPS_DEMO),y)
@@ -64,7 +62,6 @@ ifeq ($(CONFIG_RA8E1_SBUS_DEMO),y)
 CSRCS += ra8e1_sbus_demo.c
 endif
 
-# I2C Demo Support
 ifeq ($(CONFIG_RA8E1_I2C_GY912_DEMO),y)
 CSRCS += ra8e1_i2c_gy912_demo.c
 endif
@@ -77,7 +74,6 @@ ifeq ($(CONFIG_RA8E1_I2C_ACCEL_DEMO),y)
 CSRCS += ra8e1_i2c_acc_demo.c
 endif
 
-# PWM Demo Support
 ifeq ($(CONFIG_RA8E1_PWM_DEMO),y)
 CSRCS += ra8e1_escs_demo.c
 endif
@@ -92,10 +88,6 @@ ifeq ($(CONFIG_RA8E1_CODE_FLASH_DEMO),y)
 CSRCS += ra8e1_code_flash_demo.c
 endif
 
-# SPI support
-ifeq ($(CONFIG_RA_SPI),y)
-CSRCS += ra8e1_spi.c
-endif
 
 # SPI Loopback Demo
 ifeq ($(CONFIG_RA8E1_SPI_LOOPBACK_DEMO),y)
@@ -105,16 +97,6 @@ endif
 # GY-912 sensor support  
 ifeq ($(CONFIG_RA8E1_SPI_GY912_DEMO),y)
 CSRCS += ra8e1_spi_gy912_demo.c
-endif
-
-# Button support
-ifeq ($(CONFIG_RA8E1_SW_BUTTON),y)
-CSRCS += ra8e1_buttons.c
-endif
-
-# ICU Input Capture support
-ifeq ($(CONFIG_ICU_INPUT_CAPTURE),y)
-CSRCS += ra8e1_user_icu.c
 endif
 
 include $(TOPDIR)/boards/Board.mk

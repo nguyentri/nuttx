@@ -11,7 +11,8 @@ choice
 
 config ARCH_CHIP_R7FA8E1AFDCFB
    bool "R7FA8E1AFDCFB (LQFP144)"
-   select RA8E1_FAMILY
+   select RA8_FAMILY
+   select RA8E1_GROUP
    select RA_HAVE_SCI0_UART
    select RA_HAVE_SCI1_UART
    select RA_HAVE_SCI2_UART
@@ -41,7 +42,8 @@ config ARCH_CHIP_R7FA8E1AFDCFB
 
 config ARCH_CHIP_R7FA8E1AFDCFP
    bool "R7FA8E1AFDCFP (LQFP100)"
-   select RA8E1_FAMILY
+   select RA8_FAMILY
+   select RA8E1_GROUP
    select RA_HAVE_SCI0_UART
    select RA_HAVE_SCI1_UART
    select RA_HAVE_SCI2_UART
@@ -68,7 +70,15 @@ config ARCH_CHIP_R7FA8E1AFDCFP
 
 endchoice
 
-config RA8E1_FAMILY
+# RA8E1 Group Configuration
+config RA8E1_GROUP
+   bool
+   default y
+   help
+     Enables the RA8E1 group of features and peripherals.
+     This is required for all RA8E1 configurations.
+
+config RA8_FAMILY
    bool
    default y
    select ARCH_CORTEXM85
@@ -273,32 +283,6 @@ config RA_BCLK_FREQUENCY
    default 100000000
    help
      External bus clock frequency.
-
-endmenu
-
-menu "Core RA8 Module Configuration"
-
-config RA_FSP_INTEGRATION
-   bool "Enable FSP Integration"
-   default y
-   help
-     Enable integration with Renesas Flexible Software Package (FSP).
-     Provides optimized peripheral drivers and configurations.
-
-config RA_MSTP
-   bool "Enable Module Stop Control"
-   default y
-   help
-     Enable Module Stop (MSTP) control for power management.
-     Allows enabling/disabling peripheral clocks for power saving.
-
-config RA_PINMAP
-   bool "Enable Pin Mapping Support"
-   default y
-   help
-     Enable pin function mapping and pin configuration support.
-     Required for GPIO and peripheral pin assignment.
-
 endmenu
 
 menu "Memory Configuration"
@@ -1391,7 +1375,7 @@ endmenu
 menu "DMA"
 config RA_HAVE_DMA
    bool
-   default y if RA8E1_FAMILY
+   default y if RA8_FAMILY
    help
      RA8E1 family has DMA controller support.
 

@@ -30,16 +30,6 @@ set(SRCS
     ra_allocateheap.c
     ra_serial.c)
 
-# Module Stop Control
-if(CONFIG_RA_MSTP)
-  list(APPEND SRCS ra_mstp.c)
-endif()
-
-# Pin mapping support
-if(CONFIG_RA_PINMAP)
-  list(APPEND SRCS ra_pinmap.c)
-endif()
-
 # ADC driver
 if(CONFIG_RA_ADC)
   list(APPEND SRCS ra_adc.c)

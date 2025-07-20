@@ -36,16 +36,6 @@ CHIP_CSRCS += ra_allocateheap.c
 CHIP_CSRCS += ra_timerisr.c
 CHIP_CSRCS += ra_serial.c
 
-# Module Stop Control
-ifeq ($(CONFIG_RA_MSTP),y)
-CHIP_CSRCS += ra_mstp.c
-endif
-
-# Pin mapping support
-ifeq ($(CONFIG_RA_PINMAP),y)
-CHIP_CSRCS += ra_pinmap.c
-endif
-
 # ADC driver
 ifeq ($(CONFIG_RA_ADC),y)
 CHIP_CSRCS += ra_adc.c

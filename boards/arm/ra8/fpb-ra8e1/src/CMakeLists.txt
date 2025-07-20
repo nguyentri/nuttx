@@ -26,6 +26,20 @@ else()
   list(APPEND SRCS ra8e1_user_leds.c)
 endif()
 
+if(CONFIG_RA8E1_SWITCH)
+  list(APPEND SRCS ra8e1_buttons.c)
+endif()
+
+############################################################################
+# Peripheral initialization, User Driver interfaces on FPB-RA8E1
+############################################################################
+if(CONFIG_RA_SPI)
+  list(APPEND SRCS ra8e1_spi.c)
+endif()
+
+############################################################################
+# Application specific support CONFIG_BOARDCTL
+############################################################################
 if(CONFIG_RA8E1_ADC_BMS_DEMO)
   list(APPEND SRCS ra8e1_adc_bms_demo.c)
 endif()
@@ -34,16 +48,8 @@ if(CONFIG_RA8E1_CODE_FLASH_DEMO)
   list(APPEND SRCS ra8e1_code_flash_demo.c)
 endif()
 
-if(CONFIG_RA_DATA_FLASH_DEMO)
+if(CONFIG_RA8E1_DATA_FLASH_DEMO)
   list(APPEND SRCS ra8e1_data_flash_demo.c)
-endif()
-
-if(CONFIG_RA8E1_PWM_ESCS_DEMO)
-  list(APPEND SRCS ra8e1_escs_demo.c)
-endif()
-
-if(CONFIG_RA_SCI_UART)
-  list(APPEND SRCS ra8e1_uart.c)
 endif()
 
 if(CONFIG_RA8E1_GPS_DEMO)
@@ -52,10 +58,6 @@ endif()
 
 if(CONFIG_RA8E1_SBUS_DEMO)
   list(APPEND SRCS ra8e1_sbus_demo.c)
-endif()
-
-if(CONFIG_RA_I2C)
-  list(APPEND SRCS ra8e1_i2c_gy912_demo.c)
 endif()
 
 if(CONFIG_RA8E1_I2C_GY912_DEMO)
@@ -74,18 +76,6 @@ if(CONFIG_RA8E1_PWM_DEMO)
   list(APPEND SRCS ra8e1_escs_demo.c)
 endif()
 
-if(CONFIG_RA8E1_DATA_FLASH_DEMO)
-  list(APPEND SRCS ra8e1_data_flash_demo.c)
-endif()
-
-if(CONFIG_RA8E1_CODE_FLASH_DEMO)
-  list(APPEND SRCS ra8e1_code_flash_demo.c)
-endif()
-
-if(CONFIG_RA_SPI)
-  list(APPEND SRCS ra8e1_spi.c)
-endif()
-
 if(CONFIG_RA8E1_SPI_LOOPBACK_DEMO)
   list(APPEND SRCS ra8e1_spi_loopback_demo.c)
 endif()
@@ -94,13 +84,6 @@ if(CONFIG_RA8E1_SPI_GY912_DEMO)
   list(APPEND SRCS ra8e1_spi_gy912_demo.c)
 endif()
 
-if(CONFIG_RA8_SW_BUTTON)
-  list(APPEND SRCS ra8e1_buttons.c)
-endif()
-
-if(CONFIG_ICU_INPUT_CAPTURE)
-  list(APPEND SRCS ra8e1_user_icu.c)
-endif()
 
 target_sources(board PRIVATE ${SRCS})
 

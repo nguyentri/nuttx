@@ -64,16 +64,16 @@ if(CONFIG_RA8E1_I2C_GY912_DEMO)
   list(APPEND SRCS ra8e1_i2c_gy912_demo.c)
 endif()
 
-if(CONFIG_RA8E1_I2C_SIMPLE_DEMO)
-  list(APPEND SRCS ra8e1_i2c_simple_demo.c)
+if(CONFIG_RA8E1_I2C_TEST)
+  list(APPEND SRCS ra8e1_i2c_test.c)
 endif()
 
 if(CONFIG_RA8E1_I2C_ACCEL_DEMO)
   list(APPEND SRCS ra8e1_i2c_acc_demo.c)
 endif()
 
-if(CONFIG_RA8E1_PWM_DEMO)
-  list(APPEND SRCS ra8e1_escs_demo.c)
+if(CONFIG_RA8E1_PWM_ESCS_DEMO)
+  list(APPEND SRCS ra8e1_pwm_escs_demo.c)
 endif()
 
 if(CONFIG_RA8E1_SPI_LOOPBACK_DEMO)

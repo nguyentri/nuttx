@@ -116,9 +116,9 @@ int ra8e1_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_PWM
+#ifdef CONFIG_RA8E1_PWM_ESCS_DEMO
   /* Initialize ESCs demo */
-  ret = ra8e1_escs_demo_init();
+  ret = ra8e1_pwm_escs_demo_init();
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: Failed to initialize ESCs demo: %d\n", ret);
@@ -184,9 +184,9 @@ int ra8e1_bringup(void)
       syslog(LOG_INFO, "I2C ACC demo initialized successfully\n");
     }
 
-#ifdef CONFIG_RA8E1_I2C_SIMPLE_DEMO
+#ifdef CONFIG_RA8E1_I2C_TEST
   /* Initialize I2C Simple demo */
-  ret = ra8e1_i2c_simple_demo_init();
+  ret = ra8e1_i2c_test_init();
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: Failed to initialize I2C Simple demo: %d\n", ret);

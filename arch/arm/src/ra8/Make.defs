@@ -32,8 +32,8 @@ CHIP_CSRCS += ra_irq.c
 CHIP_CSRCS += ra_icu.c
 CHIP_CSRCS += ra_gpio.c
 CHIP_CSRCS += ra_lowputc.c
-CHIP_CSRCS += ra_mem_mng.c
-CHIP_CSRCS += ra_gpt.c
+CHIP_CSRCS += ra_memmng.c
+CHIP_CSRCS += ra_timer.c
 CHIP_CSRCS += ra_serial.c
 
 # ADC driver

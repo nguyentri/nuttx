@@ -21,13 +21,13 @@
 # Required RA8 core files
 set(SRCS
     ra_start.c
-    ra_timerisr.c
+    ra_timer.c
     ra_clock.c
     ra_irq.c
     ra_lowputc.c
     ra_icu.c
     ra_gpio.c
-    ra_mem_mng.c
+    ra_memmng.c
     ra_serial.c)
 
 # ADC driver
@@ -58,11 +58,6 @@ endif()
 # SPI driver
 if(CONFIG_RA_SPI)
   list(APPEND SRCS ra_spi.c)
-endif()
-
-# GPT timer driver
-if(CONFIG_RA_GPT)
-  list(APPEND SRCS ra_gpt.c)
 endif()
 
 # PWM driver

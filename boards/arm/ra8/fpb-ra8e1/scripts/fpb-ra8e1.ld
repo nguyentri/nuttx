@@ -41,8 +41,8 @@ MEMORY
   dtcm (rwx)   : ORIGIN = 0x20000000, LENGTH = 0x00004000
   
   /* OSPI Flash regions (external) */
-  ospi0_cs0 (rwx) : ORIGIN = 0x80000000, LENGTH = 0x10000000
-  ospi0_cs1 (rx)  : ORIGIN = 0x90000000, LENGTH = 0x10000000
+  ospi0_cs0 (rwx) : ORIGIN = 0x08000000, LENGTH = 0x10000000
+  ospi0_cs1 (rx)  : ORIGIN = 0x18000000, LENGTH = 0x10000000
   
   /* Option Setting regions */
   option_ofs0 (r)    : ORIGIN = 0x0300a100, LENGTH = 0x00000004

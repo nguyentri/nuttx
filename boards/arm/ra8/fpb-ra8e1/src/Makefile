@@ -66,16 +66,16 @@ ifeq ($(CONFIG_RA8E1_I2C_GY912_DEMO),y)
 CSRCS += ra8e1_i2c_gy912_demo.c
 endif
 
-ifeq ($(CONFIG_RA8E1_I2C_SIMPLE_DEMO),y)
-CSRCS += ra8e1_i2c_simple_demo.c
+ifeq ($(CONFIG_RA8E1_I2C_TEST),y)
+CSRCS += ra8e1_i2c_test.c
 endif
 
 ifeq ($(CONFIG_RA8E1_I2C_ACCEL_DEMO),y)
 CSRCS += ra8e1_i2c_acc_demo.c
 endif
 
-ifeq ($(CONFIG_RA8E1_PWM_DEMO),y)
-CSRCS += ra8e1_escs_demo.c
+ifeq ($(CONFIG_RA8E1_PWM_ESCS_DEMO),y)
+CSRCS += ra8e1_pwm_escs_demo.c
 endif
 
 # Data Flash Demo Support

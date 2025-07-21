@@ -33,6 +33,14 @@ config ARCH_CHIP_R7FA8E1AFDCFB
    select RA_HAVE_OSPI
    select RA_HAVE_SSIE
    select RA_HAVE_GPT
+   select RA_HAVE_GPT0
+   select RA_HAVE_GPT1
+   select RA_HAVE_GPT2
+   select RA_HAVE_GPT3
+   select RA_HAVE_GPT4
+   select RA_HAVE_GPT5
+   select RA_HAVE_GPT6
+   select RA_HAVE_GPT7
    select RA_HAVE_AGT
    select RA_HAVE_ULPT
    select RA_HAVE_RTC
@@ -61,6 +69,11 @@ config ARCH_CHIP_R7FA8E1AFDCFP
    select RA_HAVE_USBFS
    # No OSPI, SSIE
    select RA_HAVE_GPT
+   select RA_HAVE_GPT0
+   select RA_HAVE_GPT1
+   select RA_HAVE_GPT2
+   select RA_HAVE_GPT3
+   select RA_HAVE_GPT4
    select RA_HAVE_AGT
    select RA_HAVE_ULPT
    select RA_HAVE_RTC
@@ -454,101 +467,52 @@ config RA_HAVE_SCI9_UART
    default n
 
 config RA_SCI0_UART
-   bool "SCI0 UART"
-   default n
-   depends on RA_HAVE_SCI0_UART
-   select SCI0_SERIALDRIVER
+	bool "SCI0 UART support"
+	default n
+	depends on RA_HAVE_SCI0_UART
+	select SCI0_SERIALDRIVER
+	---help---
+		Enable support for SCI0 UART peripheral.
 
 config RA_SCI1_UART
-   bool "SCI1 UART"
-   default n
-   depends on RA_HAVE_SCI1_UART
-   select SCI1_SERIALDRIVER
+	bool "SCI1 UART support"
+	default n
+	depends on RA_HAVE_SCI1_UART
+	select SCI1_SERIALDRIVER
+	---help---
+		Enable support for SCI1 UART peripheral.
 
 config RA_SCI2_UART
-   bool "SCI2 UART"
-   default n
-   depends on RA_HAVE_SCI2_UART
-   select SCI2_SERIALDRIVER
+	bool "SCI2 UART support"
+	default n
+	depends on RA_HAVE_SCI2_UART
+	select SCI2_SERIALDRIVER
+	---help---
+		Enable support for SCI2 UART peripheral.
 
 config RA_SCI3_UART
-   bool "SCI3 UART"
-   default n
-   depends on RA_HAVE_SCI3_UART
-   select SCI3_SERIALDRIVER
+	bool "SCI3 UART support"
+	default n
+	depends on RA_HAVE_SCI3_UART
+	select SCI3_SERIALDRIVER
+	---help---
+		Enable support for SCI3 UART peripheral.
 
 config RA_SCI4_UART
-   bool "SCI4 UART"
-   default n
-   depends on RA_HAVE_SCI4_UART
-   select SCI4_SERIALDRIVER
+	bool "SCI4 UART support"
+	default n
+	depends on RA_HAVE_SCI4_UART
+	select SCI4_SERIALDRIVER
+	---help---
+		Enable support for SCI4 UART peripheral.
 
 config RA_SCI9_UART
-   bool "SCI9 UART"
-   default n
-   depends on RA_HAVE_SCI9_UART
-   select SCI9_SERIALDRIVER
-
-# Serial driver selections for NuttX serial subsystem
-config RA_SCI0_SERIALDRIVER
-   bool "SCI0 Serial Driver"
-   default n
-   depends on RA_SCI0_UART
-   select MCU_SERIAL
-   select ARCH_HAVE_SERIAL_TERMIOS
-   help
-     Enable SCI0 as a standard serial driver (/dev/ttyS0).
-     Disable this if SCI0 is used for dedicated external devices.
-
-config RA_SCI1_SERIALDRIVER
-   bool "SCI1 Serial Driver"
-   default n
-   depends on RA_SCI1_UART
-   select MCU_SERIAL
-   select ARCH_HAVE_SERIAL_TERMIOS
-   help
-     Enable SCI1 as a standard serial driver (/dev/ttyS1).
-     Disable this if SCI1 is used for dedicated external devices.
-
-config RA_SCI2_SERIALDRIVER
-   bool "SCI2 Serial Driver"
-   default n
-   depends on RA_SCI2_UART
-   select MCU_SERIAL
-   select ARCH_HAVE_SERIAL_TERMIOS
-   help
-     Enable SCI2 as a standard serial driver (/dev/ttyS2).
-     Disable this if SCI2 is used for dedicated external devices like SBUS.
-
-config RA_SCI3_SERIALDRIVER
-   bool "SCI3 Serial Driver"
-   default n
-   depends on RA_SCI3_UART
-   select MCU_SERIAL
-   select ARCH_HAVE_SERIAL_TERMIOS
-   help
-     Enable SCI3 as a standard serial driver (/dev/ttyS3).
-     Disable this if SCI3 is used for dedicated external devices like GPS.
-
-config RA_SCI4_SERIALDRIVER
-   bool "SCI4 Serial Driver"
-   default n
-   depends on RA_SCI4_UART
-   select MCU_SERIAL
-   select ARCH_HAVE_SERIAL_TERMIOS
-   help
-     Enable SCI4 as a standard serial driver (/dev/ttyS4).
-     Disable this if SCI4 is used for dedicated external devices.
-
-config RA_SCI9_SERIALDRIVER
-   bool "SCI9 Serial Driver"
-   default n
-   depends on RA_SCI9_UART
-   select MCU_SERIAL
-   select ARCH_HAVE_SERIAL_TERMIOS
-   help
-     Enable SCI9 as a standard serial driver (/dev/ttyS9).
-     SCI9 is typically used as the main console/debug interface.
+	bool "SCI9 UART support"
+	default n
+	depends on RA_HAVE_SCI9_UART
+	select SCI9_SERIALDRIVER
+	---help---
+		Enable support for SCI9 UART peripheral.
 
 # Baud rate configuration for SCI UARTs
 config RA_SCI0_BAUDRATE
@@ -557,35 +521,35 @@ config RA_SCI0_BAUDRATE
    depends on RA_SCI0_UART
    help
      Set the baud rate for SCI0. Valid ranges depend on hardware limits.
-     
+
 config RA_SCI1_BAUDRATE
    int "SCI1 Baud Rate (bps)"
    default 115200
    depends on RA_SCI1_UART
    help
      Set the baud rate for SCI1.
-     
+
 config RA_SCI2_BAUDRATE
    int "SCI2 Baud Rate (bps)"
    default 115200
    depends on RA_SCI2_UART
    help
      Set the baud rate for SCI2.
-     
+
 config RA_SCI3_BAUDRATE
    int "SCI3 Baud Rate (bps)"
    default 115200
    depends on RA_SCI3_UART
    help
      Set the baud rate for SCI3.
-     
+
 config RA_SCI4_BAUDRATE
    int "SCI4 Baud Rate (bps)"
    default 115200
    depends on RA_SCI4_UART
    help
      Set the baud rate for SCI4.
-     
+
 config RA_SCI9_BAUDRATE
    int "SCI9 Baud Rate (bps)"
    default 115200
@@ -785,7 +749,7 @@ config RA_UART_CLOCK_SOURCE
    help
      SCI clock source selection:
      0 = PCLKA (48MHz typical)
-     1 = PCLKB (24MHz typical)  
+     1 = PCLKB (24MHz typical)
      2 = SCICLK (external clock)
      3 = HOCO (20MHz typical)
 
@@ -976,6 +940,22 @@ config RA_HAVE_GPT3
    bool
    default n
 
+config RA_HAVE_GPT4
+   bool
+   default n
+
+config RA_HAVE_GPT5
+   bool
+   default n
+
+config RA_HAVE_GPT6
+   bool
+   default n
+
+config RA_HAVE_GPT7
+   bool
+   default n
+
 config RA_GPT
    bool "GPT (General Purpose Timer) support"
    default n
@@ -983,38 +963,50 @@ config RA_GPT
      Enable General Purpose Timer (GPT) support.
      Required for PWM and other timer-based functions.
 
-config RA_GPT_TIMER
-   bool "GPT PWM support"
-   default n
-   depends on RA_GPT
-   select PWM
-   help
-     Enable PWM output using GPT timers.
-
 config RA_GPT0_PWM
    bool "GPT0 PWM support"
    default n
-   depends on RA_GPT_TIMER && RA_HAVE_GPT0
+   depends on RA_GPT && RA_HAVE_GPT0
 
 config RA_GPT1_PWM
    bool "GPT1 PWM support"
    default n
-   depends on RA_GPT_TIMER && RA_HAVE_GPT1
+   depends on RA_GPT && RA_HAVE_GPT1
 
 config RA_GPT2_PWM
    bool "GPT2 PWM support"
    default n
-   depends on RA_GPT_TIMER && RA_HAVE_GPT2
+   depends on RA_GPT && RA_HAVE_GPT2
 
 config RA_GPT3_PWM
    bool "GPT3 PWM support"
    default n
-   depends on RA_GPT_TIMER && RA_HAVE_GPT3
+   depends on RA_GPT && RA_HAVE_GPT3
+
+config RA_GPT4_PWM
+   bool "GPT4 PWM support"
+   default n
+   depends on RA_GPT && RA_HAVE_GPT4
+
+config RA_GPT5_PWM
+   bool "GPT5 PWM support"
+   default n
+   depends on RA_GPT && RA_HAVE_GPT5
+
+config RA_GPT6_PWM
+   bool "GPT6 PWM support"
+   default n
+   depends on RA_GPT && RA_HAVE_GPT6
+
+config RA_GPT7_PWM
+   bool "GPT7 PWM support"
+   default n
+   depends on RA_GPT && RA_HAVE_GPT7
 
 config RA_PWM
    bool "PWM support"
    default n
-   depends on RA_GPT_TIMER
+   depends on RA_GPT
    select PWM
    help
      Enable Pulse Width Modulation (PWM) support using GPT timers.
@@ -1038,6 +1030,26 @@ config RA_PWM3
    bool "PWM Channel 3"
    default n
    depends on RA_PWM && RA_HAVE_GPT3
+
+config RA_PWM4
+   bool "PWM Channel 4"
+   default n
+   depends on RA_PWM && RA_HAVE_GPT4
+
+config RA_PWM5
+   bool "PWM Channel 5"
+   default n
+   depends on RA_PWM && RA_HAVE_GPT5
+
+config RA_PWM6
+   bool "PWM Channel 6"
+   default n
+   depends on RA_PWM && RA_HAVE_GPT6
+
+config RA_PWM7
+   bool "PWM Channel 7"
+   default n
+   depends on RA_PWM && RA_HAVE_GPT7
 
 config RA_PWM_CHANNELS
    int "Number of PWM channels"
@@ -1216,13 +1228,9 @@ config RA_GPT
    default n
    depends on RA_HAVE_GPT
    select PWM
-
-config RA_GPT_TIMER
-   bool "GPT PWM Support"
-   default y
-   depends on RA_GPT
    help
-     Enable PWM support using GPT timers.
+     Enable General Purpose Timer (GPT) support.
+     Provides basic timer functionality for PWM and other timing tasks.
 
 config RA_AGT
    bool "Asynchronous General Purpose Timer"

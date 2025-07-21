@@ -111,33 +111,33 @@ int ra8e1_data_flash_demo_main(int argc, char *argv[]);
 #endif
 
 #ifdef CONFIG_RA8E1_PWM_ESCS_DEMO
-int ra8e1_escs_demo_init(void);
-int ra8e1_escs_demo_main(int argc, char *argv[]);
+int ra8e1_pwm_escs_demo_init(void);
+int ra8e1_pwm_escs_demo_main(int argc, char *argv[]);
 #endif
 
-#ifdef CONFIG_RA_GPS_DEMO
+#ifdef CONFIG_RA8E1_GPS_DEMO
 int ra8e1_gps_demo_init(void);
 int ra8e1_gps_demo_main(int argc, char *argv[]);
 #endif
 
-#ifdef CONFIG_RA_SBUS_DEMO
+#ifdef CONFIG_RA8E1_SBUS_DEMO
 int ra8e1_sbus_demo_init(void);
 int ra8e1_sbus_demo_main(int argc, char *argv[]);
 #endif
 
-#ifdef CONFIG_RA_I2C_ACC_DEMO
+#ifdef CONFIG_RA8E1_I2C_ACC_DEMO
 int ra8e1_i2c_acc_demo_init(void);
 int ra8e1_i2c_acc_demo_main(int argc, char *argv[]);
 #endif
 
-#ifdef CONFIG_RA_I2C_GY912_DEMO
+#ifdef CONFIG_RA8E1_I2C_GY912_DEMO
 int ra8e1_i2c_gy912_demo_init(void);
 int ra8e1_i2c_gy912_demo_main(int argc, FAR char *argv[]);
 #endif
 
-#ifdef CONFIG_RA_I2C_SIMPLE_DEMO
-int ra8e1_i2c_simple_demo_init(void);
-int ra8e1_i2c_simple_demo_main(int argc, char *argv[]);
+#ifdef CONFIG_RAE1_I2C_TEST
+int ra8e1_i2c_test_init(void);
+int ra8e1_i2c_test_main(int argc, char *argv[]);
 #endif
 
 #endif /* __ASSEMBLY__ */

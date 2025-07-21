@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/ra8/ra_mem_mng.c
+ * arch/arm/src/ra8/ra_memmng.c
  *
  * SPDX-License-Identifier: Apache-2.0
  *

@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/ra8/fpb-ra8e1/src/ra8e1_i2c_simple_demo.c
+ * boards/arm/ra8/fpb-ra8e1/src/ra8e1_i2c_test.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -21,7 +21,7 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
-#ifdef CONFIG_RA8E1_I2C_SIMPLE_DEMO
+#ifdef CONFIG_RA8E1_I2C_TEST
 
 #include <stdio.h>
 #include <stdint.h>
@@ -324,21 +324,21 @@ static int adxl345_read_acceleration(struct adxl345_data_s *data)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ra8e1_i2c_simple_demo_init
+ * Name: ra8e1_i2c_test_init
  *
  * Description:
  *   Initialize the I2C simple demo
  *
  ****************************************************************************/
 
-int ra8e1_i2c_simple_demo_init(void)
+int ra8e1_i2c_test_init(void)
 {
   /* I2C simple demo initialization is done within main function */
   return 0;
 }
 
 /****************************************************************************
- * Name: ra8e1_i2c_simple_demo_main
+ * Name: ra8e1_i2c_test_main
  *
  * Description:
  *   Main function for RA8E1 I2C simple demo (based on FSP SCI I2C Master)
@@ -352,7 +352,7 @@ int ra8e1_i2c_simple_demo_init(void)
  *
  ****************************************************************************/
 
-int ra8e1_i2c_simple_demo_main(int argc, char *argv[])
+int ra8e1_i2c_test_main(int argc, char *argv[])
 {
   struct adxl345_data_s accel_data;
   int ret;
@@ -454,4 +454,4 @@ int ra8e1_i2c_simple_demo_main(int argc, char *argv[])
   return DEMO_OK;
 }
 
-#endif /* CONFIG_RA8E1_I2C_SIMPLE_DEMO */
+#endif /* CONFIG_RA8E1_I2C_TEST */

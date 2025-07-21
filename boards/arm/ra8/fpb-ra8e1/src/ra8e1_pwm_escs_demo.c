@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/ra8/fpb-ra8e1/src/ra8e1_pwm_demo.c
+ * boards/arm/ra8/fpb-ra8e1/src/ra8e1_pwm_escs_demo.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -42,7 +42,9 @@
 #include "arm_internal.h"
 #include "chip.h"
 #include "ra_gpio.h"
+#include "ra_gpt.h"
 #include "ra8e1_demo_log.h"
+#include "fpb-ra8e1.h"
 
 
 #ifdef CONFIG_RA8E1_PWM_ESCS
@@ -62,6 +64,16 @@
 /* PWM Device Paths */
 
 #define PWM_DEVICE_PATH         "/dev/pwm"
+
+/* RTT Command Buffer */
+#define RTT_COMMAND_MAX         64
+
+/* GPIO Configuration for ESC PWM pins */
+
+static gpio_pinset_t g_pwm_esc1 = {3, 0, 0};   /* P300 - GPT3A */
+static gpio_pinset_t g_pwm_esc2 = {4, 15, 0};  /* P415 - GPT0A */
+static gpio_pinset_t g_pwm_esc3 = {1, 14, 0};  /* P114 - GPT2B */
+static gpio_pinset_t g_pwm_esc4 = {3, 2, 0};   /* P302 - GPT4A */
 
 /* ESC Status Structure */
 
@@ -87,19 +99,35 @@ struct esc_channel_s
  * Private Data
  ****************************************************************************/
 
+/* PWM device descriptors for ESC channels */
+
+static struct pwm_lowerhalf_s *g_pwm_esc_devs[4];
+
+/* Demo control variables */
+
+static bool g_demo_running = false;
+static char g_rtt_command[RTT_COMMAND_MAX];
+
 /* ESC channel configurations */
 
 static struct esc_channel_s g_esc_channels[NUM_ESC_CHANNELS] =
 {
-  { 0, "/dev/pwm0", -1, 0, false },  /* ESC1 - GPT0 */
-  { 1, "/dev/pwm1", -1, 0, false },  /* ESC2 - GPT1 */
-  { 2, "/dev/pwm2", -1, 0, false },  /* ESC3 - GPT2 */
-  { 3, "/dev/pwm3", -1, 0, false },  /* ESC4 - GPT3 */
+  { 3, "/dev/pwm3", -1, 0, false },  /* ESC1 - P300, GPT3A */
+  { 0, "/dev/pwm0", -1, 0, false },  /* ESC2 - P415, GPT0A */
+  { 2, "/dev/pwm2", -1, 0, false },  /* ESC3 - P114, GPT2B */
+  { 4, "/dev/pwm4", -1, 0, false },  /* ESC4 - P302, GPT4A */
 };
 
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
+
+static int ra8e1_pwm_setup_pins(void);
+static int ra8e1_pwm_initialize(void);
+static int ra8e1_pwm_setup(void);
+static struct pwm_lowerhalf_s *ra8e1_esc_get_pwm_dev(int esc_index);
+static int ra8e1_esc_set_duty_us(int esc_index, uint32_t pulse_us, uint32_t frequency);
+static int ra8e1_esc_stop_all(void);
 
 static int esc_pwm_open(int esc_index);
 static int esc_pwm_close(int esc_index);
@@ -117,6 +145,269 @@ static int parse_esc_command(const char *command, int *esc_index, int *value);
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: ra8e1_pwm_setup_pins
+ *
+ * Description:
+ *   Setup GPIO pins for PWM ESC output
+ *
+ ****************************************************************************/
+
+static int ra8e1_pwm_setup_pins(void)
+{
+  /* Configure ESC1 pin (P300 - GPT3A) */
+  ra_configgpio(g_pwm_esc1);
+
+  /* Configure ESC2 pin (P415 - GPT0A) */
+  ra_configgpio(g_pwm_esc2);
+
+  /* Configure ESC3 pin (P114 - GPT2B) */
+  ra_configgpio(g_pwm_esc3);
+
+  /* Configure ESC4 pin (P302 - GPT4A) */
+  ra_configgpio(g_pwm_esc4);
+
+  pwminfo("ESC PWM pins configured successfully\n");
+  return 0;
+}
+
+/****************************************************************************
+ * Name: ra8e1_pwm_initialize
+ *
+ * Description:
+ *   Initialize PWM for ESC control and register the PWM devices.
+ *
+ * Returned Value:
+ *   Zero is returned on success.  Otherwise, a negated errno value is
+ *   returned to indicate the nature of the failure.
+ *
+ ****************************************************************************/
+
+static int ra8e1_pwm_initialize(void)
+{
+  static bool initialized = false;
+  struct pwm_lowerhalf_s *pwm;
+  int ret;
+  int i;
+
+  /* Have we already initialized? */
+
+  if (initialized)
+    {
+      return OK;
+    }
+
+  pwminfo("Initializing ESC PWM drivers\n");
+
+  /* Setup GPIO pins for PWM */
+
+  ret = ra8e1_pwm_setup_pins();
+  if (ret < 0)
+    {
+      pwmerr("ERROR: PWM pin setup failed: %d\n", ret);
+      return ret;
+    }
+
+  /* Initialize GPT0 for ESC2 (P415) */
+
+  pwm = ra_pwm_initialize(0);
+  if (!pwm)
+    {
+      pwmerr("ERROR: Failed to get GPT0 PWM lower half\n");
+      return -ENODEV;
+    }
+
+  ret = pwm_register("/dev/pwm0", pwm);
+  if (ret < 0)
+    {
+      pwmerr("ERROR: Failed to register /dev/pwm0: %d\n", ret);
+      return ret;
+    }
+
+  g_pwm_esc_devs[1] = pwm;  /* ESC2 maps to PWM0/GPT0 */
+  pwminfo("ESC2 PWM driver registered at /dev/pwm0\n");
+
+  /* Initialize GPT2 for ESC3 (P114) */
+
+  pwm = ra_pwm_initialize(2);
+  if (!pwm)
+    {
+      pwmerr("ERROR: Failed to get GPT2 PWM lower half\n");
+      return -ENODEV;
+    }
+
+  ret = pwm_register("/dev/pwm2", pwm);
+  if (ret < 0)
+    {
+      pwmerr("ERROR: Failed to register /dev/pwm2: %d\n", ret);
+      return ret;
+    }
+
+  g_pwm_esc_devs[2] = pwm;  /* ESC3 maps to PWM2/GPT2 */
+  pwminfo("ESC3 PWM driver registered at /dev/pwm2\n");
+
+  /* Initialize GPT3 for ESC1 (P300) */
+
+  pwm = ra_pwm_initialize(3);
+  if (!pwm)
+    {
+      pwmerr("ERROR: Failed to get GPT3 PWM lower half\n");
+      return -ENODEV;
+    }
+
+  ret = pwm_register("/dev/pwm3", pwm);
+  if (ret < 0)
+    {
+      pwmerr("ERROR: Failed to register /dev/pwm3: %d\n", ret);
+      return ret;
+    }
+
+  g_pwm_esc_devs[0] = pwm;  /* ESC1 maps to PWM3/GPT3 */
+  pwminfo("ESC1 PWM driver registered at /dev/pwm3\n");
+
+  /* Initialize GPT4 for ESC4 (P302) */
+
+  pwm = ra_pwm_initialize(4);
+  if (!pwm)
+    {
+      pwmerr("ERROR: Failed to get GPT4 PWM lower half\n");
+      return -ENODEV;
+    }
+
+  ret = pwm_register("/dev/pwm4", pwm);
+  if (ret < 0)
+    {
+      pwmerr("ERROR: Failed to register /dev/pwm4: %d\n", ret);
+      return ret;
+    }
+
+  g_pwm_esc_devs[3] = pwm;  /* ESC4 maps to PWM4/GPT4 */
+  pwminfo("ESC4 PWM driver registered at /dev/pwm4\n");
+
+  initialized = true;
+  pwminfo("All ESC PWM drivers initialized successfully\n");
+  return OK;
+}
+
+/****************************************************************************
+ * Name: ra8e1_pwm_setup
+ *
+ * Description:
+ *   Initialize PWM and register the PWM device.
+ *
+ ****************************************************************************/
+
+static int ra8e1_pwm_setup(void)
+{
+  return ra8e1_pwm_initialize();
+}
+
+/****************************************************************************
+ * Name: ra8e1_esc_get_pwm_dev
+ *
+ * Description:
+ *   Get PWM lower half device for specified ESC
+ *
+ * Input Parameters:
+ *   esc_index - ESC index (0-3)
+ *
+ * Returned Value:
+ *   PWM device pointer on success, NULL on failure.
+ *
+ ****************************************************************************/
+
+static struct pwm_lowerhalf_s *ra8e1_esc_get_pwm_dev(int esc_index)
+{
+  if (esc_index < 0 || esc_index >= 4)
+    {
+      return NULL;
+    }
+
+  return g_pwm_esc_devs[esc_index];
+}
+
+#ifdef CONFIG_PWM_HAVE_DUTY16
+/****************************************************************************
+ * Name: ra8e1_esc_set_duty_us
+ *
+ * Description:
+ *   Set ESC PWM duty cycle using microsecond pulse width
+ *
+ * Input Parameters:
+ *   esc_index - ESC index (0-3)
+ *   pulse_us  - Pulse width in microseconds (1000-2000 for ESCs)
+ *   frequency - PWM frequency in Hz (typically 400)
+ *
+ * Returned Value:
+ *   Zero on success; negated errno on failure.
+ *
+ ****************************************************************************/
+
+static int ra8e1_esc_set_duty_us(int esc_index, uint32_t pulse_us, uint32_t frequency)
+{
+  struct pwm_lowerhalf_s *pwm;
+  struct pwm_info_s info;
+  uint32_t period_us;
+  uint32_t duty_frac;
+
+  if (esc_index < 0 || esc_index >= 4)
+    {
+      return -EINVAL;
+    }
+
+  pwm = g_pwm_esc_devs[esc_index];
+  if (!pwm)
+    {
+      return -ENODEV;
+    }
+
+  /* Calculate duty cycle as fraction of period */
+
+  period_us = 1000000 / frequency;  /* Period in microseconds */
+  duty_frac = (pulse_us * 65536) / period_us;  /* 16-bit duty fraction */
+
+  /* Prepare PWM info */
+
+  info.frequency = frequency;
+  info.duty = duty_frac;
+
+  /* Set the PWM */
+
+  return PWM_START(pwm, &info);
+}
+#endif
+
+/****************************************************************************
+ * Name: ra8e1_esc_stop_all
+ *
+ * Description:
+ *   Stop all ESC PWM outputs
+ *
+ * Returned Value:
+ *   Zero on success; negated errno on failure.
+ *
+ ****************************************************************************/
+
+static int ra8e1_esc_stop_all(void)
+{
+  int ret = OK;
+  int i;
+
+  for (i = 0; i < 4; i++)
+    {
+      if (g_pwm_esc_devs[i])
+        {
+          if (PWM_STOP(g_pwm_esc_devs[i]) < 0)
+            {
+              pwmerr("ERROR: Failed to stop ESC%d PWM\n", i + 1);
+              ret = -EIO;
+            }
+        }
+    }
+
+  return ret;
+}
 
 /****************************************************************************
  * Name: esc_pwm_open
@@ -525,7 +816,7 @@ static void process_rtt_command(const char *command)
     }
   else if (strcmp(command, "test") == 0)
     {
-      ra8e1_escs_demo_test();
+      ra8e1_pwm_escs_demo_test();
     }
   else if (strcmp(command, "stop") == 0)
     {
@@ -565,28 +856,28 @@ static void process_rtt_command(const char *command)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ra8e1_escs_demo_init
+ * Name: ra8e1_pwm_escs_demo_init
  *
  * Description:
  *   Initialize the ESCs demo
  *
  ****************************************************************************/
 
-int ra8e1_escs_demo_init(void)
+int ra8e1_pwm_escs_demo_init(void)
 {
   /* ESCs demo initialization is done within main function */
   return 0;
 }
 
 /****************************************************************************
- * Name: ra8e1_escs_demo_main
+ * Name: ra8e1_pwm_escs_demo_main
  *
  * Description:
  *   Main entry point for PWM ESC control demo
  *
  ****************************************************************************/
 
-int ra8e1_escs_demo_main(int argc, char *argv[])
+int ra8e1_pwm_escs_demo_main(int argc, char *argv[])
 {
   int ret;
   int i;
@@ -595,6 +886,14 @@ int ra8e1_escs_demo_main(int argc, char *argv[])
 
   demoprintf("\n=== RA8E1 ESC PWM Control Demo ===\n");
   demoprintf("Initializing PWM devices...\n");
+
+  /* Initialize PWM subsystem first */
+  ret = ra8e1_pwm_initialize();
+  if (ret < 0)
+    {
+      demoprintf("ERROR: Failed to initialize PWM subsystem: %d\n", ret);
+      return ret;
+    }
 
   /* Initialize RTT */
   demoprintf("RTT initialized - ready for commands\n");
@@ -697,14 +996,14 @@ int ra8e1_esc_get_status(int esc_index, struct esc_status_s *status)
 }
 
 /****************************************************************************
- * Name: ra8e1_escs_demo_test
+ * Name: ra8e1_pwm_escs_demo_test
  *
  * Description:
  *   Simple test sequence for ESC control
  *
  ****************************************************************************/
 
-int ra8e1_escs_demo_test(void)
+int ra8e1_pwm_escs_demo_test(void)
 {
   int ret;
   int i;

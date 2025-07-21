@@ -79,14 +79,24 @@ config RA8E1_SBUS_DEMO
 		Demonstrates SBUS protocol for RC communication.
 		Self-contained demo with no external app dependencies.
 
-config RA8E1_PWM_DEMO
+config RA8E1_PWM_ESCS_DEMO
 	bool "PWM ESCs Demo Application"
 	default n
-	depends on RA_PWM
+	depends on RA_GPT
+	select RA_GPT0_PWM
+	select RA_GPT2_PWM
+	select RA_GPT3_PWM
+	select RA_GPT4_PWM
+	select RA_PWM
+	select RA_PWM0
+	select RA_PWM2
+	select RA_PWM3
+	select RA_PWM4
 	---help---
 		Enable PWM ESCs demo application for FPB-RA8E1.
 		Demonstrates PWM control for electronic speed controllers.
 		Self-contained demo with no external app dependencies.
+		Automatically enables required GPT driver with PWM functionality.
 
 config RA8E1_SPI_LOOPBACK_DEMO
 	bool "SPI Loopback Demo Application"
@@ -115,7 +125,7 @@ config RA8E1_I2C_GY912_DEMO
 		Demonstrates 10DOF sensor module communication via I2C.
 		Self-contained demo with no external app dependencies.
 
-config RA8E1_I2C_SIMPLE_DEMO
+config RA8E1_I2C_TEST
 	bool "I2C Simple Demo Application"
 	default n
 	depends on RA_I2C

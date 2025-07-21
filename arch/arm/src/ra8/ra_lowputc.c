@@ -100,7 +100,7 @@
 #  elif defined(CONFIG_SCI2_SERIAL_CONSOLE)
 #    define RA_CONSOLE_BASE     R_SCI2_BASE
 #    define RA_CONSOLE_MTSP     R_MSTP_MSTPCRB_SCI2
-#    define RA_CONSOLE_BAUD     CONFIG_SCI1_BAUD
+#    define RA_CONSOLE_BAUD     CONFIG_SCI2_BAUD
 #    define RA_CONSOLE_BITS     CONFIG_SCI2_BITS
 #    define RA_CONSOLE_PARITY   CONFIG_SCI2_PARITY
 #    define RA_CONSOLE_2STOP    CONFIG_SCI2_2STOP
@@ -114,7 +114,8 @@
 #  else
 #    error "No CONFIG_UARTn_SERIAL_CONSOLE Setting"
 #  endif
-#  endif
+
+#endif /* HAVE_CONSOLE */
 
 /* Configuration ************************************************************/
 

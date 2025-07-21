@@ -28,7 +28,7 @@
 #include <nuttx/config.h>
 #include "chip.h"
 
-#if defined(CONFIG_RA8E1_FAMILY)
+#if defined(CONFIG_RA8E1_GROUP)
 #  include "hardware/ra8e1_memorymap.h"
 #else
 #  error "Unsupported RA memory map"

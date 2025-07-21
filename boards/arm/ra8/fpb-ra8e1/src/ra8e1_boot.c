@@ -35,7 +35,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ra8e1_boardinitialize
+ * Name: ra_boardinitialize
  *
  * Description:
  *   All RA8E1 architectures must provide the following entry point.  This
@@ -45,7 +45,7 @@
  *
  ****************************************************************************/
 
-void ra8e1_boardinitialize(void)
+void ra_boardinitialize(void)
 {
   /* Configure on-board LEDs if LED support has been selected. */
   board_autoled_initialize();

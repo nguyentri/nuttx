@@ -11,7 +11,8 @@ choice
 
 config ARCH_CHIP_R7FA8E1AFDCFB
    bool "R7FA8E1AFDCFB (LQFP144)"
-   select RA8E1_FAMILY
+   select RA8_FAMILY
+   select RA8E1_GROUP
    select RA_HAVE_SCI0_UART
    select RA_HAVE_SCI1_UART
    select RA_HAVE_SCI2_UART
@@ -21,6 +22,7 @@ config ARCH_CHIP_R7FA8E1AFDCFB
    select RA_HAVE_I2C0
    select RA_HAVE_I2C1
    select RA_HAVE_I2C2
+   select RA_HAVE_DMAC
    select RA_HAVE_SPI0
    select RA_HAVE_SPI1
    select RA_HAVE_SPI2
@@ -31,6 +33,14 @@ config ARCH_CHIP_R7FA8E1AFDCFB
    select RA_HAVE_OSPI
    select RA_HAVE_SSIE
    select RA_HAVE_GPT
+   select RA_HAVE_GPT0
+   select RA_HAVE_GPT1
+   select RA_HAVE_GPT2
+   select RA_HAVE_GPT3
+   select RA_HAVE_GPT4
+   select RA_HAVE_GPT5
+   select RA_HAVE_GPT6
+   select RA_HAVE_GPT7
    select RA_HAVE_AGT
    select RA_HAVE_ULPT
    select RA_HAVE_RTC
@@ -40,7 +50,8 @@ config ARCH_CHIP_R7FA8E1AFDCFB
 
 config ARCH_CHIP_R7FA8E1AFDCFP
    bool "R7FA8E1AFDCFP (LQFP100)"
-   select RA8E1_FAMILY
+   select RA8_FAMILY
+   select RA8E1_GROUP
    select RA_HAVE_SCI0_UART
    select RA_HAVE_SCI1_UART
    select RA_HAVE_SCI2_UART
@@ -49,7 +60,7 @@ config ARCH_CHIP_R7FA8E1AFDCFP
    select RA_HAVE_SCI9_UART
    select RA_HAVE_I2C0
    select RA_HAVE_I2C1
-   # No I2C2
+   select RA_HAVE_DMAC
    select RA_HAVE_SPI0
    # No SPI1, SPI2
    # No CAN0
@@ -58,6 +69,11 @@ config ARCH_CHIP_R7FA8E1AFDCFP
    select RA_HAVE_USBFS
    # No OSPI, SSIE
    select RA_HAVE_GPT
+   select RA_HAVE_GPT0
+   select RA_HAVE_GPT1
+   select RA_HAVE_GPT2
+   select RA_HAVE_GPT3
+   select RA_HAVE_GPT4
    select RA_HAVE_AGT
    select RA_HAVE_ULPT
    select RA_HAVE_RTC
@@ -67,7 +83,15 @@ config ARCH_CHIP_R7FA8E1AFDCFP
 
 endchoice
 
-config RA8E1_FAMILY
+# RA8E1 Group Configuration
+config RA8E1_GROUP
+   bool
+   default y
+   help
+     Enables the RA8E1 group of features and peripherals.
+     This is required for all RA8E1 configurations.
+
+config RA8_FAMILY
    bool
    default y
    select ARCH_CORTEXM85
@@ -92,7 +116,7 @@ config RA8E1_FAMILY
 menu "Cortex-M85 Core Features"
 config ARCH_CORTEXM85
    bool
-   default n
+   default y
    help
      Selects the Arm Cortex-M85 core.
 
@@ -140,51 +164,281 @@ config ARMV8M_HAVE_HELIUM
 
 config ARMV8M_HAVE_SECURITY
    bool
-   default n
+   default y
    help
      Armv8-M Security Extension present.
 
 config ARMV8M_HAVE_MPU
    bool
-   default n
+   default y
    help
      Memory Protection Unit present.
 
 config ARMV8M_HAVE_SMPU
    bool
-   default n
+   default y
    help
      Secure Memory Protection Unit present.
 
 config ARMV8M_HAVE_SYSTICK
    bool
-   default n
+   default y
    help
      SysTick timer present (secure and non-secure).
 
 config ARMV8M_HAVE_CORESIGHT
    bool
-   default n
+   default y
    help
      CoreSight ETM-M85 trace present.
 
 config ARCH_HAVE_CODE_FLASH
    bool
-   default n
+   default y
    help
      1 MB code flash memory.
 
 config ARCH_HAVE_DATA_FLASH
    bool
-   default n
+   default y
    help
      12 KB data flash memory.
 
 config ARCH_HAVE_SRAM
    bool
-   default n
+   default y
    help
      544 KB SRAM including 32 KB TCM.
+
+endmenu
+
+menu "MCU Clocks Configuration"
+
+choice
+   prompt "MCU Clock Source"
+   default RA_CLOCK_HOCO
+   help
+     Select the MCU clock source.
+
+config RA_CLOCK_HOCO
+   bool "HOCO (High-Speed On-Chip Oscillator)"
+
+config RA_CLOCK_MOCO
+   bool "MOCO (Medium-Speed On-Chip Oscillator)"
+
+config RA_CLOCK_LOCO
+   bool "LOCO (Low-Speed On-Chip Oscillator)"
+
+config RA_CLOCK_MAIN
+   bool "Main Oscillator (External Crystal)"
+
+config RA_CLOCK_PLL
+   bool "PLL (Phase-Locked Loop)"
+
+endchoice
+
+config RA_MCU_CLOCK_FREQUENCY
+   int "MCU Core Clock Frequency (Hz)"
+   default 200000000 if RA_CLOCK_PLL
+   default 48000000 if RA_CLOCK_HOCO
+   default 8000000 if RA_CLOCK_MOCO
+   default 32768 if RA_CLOCK_LOCO
+   default 24000000 if RA_CLOCK_MAIN
+   help
+     Set the MCU core clock frequency in Hertz.
+     RA8E1 supports up to 200MHz with PLL enabled.
+
+config RA_MCU_PLL_ENABLE
+   bool "Enable PLL"
+   default y
+   help
+     Enable or disable the PLL clock for frequency multiplication.
+     Required for maximum performance (200MHz).
+endmenu
+
+menu "Memory Configuration"
+
+config RA_HEAP_SRAM
+   bool "Use SRAM for heap"
+   default y
+   help
+     Use main SRAM for the system heap allocation.
+
+config RA_HEAP_DEBUG
+   bool "Enable heap debug output"
+   default n
+   depends on RA_HEAP_SRAM
+   help
+     Enable debug output for heap allocation and memory layout.
+
+config RA_DTCM_HEAP
+   bool "Use DTCM for heap"
+   default n
+   help
+     Use Data Tightly Coupled Memory (DTCM) for heap allocation.
+     Provides faster access but limited size.
+
+config RA_DTCM_BASE
+   hex "DTCM Base Address"
+   default 0x20000000
+   depends on RA_DTCM_HEAP
+   help
+     Base address of the DTCM memory region.
+
+config RA_DTCM_SIZE
+   int "DTCM Size (bytes)"
+   default 65536
+   depends on RA_DTCM_HEAP
+   help
+     Size of the DTCM memory region in bytes.
+
+config RA_ITCM_HEAP
+   bool "Use ITCM for heap"
+   default n
+   help
+     Use Instruction Tightly Coupled Memory (ITCM) for heap allocation.
+     Not recommended for general heap usage.
+
+config RA_ITCM_BASE
+   hex "ITCM Base Address"
+   default 0x00000000
+   depends on RA_ITCM_HEAP
+   help
+     Base address of the ITCM memory region.
+
+config RA_ITCM_SIZE
+   int "ITCM Size (bytes)"
+   default 65536
+   depends on RA_ITCM_HEAP
+   help
+     Size of the ITCM memory region in bytes.
+
+config RA_EXTERNAL_RAM_HEAP
+   bool "Use external RAM for heap"
+   default n
+   help
+     Use external RAM for heap allocation.
+     Requires external memory controller configuration.
+
+config RA_EXTERNAL_RAM_BASE
+   hex "External RAM Base Address"
+   default 0x60000000
+   depends on RA_EXTERNAL_RAM_HEAP
+   help
+     Base address of the external RAM region.
+
+config RA_EXTERNAL_RAM_SIZE
+   int "External RAM Size (bytes)"
+   default 16777216
+   depends on RA_EXTERNAL_RAM_HEAP
+   help
+     Size of the external RAM region in bytes.
+
+config RA_STACK_GUARD
+   bool "Enable stack guard"
+   default n
+   help
+     Enable stack guard to detect stack overflow.
+     Reserves memory area to catch stack overflows.
+
+config RA_STACK_GUARD_SIZE
+   int "Stack guard size (bytes)"
+   default 1024
+   depends on RA_STACK_GUARD
+   help
+     Size of the stack guard area in bytes.
+
+config RA_HEAP_ALIGNMENT
+   int "Heap alignment (bytes)"
+   default 8
+   help
+     Memory alignment requirement for heap allocations.
+     Must be a power of 2.
+
+config RA_SRAM_BASE
+   hex "SRAM Base Address"
+   default 0x20000000
+   help
+     Base address of the main SRAM memory region.
+
+endmenu
+
+menu "Timer Configuration"
+
+config RA_SYSTICK_GPT
+   bool "Use GPT for system tick"
+   default n
+   help
+     Use GPT (General Purpose Timer) instead of SysTick for system timing.
+     Provides more accurate timing for some applications.
+
+config RA_PCLKD_FREQUENCY
+   int "PCLKD Frequency for timers (Hz)"
+   default 120000000
+   help
+     Peripheral clock D frequency used for GPT timers.
+     Typically same as PCLKD_FREQUENCY but can be overridden.
+
+endmenu
+
+menu "RA8 Flash Configuration"
+
+config RA_FLASH
+    bool "Enable RA8 Flash Support"
+    default n
+    select MTD
+    ---help---
+        Enable support for RA8 internal flash memory.
+
+if RA_FLASH
+
+config RA_CODE_FLASH
+    bool "Enable Code Flash Support"
+    default n
+    ---help---
+        Enable support for RA8 code flash memory.
+        Supports dual bank operation for FOTA.
+
+config RA_DATA_FLASH
+    bool "Enable Data Flash Support"
+    default n
+    ---help---
+        Enable support for RA8 data flash memory.
+        Suitable for configuration storage and small data.
+
+config RA_FLASH_DUAL_BANK
+    bool "Enable Dual Bank Support"
+    default n
+    depends on RA_CODE_FLASH
+    ---help---
+        Enable dual bank support for code flash.
+        Required for Firmware Over The Air (FOTA) updates.
+
+config RA_FLASH_BANK_SWAP
+    bool "Enable Bank Swap Support"
+    default n
+    depends on RA_FLASH_DUAL_BANK
+    ---help---
+        Enable bank swap functionality for safe firmware updates.
+
+config RA_FLASH_WRITE_PROTECTION
+    bool "Enable write protection features"
+    default n
+    depends on RA_FLASH
+    help
+      Enable flash write protection and security features.
+      Prevents accidental flash corruption.
+
+config RA_FLASH_ERROR_CORRECTION
+    bool "Enable ECC support"
+    default n
+    depends on RA_CODE_FLASH
+    help
+      Enable Error Correction Code (ECC) for flash memory.
+      Improves data integrity and reliability.
+
+endif # RA_FLASH
+
 endmenu
 
 menu "SCI UARTs"
@@ -213,34 +467,325 @@ config RA_HAVE_SCI9_UART
    default n
 
 config RA_SCI0_UART
-   bool "SCI0 UART"
-   default n
-   depends on RA_HAVE_SCI0_UART
+	bool "SCI0 UART support"
+	default n
+	depends on RA_HAVE_SCI0_UART
+	select SCI0_SERIALDRIVER
+	---help---
+		Enable support for SCI0 UART peripheral.
 
 config RA_SCI1_UART
-   bool "SCI1 UART"
-   default n
-   depends on RA_HAVE_SCI1_UART
+	bool "SCI1 UART support"
+	default n
+	depends on RA_HAVE_SCI1_UART
+	select SCI1_SERIALDRIVER
+	---help---
+		Enable support for SCI1 UART peripheral.
 
 config RA_SCI2_UART
-   bool "SCI2 UART"
-   default n
-   depends on RA_HAVE_SCI2_UART
+	bool "SCI2 UART support"
+	default n
+	depends on RA_HAVE_SCI2_UART
+	select SCI2_SERIALDRIVER
+	---help---
+		Enable support for SCI2 UART peripheral.
 
 config RA_SCI3_UART
-   bool "SCI3 UART"
-   default n
-   depends on RA_HAVE_SCI3_UART
+	bool "SCI3 UART support"
+	default n
+	depends on RA_HAVE_SCI3_UART
+	select SCI3_SERIALDRIVER
+	---help---
+		Enable support for SCI3 UART peripheral.
 
 config RA_SCI4_UART
-   bool "SCI4 UART"
-   default n
-   depends on RA_HAVE_SCI4_UART
+	bool "SCI4 UART support"
+	default n
+	depends on RA_HAVE_SCI4_UART
+	select SCI4_SERIALDRIVER
+	---help---
+		Enable support for SCI4 UART peripheral.
 
 config RA_SCI9_UART
-   bool "SCI9 UART"
+	bool "SCI9 UART support"
+	default n
+	depends on RA_HAVE_SCI9_UART
+	select SCI9_SERIALDRIVER
+	---help---
+		Enable support for SCI9 UART peripheral.
+
+# Baud rate configuration for SCI UARTs
+config RA_SCI0_BAUDRATE
+   int "SCI0 Baud Rate (bps)"
+   default 115200
+   depends on RA_SCI0_UART
+   help
+     Set the baud rate for SCI0. Valid ranges depend on hardware limits.
+
+config RA_SCI1_BAUDRATE
+   int "SCI1 Baud Rate (bps)"
+   default 115200
+   depends on RA_SCI1_UART
+   help
+     Set the baud rate for SCI1.
+
+config RA_SCI2_BAUDRATE
+   int "SCI2 Baud Rate (bps)"
+   default 115200
+   depends on RA_SCI2_UART
+   help
+     Set the baud rate for SCI2.
+
+config RA_SCI3_BAUDRATE
+   int "SCI3 Baud Rate (bps)"
+   default 115200
+   depends on RA_SCI3_UART
+   help
+     Set the baud rate for SCI3.
+
+config RA_SCI4_BAUDRATE
+   int "SCI4 Baud Rate (bps)"
+   default 115200
+   depends on RA_SCI4_UART
+   help
+     Set the baud rate for SCI4.
+
+config RA_SCI9_BAUDRATE
+   int "SCI9 Baud Rate (bps)"
+   default 115200
+   depends on RA_SCI9_UART
+   help
+     Set the baud rate for SCI9.
+
+# Buffer sizes for SCI UARTs
+config RA_SCI0_RXBUFSIZE
+   int "SCI0 receive buffer size"
+   default 256
+   depends on RA_SCI0_UART
+
+config RA_SCI0_TXBUFSIZE
+   int "SCI0 transmit buffer size"
+   default 256
+   depends on RA_SCI0_UART
+
+config RA_SCI1_RXBUFSIZE
+   int "SCI1 receive buffer size"
+   default 256
+   depends on RA_SCI1_UART
+
+config RA_SCI1_TXBUFSIZE
+   int "SCI1 transmit buffer size"
+   default 256
+   depends on RA_SCI1_UART
+
+config RA_SCI2_RXBUFSIZE
+   int "SCI2 receive buffer size"
+   default 256
+   depends on RA_SCI2_UART
+
+config RA_SCI2_TXBUFSIZE
+   int "SCI2 transmit buffer size"
+   default 256
+   depends on RA_SCI2_UART
+
+config RA_SCI3_RXBUFSIZE
+   int "SCI3 receive buffer size"
+   default 256
+   depends on RA_SCI3_UART
+
+config RA_SCI3_TXBUFSIZE
+   int "SCI3 transmit buffer size"
+   default 256
+   depends on RA_SCI3_UART
+
+config RA_SCI4_RXBUFSIZE
+   int "SCI4 receive buffer size"
+   default 256
+   depends on RA_SCI4_UART
+
+config RA_SCI4_TXBUFSIZE
+   int "SCI4 transmit buffer size"
+   default 256
+   depends on RA_SCI4_UART
+
+config RA_SCI9_RXBUFSIZE
+   int "SCI9 receive buffer size"
+   default 256
+   depends on RA_SCI9_UART
+
+config RA_SCI9_TXBUFSIZE
+   int "SCI9 transmit buffer size"
+   default 256
+   depends on RA_SCI9_UART
+
+# Advanced SCI UART Features
+config RA_SCI_UART_FLOWCONTROL
+   bool "Enable SCI UART flow control support"
    default n
-   depends on RA_HAVE_SCI9_UART
+   depends on RA_SCI0_UART || RA_SCI1_UART || RA_SCI2_UART || RA_SCI3_UART || RA_SCI4_UART || RA_SCI9_UART
+   help
+     Enable hardware flow control (RTS/CTS) support for SCI UARTs.
+     Not all SCI channels support flow control - check RA8E1 datasheet.
+
+config RA_SCI_UART_RS485
+   bool "Enable SCI UART RS485 support"
+   default n
+   depends on RA_SCI0_UART || RA_SCI1_UART || RA_SCI2_UART || RA_SCI3_UART || RA_SCI4_UART || RA_SCI9_UART
+   help
+     Enable RS485 transceiver control (DE signal) for SCI UARTs.
+     Useful for half-duplex communication protocols.
+
+config RA_SCI_UART_BAUDRATE_MODULATION
+   bool "Enable SCI UART baud rate modulation"
+   default y
+   depends on RA_SCI0_UART || RA_SCI1_UART || RA_SCI2_UART || RA_SCI3_UART || RA_SCI4_UART || RA_SCI9_UART
+   help
+     Enable baud rate modulation for more accurate baud rates.
+     Reduces baud rate error for better communication reliability.
+endmenu
+
+menu "RA8 UART+DMA Driver"
+comment "Enhanced UART driver with DMA support for specialized applications"
+
+config RA_SCI_UART
+   bool "Enable RA8 SCI UART+DMA driver"
+   default n
+   help
+     Enable the enhanced RA8 SCI UART driver with DMA support.
+     This driver provides specialized features for GPS, SBUS, and other protocols.
+     Based on FSP reference implementations for optimal performance.
+
+if RA_SCI_UART
+
+config RA_UART2_SBUS
+   bool "UART2 for SBUS RC receiver"
+   default n
+   help
+     Configure UART2 for SBUS RC receiver input with DMA support.
+     SBUS protocol: 100000 baud, 8E2, inverted signal.
+     Pin configuration: P502 (RXD), P501 (TXD).
+
+config RA_UART3_GPS
+   bool "UART3 for GPS module"
+   default n
+   help
+     Configure UART3 for GPS module communication with DMA support.
+     Supports NMEA protocol parsing at 9600 baud, 8N1.
+     Pin configuration: P201 (RXD), P200 (TXD).
+
+config RA_UART2_RX_BUFFER_SIZE
+   int "UART2 receive buffer size"
+   default 32
+   range 16 1024
+   depends on RA_UART2_SBUS
+   help
+     Size of the UART2 receive buffer for SBUS data.
+     SBUS frames are 25 bytes, so 32 bytes provides adequate buffering.
+     Must be power of 2 for optimal DMA performance.
+
+config RA_UART3_RX_BUFFER_SIZE
+   int "UART3 receive buffer size"
+   default 512
+   range 64 2048
+   depends on RA_UART3_GPS
+   help
+     Size of the UART3 receive buffer for GPS NMEA sentences.
+     NMEA sentences can be up to 82 characters, buffer allows multiple sentences.
+     Larger buffer reduces risk of data loss during processing.
+
+config RA_UART3_TX_BUFFER_SIZE
+   int "UART3 transmit buffer size"
+   default 256
+   range 32 1024
+   depends on RA_UART3_GPS
+   help
+     Size of the UART3 transmit buffer for GPS commands.
+     Used for sending configuration commands to GPS module.
+
+config RA_UART_DMA_ENABLE
+   bool "Enable DMA for UART transfers"
+   default y
+   depends on RA_SCI_UART
+   select RA_DMA
+   help
+     Enable DMA transfers for improved UART performance and reduced CPU usage.
+     Uses DMAC channels 0-3 for UART2/3 RX/TX operations.
+     Based on FSP DMAC reference implementation.
+
+if RA_UART_DMA_ENABLE
+
+config RA_UART_DMA_CHANNELS
+   int "Number of DMA channels to reserve for UART"
+   default 4
+   range 2 4
+   help
+     Number of DMA channels to reserve for UART operations.
+     2 = RX only, 4 = RX+TX for both UARTs.
+
+config RA_UART_DMA_IRQ_PRIORITY
+   int "DMA interrupt priority for UART"
+   default 3
+   range 0 15
+   help
+     Interrupt priority for DMA transfers (0=highest, 15=lowest).
+     Should be lower than UART interrupt priority.
+
+endif # RA_UART_DMA_ENABLE
+
+config RA_UART_IRQ_PRIORITY
+   int "UART interrupt priority"
+   default 12
+   range 0 15
+   depends on RA_SCI_UART
+   help
+     Interrupt priority for UART RX/TX/error interrupts (0=highest, 15=lowest).
+     Based on FSP reference: priority 12 provides good responsiveness.
+
+config RA_UART_CLOCK_SOURCE
+   int "SCI clock source selection"
+   default 0
+   range 0 3
+   depends on RA_SCI_UART
+   help
+     SCI clock source selection:
+     0 = PCLKA (48MHz typical)
+     1 = PCLKB (24MHz typical)
+     2 = SCICLK (external clock)
+     3 = HOCO (20MHz typical)
+
+config RA_UART_NOISE_FILTER
+   bool "Enable digital noise filter"
+   default y
+   depends on RA_SCI_UART
+   help
+     Enable digital noise filter for improved signal integrity.
+     Recommended for SBUS and other high-speed protocols.
+
+config RA_UART_RX_BUFFER_SIZE
+   int "UART RX buffer size"
+   default 256
+   depends on RA_SCI_UART
+   help
+     Size of the UART receive buffer in bytes.
+     Larger buffers can handle burst data better.
+
+config RA_UART_TX_BUFFER_SIZE
+   int "UART TX buffer size"
+   default 256
+   depends on RA_SCI_UART
+   help
+     Size of the UART transmit buffer in bytes.
+     Larger buffers reduce blocking on transmit.
+
+config RA_UART_DEBUG
+   bool "Enable UART debug output"
+   default n
+   depends on RA_SCI_UART && DEBUG_FEATURES
+   help
+     Enable debug output for the RA8 UART+DMA driver.
+     Provides detailed information about transfers and errors.
+
+endif # RA_SCI_UART
 endmenu
 
 menu "I2C"
@@ -256,20 +801,298 @@ config RA_HAVE_I2C2
    bool
    default n
 
+config RA_I2C
+   bool
+   default n
+   select I2C
+
 config RA_I2C0
    bool "I2C0"
    default n
    depends on RA_HAVE_I2C0
+   select RA_I2C
 
 config RA_I2C1
    bool "I2C1"
    default n
    depends on RA_HAVE_I2C1
+   select RA_I2C
 
 config RA_I2C2
    bool "I2C2"
    default n
    depends on RA_HAVE_I2C2
+   select RA_I2C
+
+config RA_I2C_DTC
+   bool "Use DTC for I2C transfers"
+   default n
+   depends on RA_I2C && RA_DMAC
+   ---help---
+      Use Data Transfer Controller (DTC) for I2C transfers to improve
+      performance and reduce CPU usage.
+
+config RA_I2C_SLAVE
+   bool "I2C Slave support"
+   default n
+   depends on RA_I2C
+   select I2C_SLAVE
+   ---help---
+      Enable I2C slave mode support.
+
+config RA_I2C0_SLAVE
+   bool "I2C0 Slave"
+   default n
+   depends on RA_I2C0 && RA_I2C_SLAVE
+
+config RA_I2C1_SLAVE
+   bool "I2C1 Slave"
+   default n
+   depends on RA_I2C1 && RA_I2C_SLAVE
+
+config RA_I2C2_SLAVE
+   bool "I2C2 Slave"
+   default n
+   depends on RA_I2C2 && RA_I2C_SLAVE
+
+endmenu
+
+menu "DMAC"
+config RA_HAVE_DMAC
+   bool
+   default n
+
+config RA_DMAC
+   bool "DMAC support"
+   default n
+   depends on RA_HAVE_DMAC
+   ---help---
+      Enable Data Transfer Controller (DTC) and Direct Memory Access Controller (DMAC) support.
+
+config RA_DMA
+   bool "DMA support"
+   default n
+   depends on RA_DMAC
+   select DMA
+   ---help---
+      Enable DMA (Direct Memory Access) support using DMAC.
+      This is an alias/wrapper for DMAC functionality.
+
+config RA_DMAC_CHANNELS
+   int "Number of DMAC channels"
+   default 8
+   depends on RA_DMAC
+   ---help---
+      Number of DMAC channels to support (1-8).
+endmenu
+
+menu "ADC"
+config RA_HAVE_ADC0
+   bool
+   default n
+
+config RA_HAVE_ADC1
+   bool
+   default n
+
+config RA_ADC
+   bool "ADC support"
+   default n
+   select ADC
+   help
+     Enable Analog-to-Digital Converter (ADC) support.
+
+config RA_ADC0
+   bool "ADC0"
+   default n
+   depends on RA_HAVE_ADC0
+   select RA_ADC
+
+config RA_ADC1
+   bool "ADC1"
+   default n
+   depends on RA_HAVE_ADC1
+   select RA_ADC
+
+config RA_ADC_DTC
+   bool "Use DTC for ADC transfers"
+   default n
+   depends on RA_ADC && RA_DMAC
+   help
+     Use Data Transfer Controller (DTC) for ADC conversions to reduce CPU usage.
+
+endmenu
+
+menu "PWM and GPT"
+config RA_HAVE_GPT0
+   bool
+   default n
+
+config RA_HAVE_GPT1
+   bool
+   default n
+
+config RA_HAVE_GPT2
+   bool
+   default n
+
+config RA_HAVE_GPT3
+   bool
+   default n
+
+config RA_HAVE_GPT4
+   bool
+   default n
+
+config RA_HAVE_GPT5
+   bool
+   default n
+
+config RA_HAVE_GPT6
+   bool
+   default n
+
+config RA_HAVE_GPT7
+   bool
+   default n
+
+config RA_GPT
+   bool "GPT (General Purpose Timer) support"
+   default n
+   help
+     Enable General Purpose Timer (GPT) support.
+     Required for PWM and other timer-based functions.
+
+config RA_GPT0_PWM
+   bool "GPT0 PWM support"
+   default n
+   depends on RA_GPT && RA_HAVE_GPT0
+
+config RA_GPT1_PWM
+   bool "GPT1 PWM support"
+   default n
+   depends on RA_GPT && RA_HAVE_GPT1
+
+config RA_GPT2_PWM
+   bool "GPT2 PWM support"
+   default n
+   depends on RA_GPT && RA_HAVE_GPT2
+
+config RA_GPT3_PWM
+   bool "GPT3 PWM support"
+   default n
+   depends on RA_GPT && RA_HAVE_GPT3
+
+config RA_GPT4_PWM
+   bool "GPT4 PWM support"
+   default n
+   depends on RA_GPT && RA_HAVE_GPT4
+
+config RA_GPT5_PWM
+   bool "GPT5 PWM support"
+   default n
+   depends on RA_GPT && RA_HAVE_GPT5
+
+config RA_GPT6_PWM
+   bool "GPT6 PWM support"
+   default n
+   depends on RA_GPT && RA_HAVE_GPT6
+
+config RA_GPT7_PWM
+   bool "GPT7 PWM support"
+   default n
+   depends on RA_GPT && RA_HAVE_GPT7
+
+config RA_PWM
+   bool "PWM support"
+   default n
+   depends on RA_GPT
+   select PWM
+   help
+     Enable Pulse Width Modulation (PWM) support using GPT timers.
+
+config RA_PWM0
+   bool "PWM Channel 0"
+   default n
+   depends on RA_PWM && RA_HAVE_GPT0
+
+config RA_PWM1
+   bool "PWM Channel 1"
+   default n
+   depends on RA_PWM && RA_HAVE_GPT1
+
+config RA_PWM2
+   bool "PWM Channel 2"
+   default n
+   depends on RA_PWM && RA_HAVE_GPT2
+
+config RA_PWM3
+   bool "PWM Channel 3"
+   default n
+   depends on RA_PWM && RA_HAVE_GPT3
+
+config RA_PWM4
+   bool "PWM Channel 4"
+   default n
+   depends on RA_PWM && RA_HAVE_GPT4
+
+config RA_PWM5
+   bool "PWM Channel 5"
+   default n
+   depends on RA_PWM && RA_HAVE_GPT5
+
+config RA_PWM6
+   bool "PWM Channel 6"
+   default n
+   depends on RA_PWM && RA_HAVE_GPT6
+
+config RA_PWM7
+   bool "PWM Channel 7"
+   default n
+   depends on RA_PWM && RA_HAVE_GPT7
+
+config RA_PWM_CHANNELS
+   int "Number of PWM channels"
+   default 4
+   depends on RA_PWM
+   help
+     Number of PWM channels to support (1-8).
+
+config RA_PWM_FREQUENCY_LIMIT
+   int "PWM frequency limit (Hz)"
+   default 1000000
+   depends on RA_PWM
+   help
+     Maximum PWM frequency to prevent integer overflow.
+
+endmenu
+
+menu "ICU (Interrupt Controller Unit)"
+config RA_HAVE_ICU
+   bool
+   default n
+
+config RA_ICU
+   bool "ICU support"
+   default n
+   depends on RA_HAVE_ICU
+   help
+     Enable Interrupt Controller Unit (ICU) support for external interrupts.
+
+config RA_ICU_IRQ
+   bool "ICU IRQ support"
+   default n
+   depends on RA_ICU
+   help
+     Enable ICU external IRQ interrupt support.
+
+config RA_ICU_IRQ9
+   bool "ICU IRQ9 support"
+   default n
+   depends on RA_ICU_IRQ
+   help
+     Enable ICU IRQ9 external interrupt.
+
 endmenu
 
 menu "SPI"
@@ -285,20 +1108,42 @@ config RA_HAVE_SPI2
    bool
    default n
 
+config RA_SPI
+   bool
+   default n
+   select SPI
+
 config RA_SPI0
    bool "SPI0"
    default n
    depends on RA_HAVE_SPI0
+   select RA_SPI
 
 config RA_SPI1
    bool "SPI1"
    default n
    depends on RA_HAVE_SPI1
+   select RA_SPI
 
 config RA_SPI2
    bool "SPI2"
    default n
    depends on RA_HAVE_SPI2
+   select RA_SPI
+
+config RA_SPI_DMA
+   bool "Use DMA for SPI transfers"
+   default n
+   depends on RA_SPI && RA_DMA
+   help
+     Use DMA for improved SPI performance and reduced CPU usage.
+
+config RA_SPI_DEBUG
+   bool "Enable SPI debug output"
+   default n
+   depends on RA_SPI && DEBUG_FEATURES
+   help
+     Enable debug output for SPI driver operations.
 endmenu
 
 menu "CAN"
@@ -382,6 +1227,10 @@ config RA_GPT
    bool "General PWM Timer"
    default n
    depends on RA_HAVE_GPT
+   select PWM
+   help
+     Enable General Purpose Timer (GPT) support.
+     Provides basic timer functionality for PWM and other timing tasks.
 
 config RA_AGT
    bool "Asynchronous General Purpose Timer"
@@ -392,6 +1241,32 @@ config RA_ULPT
    bool "Ultra Low Power Timer"
    default n
    depends on RA_HAVE_ULPT
+
+config RA_PWM
+   bool "RA8 PWM Driver"
+   default n
+   depends on RA_GPT
+   select PWM
+   help
+     Enable PWM support using GPT (General PWM Timer) modules.
+
+if RA_PWM
+
+config RA_PWM_CHANNELS
+   int "Number of PWM channels"
+   default 4
+   range 1 8
+   help
+     Number of PWM channels to support (1-8).
+     RA8E1 has multiple GPT timers that can generate PWM.
+
+config RA_PWM_FREQUENCY_LIMIT
+   int "Maximum PWM frequency (Hz)"
+   default 1000000
+   help
+     Maximum allowed PWM frequency to prevent timer overflow.
+
+endif # RA_PWM
 endmenu
 
 menu "RTC"
@@ -403,4 +1278,165 @@ config RA_RTC
    bool "Real Time Clock"
    default n
    depends on RA_HAVE_RTC
+endmenu
+
+menu "ADC"
+config RA_HAVE_ADC12
+   bool
+   default n
+
+config RA_ADC12
+   bool "12-bit ADC"
+   default n
+   depends on RA_HAVE_ADC12
+   help
+     Enable 12-bit Analog-to-Digital Converter.
+
+config RA_ADC
+   bool "RA8 ADC Driver"
+   default n
+   depends on RA_ADC12
+   select ADC
+   help
+     Enable RA8 ADC driver with DTC support.
+
+config RA_ADC_DTC
+   bool "Use DTC for ADC transfers"
+   default y
+   depends on RA_ADC
+   help
+     Use Data Transfer Controller (DTC) for efficient multi-channel
+     ADC data transfers.
+
+config RA_ADC_BATTERY_MONITOR
+   bool "Battery monitoring support"
+   default n
+   depends on RA_ADC
+   help
+     Enable battery monitoring functions for voltage and current
+     measurement using ADC channels.
+
+endmenu
+
+menu "DAC"
+config RA_HAVE_DAC12
+   bool
+   default n
+
+config RA_DAC12
+   bool "12-bit DAC"
+   default n
+   depends on RA_HAVE_DAC12
+   help
+     Enable 12-bit Digital-to-Analog Converter.
+endmenu
+
+menu "Analog Comparator"
+config RA_HAVE_ACMPHS
+   bool
+   default n
+
+config RA_ACMPHS
+   bool "High-Speed Analog Comparator"
+   default n
+   depends on RA_HAVE_ACMPHS
+   help
+     Enable High-Speed Analog Comparator.
+endmenu
+
+menu "DMA"
+config RA_HAVE_DMA
+   bool
+   default y if RA8_FAMILY
+   help
+     RA8E1 family has DMA controller support.
+
+config RA_DMA
+   bool "DMA Controller"
+   default n
+   depends on RA_HAVE_DMA
+   help
+     Enable DMA (Direct Memory Access) controller support.
+     The RA8E1 has DMAC with 8 channels supporting various transfer modes.
+
+if RA_DMA
+
+config RA_DMA_CHANNELS
+   int "Number of DMA channels"
+   default 8
+   range 1 8
+   help
+     Number of available DMA channels (0-7).
+     RA8E1 has 8 DMAC channels that can be used for various peripherals.
+
+config RA_DMA_IRQ_PRIORITY
+   int "DMA interrupt priority"
+   default 3
+   range 0 15
+   help
+     Interrupt priority for DMA completion interrupts (0=highest, 15=lowest).
+     Should typically be lower than the peripheral interrupt priority.
+
+config RA_DMA_PARAM_CHECKING
+   bool "Enable DMA parameter checking"
+   default y if DEBUG_FEATURES
+   default n
+   help
+     Enable parameter checking in DMA driver functions.
+     Adds safety checks but increases code size and execution time.
+
+config RA_DMA_TRANSFER_MODES
+   bool "Support all DMA transfer modes"
+   default y
+   help
+     Enable support for all DMA transfer modes:
+     - Normal transfer
+     - Repeat transfer
+     - Block transfer
+     Based on FSP DMAC implementation.
+
+endif # RA_DMA
+endmenu
+
+menu "RA8 Advanced Drivers"
+comment "FSP-based drivers with enhanced functionality"
+
+config RA_MSTP
+   bool "Module Stop Control"
+   default y
+   help
+     Enable Module Stop Control for power management.
+     Required for proper peripheral initialization and power control.
+
+config RA_PINMAP
+   bool "Pin Mapping Support"
+   default y
+   help
+     Enable pin mapping and configuration support.
+     Required for GPIO and peripheral pin configuration.
+
+config RA_FLASH_LEGACY
+   bool "Flash Memory Driver"
+   default n
+   select MTD
+   help
+     Enable internal flash memory driver with FSP support.
+     Supports both code flash and data flash operations.
+
+if RA_FLASH_LEGACY
+
+config RA_FLASH_DUAL_BANK_LEGACY
+   bool "Dual Bank Support"
+   default n
+   help
+     Enable dual bank flash support for firmware updates.
+
+config RA_FLASH_DATA_LEGACY
+   bool "Data Flash Support"
+   default n
+   help
+     Enable data flash support for configuration storage.
+
+endif # RA_FLASH_LEGACY
+
 endmenu

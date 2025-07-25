@@ -10,6 +10,15 @@ export CC="${CROSSDEV}gcc"
 export CXX="${CROSSDEV}g++"
 export ARCH=arm
 
+# Export full path to compilers for CMake
+export CC="$TOOLCHAIN_PATH/arm-none-eabi-gcc"
+export CXX="$TOOLCHAIN_PATH/arm-none-eabi-g++"
+export ASM="$TOOLCHAIN_PATH/arm-none-eabi-gcc"
+
+export CMAKE_C_COMPILER="$CC"
+export CMAKE_CXX_COMPILER="$CXX"
+export CMAKE_ASM_COMPILER="$ASM"
+
 # Verify toolchain is accessible
 if ! command -v "${CROSSDEV}gcc" &> /dev/null; then
   echo "[!] ARM GCC toolchain not found in PATH!"

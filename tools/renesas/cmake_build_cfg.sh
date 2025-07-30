@@ -9,4 +9,11 @@ if [ -z "$TARGET" ]; then
   exit 1
 fi
 
-cmake -Bbuild/$TARGET -DBOARD_CONFIG=$TARGET . -GNinja
+# Clean previous CMake build
+rm -rf build/
+
+# Run configure.sh first
+./tools/configure.sh $TARGET || { echo "[!] configure.sh failed"; exit 1; }
+
+# Configure with CMake (always use build/ as per README)
+cmake -B build -DBOARD_CONFIG=$TARGET -GNinja

@@ -89,8 +89,7 @@ MEMORY
 }
 
 OUTPUT_ARCH(arm)
-EXTERN(_vectors)
-ENTRY(_VECTORS)
+ENTRY(__start)
 
 SECTIONS
 {
@@ -466,6 +465,43 @@ SECTIONS
         _ebss = .;
         __ram_zero$$Limit = .;
     }> RAM
+    /* Initialized thread local storage */
+    __ram_tdata$$ :
+    {
+        __ram_tdata$$Base = .;__ram_tdata$$Load = LOADADDR(__ram_tdata$$);
+        *(.tdata)
+        *(.tdata.*)
+        *(.gnu.linkonce.td.*)
+        __ram_tdata$$Limit = .;
+    }> RAM AT > FLASH
+    /* Zeroed thread local storage */
+    __ram_tbss$$ (NOLOAD) :
+    {
+        __ram_tbss$$Base = .;
+        *(.tbss)
+        *(.tbss.*)
+        *(.gnu.linkonce.tb.*)
+        *(.tcommon)
+        __ram_tbss$$Limit = .;
+    }> RAM
+    /* Thread Stacks */
+    __ram_thread_stack$$ ALIGN(.,8) (NOLOAD) :
+    {
+        __ram_thread_stack$$Base = .;
+        KEEP(*(.stack?*))
+        __ram_thread_stack$$Limit = .;
+    }> RAM
+    .ram.endof ALIGN(.,8192) :
+    {
+        __ddsc_RAM_END = .;
+
+    }> RAM
+    .ram.flat_nsc ALIGN(.,8192) :
+    {
+        __sau_ddsc_RAM_NSC = .;
+
+    }> RAM
+
     __flash_readonly$$ :
     {
         __flash_readonly$$Base = .;
@@ -484,7 +520,7 @@ SECTIONS
         *(.gcc_except_table)
         *(.gnu.linkonce.r.*)
         *(.rodata .rodata.*)
-        /* KEEP(*(.rom_registers*)) */
+        KEEP(*(.rom_registers*))
         KEEP(*(.mcuboot_sce9_key))
         KEEP(*(.version))
         _etext = .;

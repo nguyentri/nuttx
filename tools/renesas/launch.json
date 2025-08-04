@@ -1,0 +1,207 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Debug RA8E1 - JLink_V850",
+        "type": "cortex-debug",
+        "request": "launch",
+        "cwd": "${workspaceFolder}",
+        "executable": "d:/00_sst_non_auto/05_fpb_ra8e1_update/sci_uart/sci_uart_fpb_ra8e1_ep/e2studio/Debug/sci_uart_fpb_ra8e1_ep.elf",
+        "armToolchainPath": "C:/UserSoftware/arm-toolchain/arm-gnu-toolchain-13.2.Rel1/bin",
+        "servertype": "jlink",
+        "serverpath": "C:/Users/tringuyen/SEGGER/JLink_V850/JLinkGDBServerCL.exe",
+        "serverArgs": [
+          "-device", "R7FA8E1AF",
+          "-if", "SWD",
+          "-speed", "4000",
+          "-port", "50000",
+          "-select", "USB",
+          "-timeout", "30000",
+          "-singlerun",
+          "-nogui",
+          "-strict",
+          "-jlinkscriptfile", "${workspaceFolder}/ra8e1_config.jlink",
+          "-log", "${workspaceFolder}/JLinkLog_vscode.log"
+        ],
+        "serialNumber": "1080979173",
+        "device": "R7FA8E1AF",
+        "interface": "swd",
+        "showDevDebugOutput": "parsed",
+        "runToEntryPoint": "__start",
+        "overrideLaunchCommands": [
+          "monitor reset",
+          "monitor halt",
+          "monitor memU32 0x40047400 = 0x00000002",
+          "monitor memU32 0x40047404 = 0x00000000",
+          "monitor memU32 0x0300A100 = 0xFFFFFFFF",
+          "monitor memU32 0x0300A104 = 0xFFFFFFFF",
+          "monitor memU32 0x0300A200 = 0xFFF5FFFD",
+          "monitor memU32 0x0300A280 = 0x00000000",
+          "load",
+          "monitor reset halt",
+          "continue"
+        ],
+        "preLaunchCommands": [
+          "set mem inaccessible-by-default off",
+          "set architecture arm",
+          "set endian little"
+        ],
+        "postLaunchCommands": [
+          "monitor speed 4000",
+          "monitor endian little"
+        ],
+        "svdFile": "${workspaceFolder}/R7FA8E1AF.svd",
+        "rttConfig": {
+          "enabled": false
+        },
+        "liveWatch": {
+          "enabled": false
+        }
+      },
+      {
+        "name": "Debug RA8E1 - e2studio Server",
+        "type": "cortex-debug",
+        "request": "launch",
+        "cwd": "${workspaceFolder}",
+        "executable": "d:/00_sst_non_auto/05_fpb_ra8e1_update/sci_uart/sci_uart_fpb_ra8e1_ep/e2studio/Debug/sci_uart_fpb_ra8e1_ep.elf",
+        "armToolchainPath": "C:/UserSoftware/arm-toolchain/arm-gnu-toolchain-13.2.Rel1/bin",
+        "servertype": "external",
+        "showDevDebugOutput": "parsed",
+        "runToEntryPoint": "__start",
+        "overrideLaunchCommands": [
+          "monitor reset",
+          "monitor reset halt",
+          "load",
+          "continue"
+        ],
+        "preLaunchCommands": [
+          "set mem inaccessible-by-default off",
+          "set architecture arm",
+          "set endian little"
+        ],
+        "postLaunchCommands": [
+          "monitor speed 4000",
+          "monitor endian little"
+        ],
+        "svdFile": "${workspaceFolder}/R7FA8E1AF.svd",
+        "rttConfig": {
+          "enabled": false
+        },
+        "liveWatch": {
+          "enabled": false
+        }
+      },
+      {
+        "name": "Debug RA8E1 - e2studio Native Server",
+        "type": "cortex-debug",
+        "request": "launch",
+        "cwd": "${workspaceFolder}",
+        "executable": "d:/00_sst_non_auto/05_fpb_ra8e1_update/sci_uart/sci_uart_fpb_ra8e1_ep/e2studio/Debug/sci_uart_fpb_ra8e1_ep.elf",
+        "armToolchainPath": "C:/UserSoftware/arm-toolchain/arm-gnu-toolchain-13.2.Rel1/bin",
+        "servertype": "external",
+        "serverpath": "C:/Users/nguyentri/.eclipse/com.renesas.platform_170476184/DebugComp/RA/e2-server-gdb",
+        "serverArgs": [
+          "-g", "SEGGERJLINKARM",
+          "-t", "R7FA8E1AF",
+          "-uConnectionTimeout=", "30",
+          "-uSelect=", "USB",
+          "-uJLinkSetting=", "${workspaceFolder}/ra8e1_config.jlink",
+          "-uJLinkLog=", "${workspaceFolder}/JLinkLog_e2studio.log",
+          "-uLowPower=", "0",
+          "-uInteface=", "SWD",
+          "-uIfSpeed=", "4000",
+          "-uResetBeginConnection=", "1",
+          "-uNoReset=", "1",
+          "-uResetBefDownload=", "1",
+          "-uResetCon=", "1",
+          "-uReleaseCM3=", "0",
+          "-uDisconnectionMode=", "2",
+          "-uSWOcoreClock=", "0",
+          "-uEnableSciBoot=", "1",
+          "-uAuthLevel=", "0",
+          "-uresetOnReload=", "1",
+          "-n", "0",
+          "-uFlashBp=", "1",
+          "-uSimulation=", "0",
+          "-ueraseRomOnDownload=", "0",
+          "-ueraseDataRomOnDownload=", "0",
+          "-uOSRestriction=", "0",
+          "-uAllowCachingFlash=", "0",
+          "-uCPUFrequency=", "0",
+          "-uCECycle=", "1",
+          "-uResetBehavior=", "Reset",
+          "-uMemRegion=", "0x22060000:0x80000:RAM:s",
+          "-uMemRegion=", "0x02000000:0x100000:FLASH:s",
+          "-uMemRegion=", "0x27000000:0x3000:DATA_FLASH:s",
+          "-uMemRegion=", "0x80000000:0x10000000:OSPI0_CS0:s",
+          "-uMemRegion=", "0x90000000:0x10000000:OSPI0_CS1:s",
+          "-uMemRegion=", "0x0300A100:0x4:OPTION_SETTING_OFS0:s",
+          "-uMemRegion=", "0x0300A104:0x4:OPTION_SETTING_OFS2:s",
+          "-uMemRegion=", "0x0300A110:0x4:OPTION_SETTING_DUALSEL:s",
+          "-uMemRegion=", "0x1300A180:0x4:OPTION_SETTING_OFS1:s",
+          "-uMemRegion=", "0x1300A190:0x4:OPTION_SETTING_BANKSEL:s",
+          "-uMemRegion=", "0x1300A1C0:0x10:OPTION_SETTING_BPS:s",
+          "-uMemRegion=", "0x1300A1E0:0x10:OPTION_SETTING_PBPS:s",
+          "-uMemRegion=", "0x0300A200:0x4:OPTION_SETTING_OFS1_SEC:s",
+          "-uMemRegion=", "0x0300A210:0x4:OPTION_SETTING_BANKSEL_SEC:s",
+          "-uMemRegion=", "0x0300A240:0x10:OPTION_SETTING_BPS_SEC:s",
+          "-uMemRegion=", "0x0300A260:0x10:OPTION_SETTING_PBPS_SEC:s",
+          "-uMemRegion=", "0x0300A280:0x4:OPTION_SETTING_OFS1_SEL:s",
+          "-uMemRegion=", "0x0300A290:0x4:OPTION_SETTING_BANKSEL_SEL:s",
+          "-uMemRegion=", "0x0300A2C0:0x10:OPTION_SETTING_BPS_SEL:s",
+          "-uMemRegion=", "0x00000000:0x4000:ITCM:s",
+          "-uMemRegion=", "0x20000000:0x4000:DTCM:s",
+          "-uTz=", "SSD",
+          "-l",
+          "-uCore=", "SINGLE_CORE|enabled|1|main",
+          "-uSyncMode=", "async",
+          "-uFirstGDB=", "main",
+          "--english",
+          "--gdbVersion=", "12.1"
+        ],
+        "showDevDebugOutput": "parsed",
+        "runToEntryPoint": "__start",
+        "overrideLaunchCommands": [
+          "monitor reset",
+          "monitor reset halt",
+          "load",
+          "continue"
+        ],
+        "preLaunchCommands": [
+          "set mem inaccessible-by-default off",
+          "set architecture arm",
+          "set endian little"
+        ],
+        "postLaunchCommands": [
+          "monitor speed 4000",
+          "monitor endian little"
+        ],
+        "svdFile": "${workspaceFolder}/R7FA8E1AF.svd",
+        "rttConfig": {
+          "enabled": false
+        },
+        "liveWatch": {
+          "enabled": false
+        }
+      },
+      {
+        "name": "C/C++ Runner: Debug Session",
+        "type": "cppdbg",
+        "request": "launch",
+        "args": [],
+        "stopAtEntry": false,
+        "externalConsole": true,
+        "cwd": "d:/00_sst_non_auto/05_fpb_ra8e1_update/sci_uart/sci_uart_fpb_ra8e1_ep/e2studio/src",
+        "program": "d:/00_sst_non_auto/05_fpb_ra8e1_update/sci_uart/sci_uart_fpb_ra8e1_ep/e2studio/src/build/Debug/outDebug",
+        "MIMode": "gdb",
+        "miDebuggerPath": "gdb",
+        "setupCommands": [
+          {
+            "description": "Enable pretty-printing for gdb",
+            "text": "-enable-pretty-printing",
+            "ignoreFailures": true
+          }
+        ]
+      }
+    ]
+}

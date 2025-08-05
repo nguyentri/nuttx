@@ -26,11 +26,123 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <stdint.h>
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+/* Compiler-specific macros */
+#if defined(__ARMCC_VERSION)
+  #define RA_UNINIT_SECTION_PREFIX         ".bss"
+  #define RA_DONT_REMOVE                   __attribute__((used))
+  #define RA_FORCE_INLINE                  __attribute__((always_inline))
+#elif defined(__GNUC__)
+  #define RA_UNINIT_SECTION_PREFIX
+  #define RA_DONT_REMOVE                   __attribute__((used))
+  #define RA_FORCE_INLINE                  __attribute__((always_inline))
+#elif defined(__ICCARM__)
+  #define RA_UNINIT_SECTION_PREFIX
+  #define RA_DONT_REMOVE                   __root
+  #define RA_FORCE_INLINE                  _Pragma("inline=forced")
+#endif
+
+/* Linker section macros */
+#define RA_PLACE_IN_SECTION(x)    __attribute__((section(x))) __attribute__((__used__))
+#define RA_ALIGN_VARIABLE(x)      __attribute__((aligned(x)))
+
+/* Stack and heap alignment */
+#define RA_STACK_ALIGNMENT        (8)
+
+/* TrustZone build configuration macros */
+#ifdef CONFIG_RA_TZ_SECURE_BUILD
+#  define RA_TZ_SECURE_BUILD 1
+#else
+#  define RA_TZ_SECURE_BUILD 0
+#endif
+
+#ifdef CONFIG_RA_TZ_NONSECURE_BUILD
+#  define RA_TZ_NONSECURE_BUILD 1
+#else
+#  define RA_TZ_NONSECURE_BUILD 0
+#endif
+
+/* Option setting register definitions */
+#define RA_OFS1_HOCOFRQ_OFFSET    (9UL)
+
+/* IWDT configuration based on Kconfig */
+#ifdef CONFIG_RA_IWDT_ENABLE
+#  define RA_OFS_IWDT_START       (1 << 1)  /* Auto-start mode */
+#  define RA_OFS_IWDT_TIMEOUT     (CONFIG_RA_IWDT_TIMEOUT << 2)
+#  define RA_OFS_IWDT_CLK_DIV     (CONFIG_RA_IWDT_CLK_DIV << 4)
+#  define RA_OFS_IWDT_WINDOW_END  (CONFIG_RA_IWDT_WINDOW_END << 8)
+#  define RA_OFS_IWDT_WINDOW_START (CONFIG_RA_IWDT_WINDOW_START << 10)
+#  define RA_OFS_IWDT_RESET_IRQ   (CONFIG_RA_IWDT_RESET_IRQ << 12)
+#  define RA_OFS_IWDT_STOP_CTRL   (CONFIG_RA_IWDT_STOP_CTRL << 14)
+#else
+#  define RA_OFS_IWDT_START       (0 << 1)  /* Register-start mode */
+#  define RA_OFS_IWDT_TIMEOUT     (3 << 2)  /* 2048 cycles */
+#  define RA_OFS_IWDT_CLK_DIV     (15 << 4) /* Divide by 128 */
+#  define RA_OFS_IWDT_WINDOW_END  (3 << 8)  /* 0% (no window) */
+#  define RA_OFS_IWDT_WINDOW_START (3 << 10) /* 100% (no window) */
+#  define RA_OFS_IWDT_RESET_IRQ   (1 << 12) /* Reset enabled */
+#  define RA_OFS_IWDT_STOP_CTRL   (1 << 14) /* Stop in low power modes */
+#endif
+
+/* WDT configuration based on Kconfig */
+#ifdef CONFIG_RA_WDT_ENABLE
+#  define RA_OFS_WDT_START        (1 << 17) /* Auto-start mode */
+#  define RA_OFS_WDT_TIMEOUT      (CONFIG_RA_WDT_TIMEOUT << 18)
+#  define RA_OFS_WDT_CLK_DIV      (CONFIG_RA_WDT_CLK_DIV << 20)
+#  define RA_OFS_WDT_WINDOW_END   (CONFIG_RA_WDT_WINDOW_END << 24)
+#  define RA_OFS_WDT_WINDOW_START (CONFIG_RA_WDT_WINDOW_START << 26)
+#  define RA_OFS_WDT_RESET_IRQ    (CONFIG_RA_WDT_RESET_IRQ << 28)
+#  define RA_OFS_WDT_STOP_CTRL    (CONFIG_RA_WDT_STOP_CTRL << 30)
+#else
+#  define RA_OFS_WDT_START        (0 << 17) /* Register-start mode */
+#  define RA_OFS_WDT_TIMEOUT      (3 << 18) /* 16384 cycles */
+#  define RA_OFS_WDT_CLK_DIV      (15 << 20) /* Divide by 128 */
+#  define RA_OFS_WDT_WINDOW_END   (3 << 24) /* 0% (no window) */
+#  define RA_OFS_WDT_WINDOW_START (3 << 26) /* 100% (no window) */
+#  define RA_OFS_WDT_RESET_IRQ    (1 << 28) /* Reset enabled */
+#  define RA_OFS_WDT_STOP_CTRL    (1 << 30) /* Stop in low power modes */
+#endif
+
+/* Computed option setting values */
+#define RA_OPTION_SETTING_OFS0 (0xA001A001 | RA_OFS_IWDT_START | RA_OFS_IWDT_TIMEOUT | \
+                                RA_OFS_IWDT_CLK_DIV | RA_OFS_IWDT_WINDOW_END | RA_OFS_IWDT_WINDOW_START | \
+                                RA_OFS_IWDT_RESET_IRQ | RA_OFS_IWDT_STOP_CTRL | RA_OFS_WDT_START | \
+                                RA_OFS_WDT_TIMEOUT | RA_OFS_WDT_CLK_DIV | RA_OFS_WDT_WINDOW_END | \
+                                RA_OFS_WDT_WINDOW_START | RA_OFS_WDT_RESET_IRQ | RA_OFS_WDT_STOP_CTRL)
+
+#define RA_OPTION_SETTING_OFS2 ((1 << 0) | (0xFFFFFFFE)) /* DCDC enabled */
+
+/* OFS1_SEC based on Kconfig */
+#ifdef CONFIG_RA_HOCO_ENABLE
+#  define RA_OFS1_SEC_HOCO_FREQ  (CONFIG_RA_HOCO_FREQUENCY << RA_OFS1_HOCOFRQ_OFFSET)
+#else
+#  define RA_OFS1_SEC_HOCO_FREQ  (0)
+#endif
+
+#define RA_OPTION_SETTING_OFS1_SEC (0xFCFFF0D0 | (1 << 3) | 7 | (1 << 5) | (1 << 8) | \
+                                   (1 << 24) | (0 << 25) | RA_OFS1_SEC_HOCO_FREQ)
+
+/* OFS1_SEL for TrustZone security attribution */
+#if RA_TZ_SECURE_BUILD || RA_TZ_NONSECURE_BUILD
+#  define RA_OPTION_SETTING_OFS1_SEL (0x0F00) /* Load from secure settings */
+#else
+#  define RA_OPTION_SETTING_OFS1_SEL (0)
+#endif
 
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
 
 void ra_board_initialize(void);
+void ra_option_bytes_init(void);
+void ra_trustzone_init(void);
+void ra_clock_init(void);
+void ra_vector_table_init(void);
+void ra_ram_init(void);
 
 #endif /* __ARCH_ARM_SRC_RA_START_H */

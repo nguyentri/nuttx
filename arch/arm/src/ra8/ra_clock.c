@@ -37,65 +37,6 @@
 #include "ra_clock.h"
 #include "hardware/ra_flash.h"
 #include "hardware/ra_system.h"
-#include "hardware/ra_option_setting.h"
-
-const uint32_t option_settings[] __attribute__((section(".rom_registers")))
-__attribute__((__used__)) =
-{
-  /* Option Function Select Register 0 */
-
-  (
-  R_OFS0_RESERVED_31 | R_OFS0_WDTSTPCTL | R_OFS0_RESERVED_29 |
-  R_OFS0_WDTRSTIRQS | R_OFS0_WDTRPSS_MASK | R_OFS0_WDTRPES_MASK |
-  R_OFS0_WDTCKS_MASK | R_OFS0_WDTTOPS_MASK | R_OFS0_WDTSTRT |
-  R_OFS0_RESERVED_16_15_MASK | R_OFS0_IWDTSTPCTL | R_OFS0_RESERVED_13 |
-  R_OFS0_IWDTRSTIRQS | R_OFS0_IWDTRPSS_MASK | R_OFS0_IWDTRPES_MASK |
-  R_OFS0_IWDTCKS_MASK | R_OFS0_IWDTTOPS_MASK | R_OFS0_IWDTSTRT |
-  R_OFS0_RESERVED_0
-  ),
-
-  /* Option Function Select Register 1 */
-
-  (
-  R_OFS1_RESERVED_16_15_MASK | RA_HOCO_FREQUENCY |
-  R_OFS1_RESERVED_11_9_MASK | RA_HOCOEN | R_OFS1_RESERVED_7_6_MASK |
-  R_OFS1_VDSEL1_MASK | R_OFS1_LVDAS | R_OFS1_RESERVED_1_0_MASK),
-
-  (uint32_t)0x00fffffc,         /* Security MPU Program Counter Start Address
-                                 * Register (SECMPUPCS0) */
-  (uint32_t)0x00ffffff,         /* Security MPU Program Counter End Address
-                                 * Register (SECMPUPCE0)  */
-  (uint32_t)0x00fffffc,         /* Security MPU Program Counter Start Address
-                                 * Register (SECMPUPCS1) */
-  (uint32_t)0x00ffffff,         /* Security MPU Program Counter End Address
-                                 * Register (SECMPUPCE1)  */
-  (uint32_t)0x00fffffc,         /* Security MPU Region 0 Start Address
-                                 * Register (SECMPUS0) */
-  (uint32_t)0x00ffffff,         /* Security MPU Region 0 END Address Register
-                                 * (SECMPUE0) */
-  (uint32_t)0x200ffffc,         /* Security MPU Region 0 Start Address
-                                 * Register (SECMPUS1) */
-  (uint32_t)0x200fffff,         /* Security MPU Region 0 END Address Register
-                                 * (SECMPUE1) */
-  (uint32_t)0x407ffffc,         /* Security MPU Region 0 Start Address
-                                 * Register (SECMPUS2) */
-  (uint32_t)0x407fffff,         /* Security MPU Region 0 END Address Register
-                                 * (SECMPUE2) */
-  (uint32_t)0x40dffffc,         /* Security MPU Region 0 Start Address
-                                 * Register (SECMPUS3) */
-  (uint32_t)0x40dfffff,         /* Security MPU Region 0 END Address Register
-                                 * (SECMPUE3) */
-  (uint32_t)0xffffffff,         /* Security MPU Access Control Register
-                                 * (SECMPUAC) */
-};
-
-/** ID code definitions defined here. */
-
-static const uint32_t g_bsp_id_codes[] __attribute__((section(".id_code")))
-__attribute__((__used__)) =
-{
-  IDCODE1, IDCODE2, IDCODE3, IDCODE4
-};
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -103,10 +44,10 @@ __attribute__((__used__)) =
 
 /* Key code for writing PRCR register. */
 
-#define BSP_PRV_PRCR_KEY            (0xA500U)
-#define BSP_PRV_PRCR_PRC1_UNLOCK    ((BSP_PRV_PRCR_KEY) | 0x2U)
-#define BSP_PRV_PRCR_UNLOCK         ((BSP_PRV_PRCR_KEY) | 0x3U)
-#define BSP_PRV_PRCR_LOCK           ((BSP_PRV_PRCR_KEY) | 0x0U)
+#define RA_PRCR_KEY            (0xA500U)
+#define RA_PRCR_PRC1_UNLOCK    ((RA_PRCR_KEY) | 0x2U)
+#define RA_PRCR_UNLOCK         ((RA_PRCR_KEY) | 0x3U)
+#define RA_PRCR_LOCK           ((RA_PRCR_KEY) | 0x0U)
 
 /****************************************************************************
  * Public Data
@@ -139,7 +80,7 @@ void ra_clock(void)
   /* FSP-based clock configuration sequence */
   
   /* Step 1: Unlock system registers */
-  putreg16((BSP_PRV_PRCR_KEY | R_SYSTEM_PRCR_PRC0 | R_SYSTEM_PRCR_PRC1),
+  putreg16((RA_PRCR_KEY | R_SYSTEM_PRCR_PRC0 | R_SYSTEM_PRCR_PRC1),
            R_SYSTEM_PRCR);
 
   /* Step 2: Configure VBATT Control - FSP requirement */
@@ -210,7 +151,7 @@ void ra_clock(void)
 #endif
 
   /* Step 11: Lock system registers */
-  putreg16(BSP_PRV_PRCR_LOCK, R_SYSTEM_PRCR);
+  putreg16(RA_PRCR_LOCK, R_SYSTEM_PRCR);
 }
 
 /****************************************************************************

@@ -1420,3 +1420,190 @@ config RA_FLASH_DATA_LEGACY
 endif # RA_FLASH_LEGACY
 
 endmenu
+
+menu "RA8 TrustZone Configuration"
+
+config RA_TZ_SECURE_BUILD
+    bool "Enable TrustZone Secure Build"
+    default n
+    help
+      Enable TrustZone secure build configuration.
+      This enables secure mode features and security attribution.
+
+config RA_TZ_NONSECURE_BUILD
+    bool "Enable TrustZone Non-Secure Build"
+    default n
+    help
+      Enable TrustZone non-secure build configuration.
+      This configures the MCU for non-secure operation.
+
+endmenu
+
+menu "RA8 Option Bytes Configuration"
+
+config RA_IWDT_ENABLE
+    bool "Enable Independent Watchdog Timer (IWDT)"
+    default n
+    help
+      Enable Independent Watchdog Timer with auto-start mode.
+      When disabled, IWDT is configured for register-start mode.
+
+if RA_IWDT_ENABLE
+
+config RA_IWDT_TIMEOUT
+    int "IWDT Timeout Period"
+    default 3
+    range 0 3
+    help
+      IWDT timeout period selection:
+      0: 128 cycles
+      1: 512 cycles  
+      2: 1024 cycles
+      3: 2048 cycles
+
+config RA_IWDT_CLK_DIV
+    int "IWDT Clock Divisor"
+    default 15
+    range 0 15
+    help
+      IWDT clock frequency division ratio.
+      15: Divide by 128 (recommended)
+
+config RA_IWDT_WINDOW_END
+    int "IWDT Window End Position"
+    default 3
+    range 0 3
+    help
+      IWDT window end position:
+      0: 75%, 1: 50%, 2: 25%, 3: 0% (no window)
+
+config RA_IWDT_WINDOW_START  
+    int "IWDT Window Start Position"
+    default 3
+    range 0 3
+    help
+      IWDT window start position:
+      0: 25%, 1: 50%, 2: 75%, 3: 100% (no window)
+
+config RA_IWDT_RESET_IRQ
+    int "IWDT Reset/Interrupt Selection"
+    default 1
+    range 0 1
+    help
+      0: Interrupt mode, 1: Reset mode (recommended)
+
+config RA_IWDT_STOP_CTRL
+    int "IWDT Stop Control"
+    default 1
+    range 0 1
+    help
+      0: Continue in low power modes, 1: Stop in low power modes
+
+endif # RA_IWDT_ENABLE
+
+config RA_WDT_ENABLE
+    bool "Enable Watchdog Timer (WDT)"
+    default n
+    help
+      Enable Watchdog Timer with auto-start mode.
+      When disabled, WDT is configured for register-start mode.
+
+if RA_WDT_ENABLE
+
+config RA_WDT_TIMEOUT
+    int "WDT Timeout Period"
+    default 3
+    range 0 3
+    help
+      WDT timeout period selection:
+      0: 1024 cycles
+      1: 4096 cycles
+      2: 8192 cycles
+      3: 16384 cycles
+
+config RA_WDT_CLK_DIV
+    int "WDT Clock Divisor"
+    default 15
+    range 0 15
+    help
+      WDT clock frequency division ratio.
+      15: Divide by 128 (recommended)
+
+config RA_WDT_WINDOW_END
+    int "WDT Window End Position"
+    default 3
+    range 0 3
+    help
+      WDT window end position:
+      0: 75%, 1: 50%, 2: 25%, 3: 0% (no window)
+
+config RA_WDT_WINDOW_START
+    int "WDT Window Start Position" 
+    default 3
+    range 0 3
+    help
+      WDT window start position:
+      0: 25%, 1: 50%, 2: 75%, 3: 100% (no window)
+
+config RA_WDT_RESET_IRQ
+    int "WDT Reset/Interrupt Selection"
+    default 1
+    range 0 1
+    help
+      0: Interrupt mode, 1: Reset mode (recommended)
+
+config RA_WDT_STOP_CTRL
+    int "WDT Stop Control"
+    default 1
+    range 0 1
+    help
+      0: Continue in low power modes, 1: Stop in low power modes
+
+endif # RA_WDT_ENABLE
+
+config RA_HOCO_ENABLE
+    bool "Enable HOCO Oscillation"
+    default n
+    help
+      Enable High-Speed On-Chip Oscillator (HOCO) after reset.
+      When disabled, HOCO is stopped after reset.
+
+if RA_HOCO_ENABLE
+
+config RA_HOCO_FREQUENCY
+    int "HOCO Frequency Selection"
+    default 2
+    range 0 5
+    help
+      HOCO frequency selection:
+      0: 24 MHz
+      2: 32 MHz  
+      4: 48 MHz
+      5: 64 MHz
+
+endif # RA_HOCO_ENABLE
+
+config RA_VOLTAGE_DETECTION_LEVEL
+    int "Voltage Detection Level"
+    default 7
+    range 0 7
+    help
+      Voltage detection 0 level selection:
+      0: 3.84V, 1: 2.82V, 2: 2.51V, 3: 1.90V, 4: 1.70V, 7: 1.60V
+
+config RA_DCDC_ENABLE
+    bool "Enable DCDC Power Supply"
+    default y
+    help
+      Enable DCDC power supply for better power efficiency.
+      Recommended for most applications.
+
+endmenu
+
+config RA_BOOTLOADED_APPLICATION
+   bool "Bootloaded Application"
+   default n
+   help
+     Enable bootloaded application support.
+     This allows the application to be loaded via a bootloader.
+     Useful for firmware updates and flexible deployment.

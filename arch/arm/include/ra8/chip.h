@@ -42,11 +42,11 @@
 /* Internal memory sizes for RA8E1 */
 #define RA8E1_CODE_FLASH_SIZE        (1024*1024)   /* 1MB Code Flash */
 #define RA8E1_DATA_FLASH_SIZE        (12*1024)     /* 12KB Data Flash */
-#define RA8E1_SRAM_SIZE              (544*1024)    /* 544KB SRAM (includes 32KB TCM) */
-#define RA8E1_TCM_SIZE               (32*1024)     /* 32KB TCM */
+#define RA8E1_SRAM_SIZE              (512*1024)    /* 512KB SRAM */
+#define RA8E1_TCM_SIZE               (32*1024)     /* 32KB SRAM TCM */
 
 #define RA_FLASH_SIZE                 RA8E1_CODE_FLASH_SIZE
-#define RA_SRAM0_SIZE                 RA8E1_SRAM_SIZE
+#define RA_SRAM0_SIZE                 RA8E1_SRAM_SIZE + RA8E1_TCM_SIZE
 
 /* Supported packages:
  * R7FA8E1AFDCFB PLQP0144KA-B (LQFP144)

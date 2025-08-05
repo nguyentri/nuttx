@@ -30,6 +30,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "chip.h"
+#include "hardware/ra_flash.h"
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/

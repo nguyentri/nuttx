@@ -39,7 +39,6 @@
 #include <nuttx/fs/ioctl.h>
 
 #include "arm_internal.h"
-#include "hardware/r_flash.h"
 #include "ra_flash.h"
 
 /****************************************************************************

@@ -63,7 +63,6 @@ SECTIONS
     {
         _stext = ABSOLUTE(.);
         *(.vectors)
-        . = _stext + 0x400;
         KEEP(*(.rom_registers*))
         *(.text .text.*)
         *(.fixup)

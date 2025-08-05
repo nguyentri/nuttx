@@ -46,6 +46,7 @@
 #  define RA_TIMER_RELOAD   ((RA_TIMER_CLOCK / CLK_TCK) - 1)
 #  define RA_GPT_CHANNEL    0
 #else
+#  include "ra_clock.h"
 #  define SYSTICK_CLOCK     (RA_ICLK_FREQUENCY)
 #  define SYSTICK_RELOAD    ((SYSTICK_CLOCK / CLK_TCK) - 1)
 #endif

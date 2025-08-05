@@ -54,6 +54,7 @@
 #include "ra_lowputc.h"
 #include "ra_icu.h"
 #include "ra_gpio.h"
+#include "ra_clock.h"
 
 /****************************************************************************
  * Pre-processor Definitions

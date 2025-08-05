@@ -371,14 +371,6 @@ config RA_SYSTICK_GPT
    help
      Use GPT (General Purpose Timer) instead of SysTick for system timing.
      Provides more accurate timing for some applications.
-
-config RA_PCLKD_FREQUENCY
-   int "PCLKD Frequency for timers (Hz)"
-   default 120000000
-   help
-     Peripheral clock D frequency used for GPT timers.
-     Typically same as PCLKD_FREQUENCY but can be overridden.
-
 endmenu
 
 menu "RA8 Flash Configuration"

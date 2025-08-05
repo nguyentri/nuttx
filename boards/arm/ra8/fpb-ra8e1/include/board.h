@@ -29,7 +29,7 @@
 
 #include <nuttx/config.h>
 
-#include "ra_gpio.h"
+/* Do not include RA8 driver header files here. */
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -56,8 +56,8 @@
 
 /* LED pin selections */
 
-#define GPIO_LED1     (gpio_pinset_t){ PORT4, PIN4, (GPIO_OUPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}  /* P404 (Green LED1) */
-#define GPIO_LED2     (gpio_pinset_t){ PORT4, PIN8, (GPIO_OUPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}  /* P408 (Green LED2) */
+#define GPIO_LED1     (gpio_pinset_t){ PORT4, PIN4, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}  /* P404 (Green LED1) */
+#define GPIO_LED2     (gpio_pinset_t){ PORT4, PIN8, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}  /* P408 (Green LED2) */
 
 #define LED_DRIVER_PATH "/dev/userleds"
 

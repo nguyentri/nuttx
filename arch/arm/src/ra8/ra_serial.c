@@ -54,6 +54,7 @@
 #include "ra_lowputc.h"
 #include "ra_icu.h"
 #include "ra_gpio.h"
+#include "ra_clock.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -555,7 +556,7 @@ static void up_sci_config(struct up_dev_s *priv)
           uint32_t  multiplier  = (n == 0) ? 2UL : 1UL;
 
           brr =
-            (((uint64_t)RA_PCKA_FREQUENCY * 100UL * multiplier) /
+            (((uint64_t)RA_ICLK_FREQUENCY * 100UL * multiplier) /
              (div_baud[i] * div_n * priv->baud)) - 100;
           reg_brr = ((brr + 50) / 100);
 
@@ -564,7 +565,7 @@ static void up_sci_config(struct up_dev_s *priv)
               continue;
             }
 
-          actual_baudrate = ((uint32_t)RA_PCKA_FREQUENCY * multiplier) /
+          actual_baudrate = ((uint32_t)RA_ICLK_FREQUENCY * multiplier) /
                             (div_baud[i] * div_n * (reg_brr + 1));
 
           error = ((int32_t)(actual_baudrate - priv->baud) * 100000) /

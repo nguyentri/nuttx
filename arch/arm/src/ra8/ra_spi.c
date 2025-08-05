@@ -48,9 +48,9 @@
 #include "ra_icu.h"
 #include "hardware/ra_spi.h"
 #include "hardware/ra_dmac.h"
-#include "hardware/ra8e1_memorymap.h"
-#include "hardware/ra8e1_icu.h"
-#include "hardware/ra8e1_mstp.h"
+#include "hardware/ra_memorymap.h"
+#include "hardware/ra_icu.h"
+#include "hardware/ra_mstp.h"
 #include "ra_spi.h"
 
 #ifdef CONFIG_RA_SPI

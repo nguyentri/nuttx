@@ -31,7 +31,7 @@
 #include "hardware/ra_memorymap.h"
 
 #if defined(CONFIG_RA8E1_GROUP)
-#  include "hardware/ra8e1_pinmap.h"
+#  include "ra8e1/ra8e1_pinmap.h"
 #else
 #  error "Unsupported RA memory map"
 #endif

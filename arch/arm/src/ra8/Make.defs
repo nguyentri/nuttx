@@ -24,6 +24,12 @@
 
 include armv8-m/Make.defs
 
+# Add RA8-specific include paths
+
+EXTRAINCDIRS += $(ARCH_SRCDIR)$(DELIM)ra8
+EXTRAINCDIRS += $(ARCH_SRCDIR)$(DELIM)ra8$(DELIM)hardware
+EXTRAINCDIRS += $(ARCH_SRCDIR)$(DELIM)ra8$(DELIM)hardware$(DELIM)ra8e1
+
 # Required RA files
 
 CHIP_CSRCS += ra_start.c

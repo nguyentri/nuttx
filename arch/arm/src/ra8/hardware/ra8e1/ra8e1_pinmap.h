@@ -122,7 +122,7 @@
 
 /* GPIO Configuration */
 
-#define GPIO_OUPUT               R_PFS_PDR
+#define GPIO_OUTPUT               R_PFS_PDR
 #define GPIO_INPUT               ~(R_PFS_PDR | 0xFFFFFFFF)
 
 #define GPIO_LOW_DRIVE          ~(R_PFS_DSCR | 0xFFFFFFFF)

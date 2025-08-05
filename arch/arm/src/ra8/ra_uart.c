@@ -44,7 +44,7 @@
 #include "chip.h"
 #include "ra_uart.h"
 #include "hardware/ra_sci.h"
-#include "hardware/ra8e1_memorymap.h"
+#include "hardware/ra_memorymap.h"
 #include "ra_gpio.h"
 
 /****************************************************************************

@@ -28,7 +28,7 @@
 #include <nuttx/config.h>
 
 #include "chip.h"
-#include "hardware/ra8e1_memorymap.h"
+#include "ra_memorymap.h"
 
 /****************************************************************************
  * Pre-processor Definitions

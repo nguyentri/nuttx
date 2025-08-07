@@ -413,19 +413,14 @@ SECTIONS
     /* ram initialized from flash */
     __ram_from_flash$$ :
     {
-        _sdata = ABSOLUTE(.);
         __ram_from_flash$$Base = .;__ram_from_flash$$Load = LOADADDR(__ram_from_flash$$);
         /* section.ram.from_flash */
         *(.ram_from_flash)
         /* section.ram.code_from_flash */
         *(.ram_code_from_flash)
-        *(.data .data.*)
-        *(.gnu.linkonce.d.*)
+        *(.data*)
         *(vtable)
-        CONSTRUCTORS
-        . = ALIGN(4);
         __ram_from_flash$$Limit = .;
-        _edata = ABSOLUTE(.);
     }> RAM AT > FLASH
     /* Non-initialized, non-cached ram */
     __ram_noinit_nocache$$ ALIGN(.,32) (NOLOAD) :
@@ -464,34 +459,57 @@ SECTIONS
         *(.ram)
         *(.bss*)
         _ebss = .;
+        PROVIDE(_ebss = .);  /* Explicitly provide _ebss symbol */
         __ram_zero$$Limit = .;
     }> RAM
+    /* Initialized thread local storage */
+    __ram_tdata$$ :
+    {
+        __ram_tdata$$Base = .;__ram_tdata$$Load = LOADADDR(__ram_tdata$$);
+        *(.tdata)
+        *(.tdata.*)
+        *(.gnu.linkonce.td.*)
+        __ram_tdata$$Limit = .;
+    }> RAM AT > FLASH
+    /* Zeroed thread local storage */
+    __ram_tbss$$ (NOLOAD) :
+    {
+        __ram_tbss$$Base = .;
+        *(.tbss)
+        *(.tbss.*)
+        *(.gnu.linkonce.tb.*)
+        *(.tcommon)
+        __ram_tbss$$Limit = .;
+    }> RAM
+    /* Thread Stacks */
+    __ram_thread_stack$$ ALIGN(.,8) (NOLOAD) :
+    {
+        __ram_thread_stack$$Base = .;
+        KEEP(*(.stack?*))
+        __ram_thread_stack$$Limit = .;
+    }> RAM
+    .ram.endof ALIGN(.,8192) :
+    {
+        __ddsc_RAM_END = .;
+
+    }> RAM
+    .ram.flat_nsc ALIGN(.,8192) :
+    {
+        __sau_ddsc_RAM_NSC = .;
+
+    }> RAM
+
     __flash_readonly$$ :
     {
         __flash_readonly$$Base = .;
         /* section.flash.readonly */
-        _stext = .;
         *(.flash)
         /* section.flash.code */
         *(.flash_code)
-        *(.text .text.*)
-        *(.fixup)
-        *(.gnu.warning)
-        *(.gnu.linkonce.t.*)
-        *(.glue_7)
-        *(.glue_7t)
-        *(.got)
-        *(.gcc_except_table)
-        *(.gnu.linkonce.r.*)
-        *(.rodata .rodata.*)
-        /* KEEP(*(.rom_registers*)) */
+        *(.text*)
+        *(.rodata*)
         KEEP(*(.mcuboot_sce9_key))
         KEEP(*(.version))
-        _etext = .;
-        _sinit = .;
-        KEEP(*(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.ctors.*)))
-        KEEP(*(.init_array .ctors))
-        _einit = .;
         __flash_readonly$$Limit = .;
     }> FLASH
     __flash_ctor$$ :
@@ -525,9 +543,11 @@ SECTIONS
     __flash_init_array$$ :
     {
         __init_array_start = .;
+        _sinit = .;  /* Define _sinit for C++ initialization */
         KEEP(*(SORT(.init_array.*)))
         KEEP(*(.init_array))
         __init_array_end = .;
+        _einit = .;  /* Define _einit for C++ initialization */
     }> FLASH
     __flash_fini_array$$ :
     {
@@ -837,4 +857,8 @@ PROVIDE( __tdata_size = SIZEOF (__ram_tdata$$));
 PROVIDE( __tbss_offset = ADDR (__ram_tbss$$) - ADDR (__ram_tdata$$));
 PROVIDE( __tbss_size = SIZEOF (__ram_tbss$$));
 PROVIDE( __arm32_tls_tcb_offset = 8);
-PROVIDE(_eronly = LOADADDR(__ram_from_flash$$));
+
+/* NuttX specific symbol definitions */
+PROVIDE( _sinit = __init_array_start );
+PROVIDE( _einit = __init_array_end );
+PROVIDE( _ebss = ADDR(__ram_zero$$) + SIZEOF(__ram_zero$$) );

@@ -55,16 +55,12 @@
 #define RA_STACK_ALIGNMENT        (8)
 
 /* TrustZone build configuration macros */
-#ifdef CONFIG_RA_TZ_SECURE_BUILD
-#  define RA_TZ_SECURE_BUILD 1
-#else
-#  define RA_TZ_SECURE_BUILD 0
+#ifndef CONFIG_RA_TZ_SECURE_BUILD 
+#  define CONFIG_RA_TZ_SECURE_BUILD 0
 #endif
 
-#ifdef CONFIG_RA_TZ_NONSECURE_BUILD
-#  define RA_TZ_NONSECURE_BUILD 1
-#else
-#  define RA_TZ_NONSECURE_BUILD 0
+#ifndef CONFIG_RA_TZ_NONSECURE_BUILD
+#  define CONFIG_RA_TZ_NONSECURE_BUILD 0
 #endif
 
 /* Option setting register definitions */
@@ -128,11 +124,73 @@
                                    (1 << 24) | (0 << 25) | RA_OFS1_SEC_HOCO_FREQ)
 
 /* OFS1_SEL for TrustZone security attribution */
-#if RA_TZ_SECURE_BUILD || RA_TZ_NONSECURE_BUILD
+#if CONFIG_RA_TZ_SECURE_BUILD || CONFIG_RA_TZ_NONSECURE_BUILD
 #  define RA_OPTION_SETTING_OFS1_SEL (0x0F00) /* Load from secure settings */
 #else
 #  define RA_OPTION_SETTING_OFS1_SEL (0)
 #endif
+
+/* option setting default values */
+#define RA_OPTION_SETTING_OFS1      (0xFFF5FFFD) /* Default OFS1 value */
+#define RA_OPTION_SETTING_DUALSEL   (0xFFFFFFFF) /* Default dual bank select */
+#define RA_OPTION_SETTING_BANKSEL   (0xFFFFFFFF) /* Default bank select */
+#define RA_OPTION_SETTING_BPS       (0xFFFFFFFF) /* Default boot protection */
+#define RA_OPTION_SETTING_PBPS      (0xFFFFFFFF) /* Default P/E boot protection */
+
+/* Secure versions of option settings (for TrustZone secure builds) */
+#define RA_OPTION_SETTING_BANKSEL_SEC  (0xFFFFFFFF)
+#define RA_OPTION_SETTING_BPS_SEC      (0xFFFFFFFF)
+#define RA_OPTION_SETTING_PBPS_SEC     (0xFFFFFFFF)
+
+/* Selection registers for TrustZone security attribution */
+#define RA_OPTION_SETTING_BANKSEL_SEL  (0x0000)
+#define RA_OPTION_SETTING_BPS_SEL      (0x0000)
+
+/* NuttX-style configuration macros - use CONFIG settings when available, else defaults */
+#ifdef CONFIG_RA_OFS0_SETTING
+#  define CONFIG_RA_OPTION_SETTING_OFS0      RA_OPTION_SETTING_OFS0
+#endif
+
+#ifdef CONFIG_RA_OFS2_SETTING
+#  define CONFIG_RA_OPTION_SETTING_OFS2      RA_OPTION_SETTING_OFS2
+#endif
+
+#ifdef CONFIG_RA_OFS1_SETTING
+#  define CONFIG_RA_OPTION_SETTING_OFS1      RA_OPTION_SETTING_OFS1
+#endif
+
+#ifdef CONFIG_RA_DUAL_BANK_SETTING
+#  define CONFIG_RA_OPTION_SETTING_DUALSEL   RA_OPTION_SETTING_DUALSEL
+#endif
+
+#ifdef CONFIG_RA_BANK_SELECT_SETTING
+#  define CONFIG_RA_OPTION_SETTING_BANKSEL   RA_OPTION_SETTING_BANKSEL
+#endif
+
+#ifdef CONFIG_RA_BOOT_PROTECT_SETTING
+#  define CONFIG_RA_OPTION_SETTING_BPS       RA_OPTION_SETTING_BPS
+#  define CONFIG_RA_OPTION_SETTING_PBPS      RA_OPTION_SETTING_PBPS
+#endif
+
+/* TrustZone secure option settings */
+#ifdef  CONFIG_RA_OFS1_SEL_SETTING
+#  define CONFIG_RA_OPTION_SETTING_OFS1_SEL     RA_OPTION_SETTING_OFS1_SEL
+#endif
+
+#ifdef CONFIG_RA_OFS1_SEC_SETTING
+# define CONFIG_RA_OPTION_SETTING_OFS1_SEC      RA_OPTION_SETTING_OFS1_SEC
+#endif
+
+#  ifdef CONFIG_RA_BANK_SELECT_SETTING
+#    define CONFIG_RA_OPTION_SETTING_BANKSEL_SEC   RA_OPTION_SETTING_BANKSEL_SEC
+#    define CONFIG_RA_OPTION_SETTING_BANKSEL_SEL   RA_OPTION_SETTING_BANKSEL_SEL
+#  endif
+
+#  ifdef CONFIG_RA_BOOT_PROTECT_SETTING
+#    define CONFIG_RA_OPTION_SETTING_BPS_SEC       RA_OPTION_SETTING_BPS_SEC
+#    define CONFIG_RA_OPTION_SETTING_PBPS_SEC      RA_OPTION_SETTING_PBPS_SEC
+#    define CONFIG_RA_OPTION_SETTING_BPS_SEL       RA_OPTION_SETTING_BPS_SEL
+#  endif
 
 /****************************************************************************
  * Public Function Prototypes
@@ -143,6 +201,6 @@ void ra_option_bytes_init(void);
 void ra_trustzone_init(void);
 void ra_clock_init(void);
 void ra_vector_table_init(void);
-void ra_ram_init(void);
+void ra_ram_init (const uint32_t external);
 
 #endif /* __ARCH_ARM_SRC_RA_START_H */

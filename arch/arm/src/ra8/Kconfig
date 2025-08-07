@@ -864,6 +864,14 @@ config RA_DMAC_CHANNELS
    depends on RA_DMAC
    ---help---
       Number of DMAC channels to support (1-8).
+
+config RA_DTC
+   bool "DTC (Data Transfer Controller)"
+   default n
+   help
+     Enable Data Transfer Controller for simple data transfers.
+     DTC provides lower overhead than DMAC for simple transfers.
+
 endmenu
 
 menu "ADC"
@@ -900,6 +908,14 @@ config RA_ADC_DTC
    depends on RA_ADC && RA_DMAC
    help
      Use Data Transfer Controller (DTC) for ADC conversions to reduce CPU usage.
+
+config RA_ADC_BATTERY_MONITOR
+   bool "Enable ADC battery monitoring"
+   default n
+   depends on RA_ADC
+   help
+     Enable ADC battery voltage monitoring functionality.
+     Provides battery level measurements through ADC channels.
 
 endmenu
 
@@ -1597,6 +1613,61 @@ config RA_DCDC_ENABLE
     help
       Enable DCDC power supply for better power efficiency.
       Recommended for most applications.
+
+config RA_OFS0_SETTING
+    bool "Enable OFS0 Option Setting"
+    default y
+    help
+      Enable Option Function Select Register 0 (OFS0) configuration.
+      This configures watchdog and security settings.
+
+config RA_OFS2_SETTING
+    bool "Enable OFS2 Option Setting"
+    default y
+    depends on RA_DCDC_ENABLE
+    help
+      Enable Option Function Select Register 2 (OFS2) configuration.
+      This configures DCDC and power settings.
+
+config RA_OFS1_SETTING
+    bool "Enable OFS1 Option Setting"
+    default  n
+    help
+      Enable Option Function Select Register 1 (OFS1) configuration.
+      This configures additional system settings.
+
+config RA_OFS1_SEL_SETTING
+    bool "Enable OFS1 Selection Setting"
+    default y
+    help
+      Option Function Select Register 1 for Security Attribution
+
+config RA_OFS1_SEC_SETTING
+    bool "Enable OFS1 Security Setting"
+    default y
+    help
+      Enable Option Function Select Register 1 security settings.
+      This configures secure/non-secure memory regions.
+
+config RA_DUAL_BANK_SETTING
+    bool "Enable Dual Bank Setting"
+    default n
+    depends on RA_FLASH_DUAL_BANK
+    help
+      Enable dual bank flash configuration settings.
+
+config RA_BANK_SELECT_SETTING
+    bool "Enable Bank Select Setting"
+    default n
+    depends on RA_FLASH_DUAL_BANK
+    help
+      Enable bank selection configuration for dual bank flash.
+
+config RA_BOOT_PROTECT_SETTING
+    bool "Enable Boot Protection Setting"
+    default n
+    help
+      Enable boot protection configuration settings.
 
 endmenu
 

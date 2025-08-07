@@ -52,67 +52,21 @@ void nx_start(void);
 
 /* Use the standard NuttX approach for heap base - will be defined in config */
 #ifndef CONFIG_IDLETHREAD_STACKSIZE
-#  define CONFIG_IDLETHREAD_STACKSIZE 1024
+#  define CONFIG_IDLETHREAD_STACKSIZE 2048
 #endif
-
-/* Define HEAP_BASE as a macro rather than computed value */
-#define HEAP_BASE_OFFSET  CONFIG_IDLETHREAD_STACKSIZE
-
-/* All BSP_ macros replaced with RA_ equivalents for consistency */
-
-/* Startup value for CCR to enable instruction cache, branch prediction and LOB extension */
-#define CCR_CACHE_ENABLE            (0x000E0201)
 
 /****************************************************************************
  * Public Data
  ****************************************************************************/
 
-const uintptr_t g_idle_topstack = (uintptr_t)&_ebss +
-                                  CONFIG_IDLETHREAD_STACKSIZE;
-/****************************************************************************
- * RA8E1 FPB Option Setting Registers
- * 
- * Configuration optimized from Renesas FSP sci_uart_fpb_ra8e1_ep reference
- * Following the exact BSP configuration for production-ready settings
- *
- * Key optimizations from Renesas reference:
- * - OFS0: Watchdog configuration based on Kconfig settings
- * - OFS2: DCDC power configuration based on Kconfig
- * - OFS1_SEC: TrustZone secure configuration 
- * - OFS1_SEL: Security attribution configuration
- * - Proper linker section placement matching FSP patterns
- * - Full TrustZone support for secure/non-secure builds
- * - Configuration driven by Kconfig instead of hardcoded BSP_CFG macros
- ****************************************************************************/
-
-/* Boot-loaded applications cannot set OFS registers (only in boot loader) */
-#if !defined(CONFIG_RA_BOOTLOADED_APPLICATION) || !CONFIG_RA_BOOTLOADED_APPLICATION
-
-/* Option Function Select Register 0 - Watchdog and Security Configuration */
-#ifdef CONFIG_RA_ENABLE_OFS0
-RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_ofs0") 
-g_ra_option_setting_ofs0[] = {RA_OPTION_SETTING_OFS0};
-#endif
-
-/* Option Function Select Register 2 - DCDC and Power Configuration */
-#ifdef CONFIG_RA_DCDC_ENABLE
-RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_ofs2") 
-g_ra_option_setting_ofs2[] = {RA_OPTION_SETTING_OFS2};
-#endif
-
-/* TrustZone Secure Configuration Registers */
-#if defined(CONFIG_RA_TZ_SECURE_BUILD) && !defined(CONFIG_RA_TZ_NONSECURE_BUILD)
-RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_ofs1_sec") 
-g_ra_option_setting_ofs1_sec[] = {RA_OPTION_SETTING_OFS1_SEC};
-#endif
-
-/* TrustZone Security Attribution Select Registers */
-#if defined(CONFIG_RA_TZ_SECURE_BUILD) && !defined(CONFIG_RA_TZ_NONSECURE_BUILD)
-RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_ofs1_sel") 
-g_ra_option_setting_ofs1_sel[] = {RA_OPTION_SETTING_OFS1_SEL};
-#endif
-
-#endif /* CONFIG_RA_BOOTLOADED_APPLICATION */
+/* The top of the idle thread stack.  This is used to initialize the
+ * initial stack pointer for the idle thread.  The idle thread stack is
+ * allocated in the .bss section, so it will be zero initialized.
+ * The idle thread stack is allocated in the .bss section, so it will be
+ * zero initialized.
+ */
+extern uint32_t __ram_thread_stack$$Limit;
+const uintptr_t g_idle_topstack = (uintptr_t)&__ram_thread_stack$$Limit + CONFIG_IDLETHREAD_STACKSIZE;
 
 /****************************************************************************
  * ID Code Definitions 
@@ -129,14 +83,6 @@ __attribute__((__used__)) =
 /***********************************************************************************************************************
  * Macro definitions
  **********************************************************************************************************************/
-/* We use RA_ prefixed macros from ra_start.h to avoid duplicate definitions */
-/* Any usage of BSP_ macros in this file should be converted to RA_ equivalents */
-
-/* BSP linker data structures - not used in NuttX but kept for FSP compatibility */
-#ifdef CONFIG_RA_LINKER_C
-/* Note: BSP linker structures are not used in NuttX implementation */
-/* They are kept for reference to Renesas FSP patterns */
-#endif /* CONFIG_RA_LINKER_C */
 
 /** ID code definitions already defined above */
 
@@ -153,48 +99,56 @@ __attribute__((__used__)) =
  * Macro definitions
  **********************************************************************************************************************/
 /* We use RA_ prefixed macros from ra_start.h to avoid duplicate definitions */
-/* Any usage of BSP_ macros in this file should be converted to RA_ equivalents */
+/* Any usage of macros in this file should be converted to RA_ equivalents */
 
 /* boot loaded applications cannot set ofs registers (only do so in the boot loader) */
 #if !defined(CONFIG_RA_BOOTLOADED_APPLICATION) || !CONFIG_RA_BOOTLOADED_APPLICATION
 
-/* Option Setting Registers - using Kconfig-driven definitions from ra_start.h */
-
-/* Basic Watchdog/Option Setting Registers */
-#if defined(CONFIG_RA_OFS0_SETTING) && !CONFIG_RA_TZ_NONSECURE_BUILD
-RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_ofs0") 
-g_ra_option_setting_ofs0[] = {RA_OPTION_SETTING_OFS0};
+/** configuration register output to sections */
+#if defined CONFIG_RA_OPTION_SETTING_OFS0 && !CONFIG_RA_TZ_NONSECURE_BUILD
+RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_ofs0") g_ra_cfg_option_setting_ofs0[] = {CONFIG_RA_OPTION_SETTING_OFS0};
 #endif
-
-#if defined(CONFIG_RA_OFS2_SETTING) && !CONFIG_RA_TZ_NONSECURE_BUILD
-RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_ofs2") 
-g_ra_option_setting_ofs2[] = {RA_OPTION_SETTING_OFS2};
+#if defined CONFIG_RA_OPTION_SETTING_OFS2 && !CONFIG_RA_TZ_NONSECURE_BUILD
+RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_ofs2") g_ra_cfg_option_setting_ofs2[] = {CONFIG_RA_OPTION_SETTING_OFS2};
 #endif
-
-/* TrustZone Secure Configuration Registers */
-#if defined(CONFIG_RA_TZ_SECURE_BUILD) && !defined(CONFIG_RA_TZ_NONSECURE_BUILD)
-RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_ofs1_sec") 
-g_ra_option_setting_ofs1_sec[] = {RA_OPTION_SETTING_OFS1_SEC};
+#if defined CONFIG_RA_OPTION_SETTING_DUALSEL && !CONFIG_RA_TZ_NONSECURE_BUILD
+RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_dualsel") g_ra_cfg_option_setting_dualsel[] = {CONFIG_RA_OPTION_SETTING_DUALSEL};
 #endif
-
-/* TrustZone Security Attribution Select Registers */
-#if defined(CONFIG_RA_TZ_SECURE_BUILD) && !defined(CONFIG_RA_TZ_NONSECURE_BUILD)
-RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_ofs1_sel") 
-g_ra_option_setting_ofs1_sel[] = {RA_OPTION_SETTING_OFS1_SEL};
+#if defined CONFIG_RA_OPTION_SETTING_OFS1
+RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_ofs1") g_ra_cfg_option_setting_ofs1[] = {CONFIG_RA_OPTION_SETTING_OFS1};
+#endif
+#if defined CONFIG_RA_OPTION_SETTING_BANKSEL
+RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_banksel") g_ra_cfg_option_setting_banksel[] = {CONFIG_RA_OPTION_SETTING_BANKSEL};
+#endif
+#if defined CONFIG_RA_OPTION_SETTING_BPS
+RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_bps") g_ra_cfg_option_setting_bps[] = {CONFIG_RA_OPTION_SETTING_BPS};
+#endif
+#if defined CONFIG_RA_OPTION_SETTING_PBPS
+RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_pbps") g_ra_cfg_option_setting_pbps[] = {CONFIG_RA_OPTION_SETTING_PBPS};
+#endif
+#if defined CONFIG_RA_OPTION_SETTING_OFS1_SEC && !CONFIG_RA_TZ_NONSECURE_BUILD
+RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_ofs1_sec") g_ra_cfg_option_setting_ofs1_sec[] = {CONFIG_RA_OPTION_SETTING_OFS1_SEC};
+#endif
+#if defined CONFIG_RA_OPTION_SETTING_BANKSEL_SEC && !CONFIG_RA_TZ_NONSECURE_BUILD
+RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_banksel_sec") g_ra_cfg_option_setting_banksel_sec[] = {CONFIG_RA_OPTION_SETTING_BANKSEL_SEC};
+#endif
+#if defined CONFIG_RA_OPTION_SETTING_BPS_SEC && !CONFIG_RA_TZ_NONSECURE_BUILD
+RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_bps_sec") g_ra_cfg_option_setting_bps_sec[] = {CONFIG_RA_OPTION_SETTING_BPS_SEC};
+#endif
+#if defined CONFIG_RA_OPTION_SETTING_PBPS_SEC && !CONFIG_RA_TZ_NONSECURE_BUILD
+RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_pbps_sec") g_ra_cfg_option_setting_pbps_sec[] = {CONFIG_RA_OPTION_SETTING_PBPS_SEC};
+#endif
+#if defined CONFIG_RA_OPTION_SETTING_OFS1_SEL && !CONFIG_RA_TZ_NONSECURE_BUILD
+RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_ofs1_sel") g_ra_cfg_option_setting_ofs1_sel[] = {CONFIG_RA_OPTION_SETTING_OFS1_SEL};
+#endif
+#if defined CONFIG_RA_OPTION_SETTING_BANKSEL_SEL && !CONFIG_RA_TZ_NONSECURE_BUILD
+RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_banksel_sel") g_ra_cfg_option_setting_banksel_sel[] = {CONFIG_RA_OPTION_SETTING_BANKSEL_SEL};
+#endif
+#if defined CONFIG_RA_OPTION_SETTING_BPS_SEL && !CONFIG_RA_TZ_NONSECURE_BUILD
+RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_bps_sel") g_ra_cfg_option_setting_bps_sel[] = {CONFIG_RA_OPTION_SETTING_BPS_SEL};
 #endif
 
 #endif /* CONFIG_RA_BOOTLOADED_APPLICATION */
-
-/******************************/
-/* the init tables are located in bsp_linker_info.h */
-#define CONFIG_RA_LINKER_C
-
-
-/***********************************************************************************************************************
- * Macro definitions
- **********************************************************************************************************************/
-
-/******* Solution Definitions *************/
 
 /***********************************************************************************************************************
  * Typedef definitions
@@ -270,7 +224,7 @@ extern ra_init_info_t const g_init_info;
  * Exported global functions (to be accessed by other files)
  **********************************************************************************************************************/
 
-#ifdef CONFIG_RA_LINKER_C
+//#if defined (CONFIG_RA_LINKER_C) && CONFIG_RA_LINKER_C
 /***********************************************************************************************************************
  * Objects allocated by bsp_linker.c
  **********************************************************************************************************************/
@@ -382,7 +336,7 @@ const ra_init_info_t g_init_info =
     .p_nocache_list = nocache_list
 };
 
-#endif /* CONFIG_RA_LINKER_C */
+//#endif /* CONFIG_RA_LINKER_C */
 
 /****************************************************************************
  * Private Functions
@@ -416,14 +370,16 @@ const ra_init_info_t g_init_info =
 
 void __start(void)
 {
-  /* Following Renesas SystemInit sequence for RA8E1 FPB initialization */
-  
+    /* Enable the instruction cache, branch prediction, and the branch cache (required for Low Overhead Branch (LOB) extension).
+     * See sections 6.5, 6.6, and 6.7 in the Arm Cortex-M85 Processor Technical Reference Manual (Document ID: 101924_0002_05_en, Issue: 05)
+     * See section D1.2.9 in the Armv8-M Architecture Reference Manual (Document number: DDI0553B.w, Document version: ID07072023) */
+
   /* Phase 1: Option Bytes and Security Configuration */
   /* 1. Configure Option Bytes (Security, Boot, etc.) - handled by linker */
   ra_option_bytes_init();
 
   /* 2. TrustZone Configuration - early security setup */
-#if RA_TZ_SECURE_BUILD || RA_TZ_NONSECURE_BUILD
+#if CONFIG_RA_TZ_SECURE_BUILD || CONFIG_RA_TZ_NONSECURE_BUILD
   ra_trustzone_init();
 #endif
 
@@ -436,7 +392,7 @@ void __start(void)
 
   /* Phase 3: Memory Initialization */
   /* 5. Initialize RAM Sections (BSS, data, TCM) */
-  ra_ram_init();
+  ra_ram_init(0);
 
   /* Phase 4: Low-level Hardware Setup */
   /* 6. Configure the uart so that we can get debug output as soon as possible */
@@ -515,7 +471,7 @@ void ra_trustzone_init(void)
   /* *p_main_stack_top = RA_TZ_STACK_SEAL_VALUE; */
   
   /* Configure SAU, IDAU, and secure memory regions */
-  /* R_BSP_SecurityInit(); */
+  /* RA_SecurityInit(); */
   
 #elif defined(CONFIG_RA_TZ_NONSECURE_BUILD)
   /* Configure non-secure memory regions and permissions */
@@ -561,7 +517,7 @@ void ra_clock_init(void)
   /* Step 1: Configure Cortex-M85 core features first */
   ra_cortex_m85_init();
 
-  /* Step 2: Pre-clock initialization (Renesas R_BSP_WarmStart equivalent) */
+  /* Step 2: Pre-clock initialization (Renesas R_RA_WarmStart equivalent) */
   /* This would include early variable initialization if needed */
 
   /* Step 3: Configure system clocks using existing NuttX ra_clock function
@@ -586,7 +542,7 @@ void ra_vector_table_init(void)
 {
   /* Set VTOR to point to the vector table base address */
   /* Following Renesas SystemInit: SCB->VTOR = (uint32_t) &__VECTOR_TABLE; */
-#if !RA_TZ_NONSECURE_BUILD
+#if !CONFIG_RA_TZ_NONSECURE_BUILD
   /* VTOR is in undefined state out of RESET, set it explicitly */
   /* Use NuttX standard method to set vector table */
   /* Note: This will be handled by the ARM core initialization later */
@@ -602,7 +558,7 @@ void ra_vector_table_init(void)
  *
  ****************************************************************************/
 
-static void ra_tcm_init(void)
+void ra_tcm_init(void)
 {
 #if defined(CONFIG_ARMV8M_HAVE_ITCM) || defined(CONFIG_ARMV8M_HAVE_DTCM)
   /* Following Renesas SystemInit:
@@ -622,34 +578,24 @@ static void ra_tcm_init(void)
  *   Initialize RAM sections following standard NuttX ARM startup
  *
  ****************************************************************************/
-
-void ra_ram_init(void)
+void ra_ram_init (const uint32_t external)
 {
-  /* Initialize RAM sections: zero BSS, copy data, seal stack if TrustZone */
-  /* Following the standard NuttX ARM startup pattern */
-  const uint32_t    *src;
-  uint32_t          *dest;
-  
-  /* Initialize TCM memories if available */
-  ra_tcm_init();
-  
-  /* Clear .bss.  We'll do this inline (vs. calling memset) just to be
-   * certain that there are no issues with the state of global variables.
-   */
-  for (dest = (uint32_t *)_sbss; dest < (uint32_t *)_ebss; )
+    /* Initialize C runtime environment. */
+    for (uint32_t i = 0; i < g_init_info.zero_count; i++)
     {
-      *dest++ = 0;
+        if (external == g_init_info.p_zero_list[i].type.external)
+        {
+            memset(g_init_info.p_zero_list[i].p_base, 0U,
+                   ((uintptr_t) g_init_info.p_zero_list[i].p_limit - (uintptr_t) g_init_info.p_zero_list[i].p_base));
+        }
     }
 
-  /* Move the initialized data section from his temporary holding spot in
-   * FLASH into the correct place in SRAM.  The correct place in SRAM is
-   * give by _sdata and _edata.  The temporary location is in FLASH at the
-   * end of all of the other read-only data (.text, .rodata) at _eronly.
-   */
-  for (src = (const uint32_t *)_eronly, dest = (uint32_t *)_sdata;
-       dest < (uint32_t *)_edata;
-       )
+    for (uint32_t i = 0; i < g_init_info.copy_count; i++)
     {
-      *dest++ = *src++;
+        if (external == g_init_info.p_copy_list[i].type.external)
+        {
+            memcpy(g_init_info.p_copy_list[i].p_base, g_init_info.p_copy_list[i].p_load,
+                   ((uintptr_t) g_init_info.p_copy_list[i].p_limit - (uintptr_t) g_init_info.p_copy_list[i].p_base));
+        }
     }
 }

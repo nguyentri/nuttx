@@ -105,11 +105,13 @@
 #endif
 
 /* Computed option setting values */
-#define RA_OPTION_SETTING_OFS0 (0xA001A001 | RA_OFS_IWDT_START | RA_OFS_IWDT_TIMEOUT | \
-                                RA_OFS_IWDT_CLK_DIV | RA_OFS_IWDT_WINDOW_END | RA_OFS_IWDT_WINDOW_START | \
-                                RA_OFS_IWDT_RESET_IRQ | RA_OFS_IWDT_STOP_CTRL | RA_OFS_WDT_START | \
-                                RA_OFS_WDT_TIMEOUT | RA_OFS_WDT_CLK_DIV | RA_OFS_WDT_WINDOW_END | \
-                                RA_OFS_WDT_WINDOW_START | RA_OFS_WDT_RESET_IRQ | RA_OFS_WDT_STOP_CTRL)
+/*#define RA_OPTION_SETTING_OFS0 (0xA001A001 | RA_OFS_IWDT_START | RA_OFS_IWDT_TIMEOUT | \
+                                  RA_OFS_IWDT_CLK_DIV | RA_OFS_IWDT_WINDOW_END | RA_OFS_IWDT_WINDOW_START | \
+                                  RA_OFS_IWDT_RESET_IRQ | RA_OFS_IWDT_STOP_CTRL | RA_OFS_WDT_START | \
+                                  RA_OFS_WDT_TIMEOUT | RA_OFS_WDT_CLK_DIV | RA_OFS_WDT_WINDOW_END | \
+                                  RA_OFS_WDT_WINDOW_START | RA_OFS_WDT_RESET_IRQ | RA_OFS_WDT_STOP_CTRL) */
+
+#define RA_OPTION_SETTING_OFS0  0xFFFFFFFF /* Default OFS0 value, can be overridden by Kconfig */
 
 #define RA_OPTION_SETTING_OFS2 ((1 << 0) | (0xFFFFFFFE)) /* DCDC enabled */
 
@@ -120,18 +122,19 @@
 #  define RA_OFS1_SEC_HOCO_FREQ  (0)
 #endif
 
-#define RA_OPTION_SETTING_OFS1_SEC (0xFCFFF0D0 | (1 << 3) | 7 | (1 << 5) | (1 << 8) | \
-                                   (1 << 24) | (0 << 25) | RA_OFS1_SEC_HOCO_FREQ)
+/* #define RA_OPTION_SETTING_OFS1_SEC (0xFCFFF0D0 | (1 << 3) | 7 | (1 << 5) | (1 << 8) | \
+                                 (1 << 24) | (0 << 25) | RA_OFS1_SEC_HOCO_FREQ) */
+#define RA_OPTION_SETTING_OFS1_SEC 0xFDFFF5FF /* Default OFS1_SEC value, can be overridden by Kconfig */
 
 /* OFS1_SEL for TrustZone security attribution */
 #if CONFIG_RA_TZ_SECURE_BUILD || CONFIG_RA_TZ_NONSECURE_BUILD
 #  define RA_OPTION_SETTING_OFS1_SEL (0x0F00) /* Load from secure settings */
 #else
-#  define RA_OPTION_SETTING_OFS1_SEL (0)
+#  define RA_OPTION_SETTING_OFS1_SEL (0x00000000)
 #endif
 
 /* option setting default values */
-#define RA_OPTION_SETTING_OFS1      (0xFFF5FFFD) /* Default OFS1 value */
+#define RA_OPTION_SETTING_OFS1      (0xFFFFFFFF) /* Default OFS1 value */
 #define RA_OPTION_SETTING_DUALSEL   (0xFFFFFFFF) /* Default dual bank select */
 #define RA_OPTION_SETTING_BANKSEL   (0xFFFFFFFF) /* Default bank select */
 #define RA_OPTION_SETTING_BPS       (0xFFFFFFFF) /* Default boot protection */
@@ -172,25 +175,24 @@
 #  define CONFIG_RA_OPTION_SETTING_PBPS      RA_OPTION_SETTING_PBPS
 #endif
 
-/* TrustZone secure option settings */
-#ifdef  CONFIG_RA_OFS1_SEL_SETTING
-#  define CONFIG_RA_OPTION_SETTING_OFS1_SEL     RA_OPTION_SETTING_OFS1_SEL
-#endif
-
 #ifdef CONFIG_RA_OFS1_SEC_SETTING
 # define CONFIG_RA_OPTION_SETTING_OFS1_SEC      RA_OPTION_SETTING_OFS1_SEC
 #endif
 
-#  ifdef CONFIG_RA_BANK_SELECT_SETTING
-#    define CONFIG_RA_OPTION_SETTING_BANKSEL_SEC   RA_OPTION_SETTING_BANKSEL_SEC
-#    define CONFIG_RA_OPTION_SETTING_BANKSEL_SEL   RA_OPTION_SETTING_BANKSEL_SEL
-#  endif
+#ifdef  CONFIG_RA_OFS1_SEL_SETTING
+#  define CONFIG_RA_OPTION_SETTING_OFS1_SEL     RA_OPTION_SETTING_OFS1_SEL
+#endif
 
-#  ifdef CONFIG_RA_BOOT_PROTECT_SETTING
-#    define CONFIG_RA_OPTION_SETTING_BPS_SEC       RA_OPTION_SETTING_BPS_SEC
-#    define CONFIG_RA_OPTION_SETTING_PBPS_SEC      RA_OPTION_SETTING_PBPS_SEC
-#    define CONFIG_RA_OPTION_SETTING_BPS_SEL       RA_OPTION_SETTING_BPS_SEL
-#  endif
+#ifdef CONFIG_RA_BANK_SELECT_SETTING
+# define CONFIG_RA_OPTION_SETTING_BANKSEL_SEC   RA_OPTION_SETTING_BANKSEL_SEC
+#    define CONFIG_RA_OPTION_SETTING_BANKSEL_SEL   RA_OPTION_SETTING_BANKSEL_SEL
+#endif
+
+#ifdef CONFIG_RA_BOOT_PROTECT_SETTING
+#  define CONFIG_RA_OPTION_SETTING_BPS_SEC       RA_OPTION_SETTING_BPS_SEC
+#  define CONFIG_RA_OPTION_SETTING_PBPS_SEC      RA_OPTION_SETTING_PBPS_SEC
+#  define CONFIG_RA_OPTION_SETTING_BPS_SEL       RA_OPTION_SETTING_BPS_SEL
+# endif
 
 /****************************************************************************
  * Public Function Prototypes

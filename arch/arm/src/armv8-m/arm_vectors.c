@@ -62,12 +62,15 @@
 
 extern void __start(void);
 
-static void start(void)
+int main(void)
 {
   /* Zero lr to mark the end of backtrace */
 
   asm volatile ("mov lr, #0\n\t"
                 "b  __start\n\t");
+
+  /* Should never return */
+  return 0;
 }
 
 /****************************************************************************
@@ -101,7 +104,7 @@ const void * const _vectors[] locate_data(".vectors")
 
   /* Reset exception handler */
 
-  start,
+  main,
 
   /* Vectors 2 - n point directly at the generic handler */
 

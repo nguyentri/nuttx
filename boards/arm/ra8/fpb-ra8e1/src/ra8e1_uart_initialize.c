@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/include/ra8/chip.h
+ * boards/arm/ra8/fpb-ra8e1/src/ra8e1_uart_initialize.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -18,42 +18,95 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_ARM_INCLUDE_RA_CHIP_H
-#define __ARCH_ARM_INCLUDE_RA_CHIP_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
 
-/****************************************************************************
- * Pre-processor Prototypes
- ****************************************************************************/
+#include <stdint.h>
+#include <stdbool.h>
+#include <debug.h>
+#include <errno.h>
 
-/* NVIC priority levels *****************************************************/
+#include <nuttx/irq.h>
+#include <nuttx/arch.h>
+#include <nuttx/serial/serial.h>
 
-/* Each priority field holds a priority value, 0-15. The lower the value, the
- * greater the priority of the corresponding interrupt. The processor
- * implements only bits[7:4] of each field, bits[3:0] read as zero and ignore
- * writes.
- */
+#include <arch/board/board.h>
 
-#define NVIC_SYSH_PRIORITY_MIN        0xf0 /* All bits[7:4] set is minimum priority */
-#define NVIC_SYSH_PRIORITY_DEFAULT    0x80 /* Midpoint is the default */
-#define NVIC_SYSH_PRIORITY_MAX        0x00 /* Zero is maximum priority */
-#define NVIC_SYSH_PRIORITY_STEP       0x10 /* Four bits of interrupt priority used */
+#include "arm_internal.h"
+#include "chip.h"
+#include "ra_gpio.h"
+#include "hardware/ra_sci.h"
+#include "fpb-ra8e1.h"
 
-/****************************************************************************
- * Public Types
- ****************************************************************************/
+#ifdef CONFIG_RA_SCI_UART
 
 /****************************************************************************
- * Public Data
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+/* UART pin configurations for FPB-RA8E1 board */
+#define RA8E1_SCI2_TXD_PIN   GPIO_SCI2_TX  /* P103 */
+#define RA8E1_SCI2_RXD_PIN   GPIO_SCI2_RX  /* P102 */
+
+/****************************************************************************
+ * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Functions Prototypes
+ * Name: ra8e1_uart_gpio_config
+ *
+ * Description:
+ *   Configure GPIO pins for UART/SCI operation
+ *
  ****************************************************************************/
 
-#endif /* __ARCH_ARM_INCLUDE_RA_CHIP_H */
+static void ra8e1_uart_gpio_config(void)
+{
+#ifdef CONFIG_RA_SCI2_UART
+  /* Configure SCI2 pins for UART operation */
+  ra_configgpio(RA8E1_SCI2_TXD_PIN);
+  ra_configgpio(RA8E1_SCI2_RXD_PIN);
+#endif
+}
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: ra8e1_uart_initialize
+ *
+ * Description:
+ *   Initialize UART/SCI drivers for RA8E1
+ *
+ ****************************************************************************/
+
+int ra8e1_uart_initialize(void)
+{
+  int ret = OK;
+
+  /* Configure UART GPIO pins */
+  ra8e1_uart_gpio_config();
+
+#ifdef CONFIG_RA_SCI2_UART
+  /* Initialize SCI2 as UART */
+  _info("Initializing SCI2 UART\n");
+  
+  /* The low-level driver initialization is handled by the architecture-
+   * specific code in ra_uart.c. Here we just configure the board-specific
+   * aspects like GPIO pins and any board-level setup.
+   */
+  
+#ifdef CONFIG_RA_SCI_UART_DMA_ENABLE
+  _info("SCI2 UART with DTC/DMA support enabled\n");
+#endif
+
+#endif /* CONFIG_RA_SCI2_UART */
+
+  return ret;
+}
+
+#endif /* CONFIG_RA_SCI_UART */

@@ -39,11 +39,11 @@ make
 ### Key Configuration Options
 
 ```makefile
-CONFIG_RA8_SPI=y                 # Enable SPI support
+CONFIG_RA_SPI=y                 # Enable SPI support
 CONFIG_RA_SPI0=y                 # Enable SPI0 (Master)
 CONFIG_RA_SPI1=y                 # Enable SPI1 (Slave)
 CONFIG_SPI_LOOPBACK_DEMO=y       # Enable the loopback demo
-CONFIG_RA8_SPI_DMA=y             # Enable DMA support
+CONFIG_RA_SPI_DMA=y             # Enable DMA support
 CONFIG_RA_DTC=y                  # Enable Data Transfer Controller
 CONFIG_SPI_EXCHANGE=y            # Enable simultaneous read/write
 ```
@@ -137,7 +137,7 @@ Application Layer: ra8e1_spi_loopback_demo.c
     ↓
 NuttX SPI API: spi.h interfaces
     ↓  
-Board Layer: ra8e1_spi.c
+Board Layer: ra8e1_spi_initialize.c
     ↓
 Arch Layer: RA8 SPI driver with FSP integration
     ↓

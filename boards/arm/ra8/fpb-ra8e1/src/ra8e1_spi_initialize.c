@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/ra8/fpb-ra8e1/src/ra8e1_spi.c
+ * boards/arm/ra8/fpb-ra8e1/src/ra8e1_spi_initialize.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -129,14 +129,14 @@ void ra8_spi0select(FAR struct spi_dev_s *dev, uint32_t devid,
   /* Handle device selection based on device ID */
   switch (devid)
     {
-#ifdef CONFIG_RA8_SPI_GY912
+#ifdef CONFIG_RA_SPI_GY912
       case SPIDEV_GY912(0):
         /* Handle GY-912 sensor chip select on SPI0 */
         /* Implementation would go here based on hardware pinout */
         break;
 #endif
 
-#ifdef CONFIG_RA8_SPI_LOOPBACK_DEMO
+#ifdef CONFIG_RA_SPI_LOOPBACK_DEMO
       case SPIDEV_USER(0):
         /* Handle loopback demo device selection */
         /* For loopback demo, CS handling may be simplified */
@@ -166,7 +166,7 @@ void ra8_spi1select(FAR struct spi_dev_s *dev, uint32_t devid,
   /* Handle device selection based on device ID */
   switch (devid)
     {
-#ifdef CONFIG_RA8_SPI_LOOPBACK_DEMO
+#ifdef CONFIG_RA_SPI_LOOPBACK_DEMO
       case SPIDEV_USER(1):
         /* Handle loopback demo device selection for SPI1 */
         /* For loopback demo between SPI0 and SPI1 */
@@ -193,14 +193,14 @@ uint8_t ra8_spi0status(FAR struct spi_dev_s *dev, uint32_t devid)
 
   switch (devid)
     {
-#ifdef CONFIG_RA8_SPI_GY912
+#ifdef CONFIG_RA_SPI_GY912
       case SPIDEV_GY912(0):
         /* Return status for GY-912 sensor */
         status = SPI_STATUS_PRESENT;
         break;
 #endif
 
-#ifdef CONFIG_RA8_SPI_LOOPBACK_DEMO
+#ifdef CONFIG_RA_SPI_LOOPBACK_DEMO
       case SPIDEV_USER(0):
         /* Return status for loopback demo */
         status = SPI_STATUS_PRESENT;
@@ -229,7 +229,7 @@ uint8_t ra8_spi1status(FAR struct spi_dev_s *dev, uint32_t devid)
 
   switch (devid)
     {
-#ifdef CONFIG_RA8_SPI_LOOPBACK_DEMO
+#ifdef CONFIG_RA_SPI_LOOPBACK_DEMO
       case SPIDEV_USER(1):
         /* Return status for loopback demo */
         status = SPI_STATUS_PRESENT;

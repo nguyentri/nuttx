@@ -54,14 +54,51 @@
  * Description:
  *   Perform architecture-specific initialization
  *
+ *   CONFIG_BOARD_LATE_INITIALIZE=y :
+ *     Called from board_late_initialize().
+ *
+ *   CONFIG_BOARD_LATE_INITIALIZE=y && CONFIG_BOARDCTL=y :
+ *     Called from the NSH library
  *
  ****************************************************************************/
 
 int ra8e1_bringup(void)
 {
-  int ret;
+  int ret = OK;
+
+  syslog(LOG_INFO, "RA8E1 Board bring-up starting...\n");
+
+#ifdef CONFIG_FS_PROCFS
+  /* Mount the procfs file system */
+
+  ret = nx_mount(NULL, "/proc", "procfs", 0, NULL);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to mount procfs at /proc: %d\n", ret);
+    }
+  else
+    {
+      syslog(LOG_INFO, "Mounted procfs at /proc\n");
+    }
+#endif
+
+#ifdef CONFIG_RA_SCI_UART
+  /* Initialize UART drivers */
+
+  ret = ra8e1_uart_initialize();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize UART: %d\n", ret);
+    }
+  else
+    {
+      syslog(LOG_INFO, "UART initialized successfully\n");
+    }
+#endif
 
 #ifdef HAVE_LEDS
+  /* Initialize LED support */
+
   board_userled_initialize();
 
   /* Register the LED driver */
@@ -70,7 +107,24 @@ int ra8e1_bringup(void)
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: userled_lower_initialize() failed: %d\n", ret);
-      return ret;
+    }
+  else
+    {
+      syslog(LOG_INFO, "LED driver initialized successfully\n");
+    }
+#endif
+
+#ifdef CONFIG_RA8E1_GPIO
+  /* Initialize GPIO drivers */
+
+  ret = ra8e1_gpio_initialize();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize GPIO: %d\n", ret);
+    }
+  else
+    {
+      syslog(LOG_INFO, "GPIO drivers initialized successfully\n");
     }
 #endif
 

@@ -52,7 +52,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ra_bringup
+ * Name: ra8e1_bringup
  *
  * Description:
  *   Perform architecture-specific initialization
@@ -66,6 +66,33 @@
  ****************************************************************************/
 
 int ra8e1_bringup(void);
+
+/****************************************************************************
+ * Name: fpb_ra8e1_boardinitialize
+ *
+ * Description:
+ *   All RA8E1 architectures must provide the following entry point.  This
+ *   entry point is called early in the initialization -- after all memory
+ *   has been configured and mapped but before any devices have been
+ *   initialized.
+ *
+ ****************************************************************************/
+
+void fpb_ra8e1_boardinitialize(void);
+
+/****************************************************************************
+ * Name: board_autoled_initialize
+ *
+ * Description:
+ *   Initialize NuttX-controlled LEDs logic
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_LEDS
+void board_autoled_initialize(void);
+void board_autoled_on(int led);
+void board_autoled_off(int led);
+#endif
 
 /****************************************************************************
  * Name: ra8e1_gpio_initialize
@@ -82,8 +109,28 @@ int ra8e1_bringup(void);
 int ra8e1_gpio_initialize(void);
 #endif
 
+/****************************************************************************
+ * Name: fpb_ra8e1_spi_initialize
+ *
+ * Description:
+ *   Initialize SPI drivers
+ *
+ ****************************************************************************/
+
 #ifdef CONFIG_RA_SPI
 int fpb_ra8e1_spi_initialize(void);
+#endif
+
+/****************************************************************************
+ * Name: ra8e1_uart_initialize
+ *
+ * Description:
+ *   Initialize UART/SCI drivers for RA8E1
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_RA_SCI_UART
+int ra8e1_uart_initialize(void);
 #endif
 
 #ifdef CONFIG_RA_SPI_LOOPBACK_DEMO

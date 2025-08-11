@@ -34,7 +34,7 @@ endif()
 # Peripheral initialization, User Driver interfaces on FPB-RA8E1
 ############################################################################
 if(CONFIG_RA_SPI)
-  list(APPEND SRCS ra8e1_spi.c)
+  list(APPEND SRCS ra8e1_spi_initialize.c)
 endif()
 
 ############################################################################

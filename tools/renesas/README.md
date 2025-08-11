@@ -163,7 +163,18 @@ arm-none-eabi-objcopy -O ihex nuttx nuttx.hex
 
 Use your preferred flashing tool (J-Link, pyOCD, OpenOCD) to flash the firmware.
 
+For example, using Renesas Programmer (RFP):
+
+```bash
+rfp-cli -d RA -tool jlink:1080979173 -if swd -file nuttx.hex -auto
+
 ---
+
+Erase Chip
+
+```bash
+rfp-cli -d RA -tool jlink:1080979173 -if swd -erase-chip
+```
 
 ## ✅ 8. Troubleshooting
 

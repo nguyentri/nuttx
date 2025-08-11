@@ -281,6 +281,7 @@ SECTIONS
     /* MCU vector table */
     __flash_vectors$$ :
     {
+        . = ALIGN(32);
         __flash_vectors$$Base = .; _VECTORS = .;
         KEEP(*(.vectors))
         KEEP(*(.application_vectors))
@@ -454,12 +455,12 @@ SECTIONS
     __ram_zero$$ (NOLOAD) :
     {
         __ram_zero$$Base = .;
+        . = ALIGN(32);
         _sbss = .;
         /* section.ram.zero */
         *(.ram)
         *(.bss*)
-        _ebss = .;
-        PROVIDE(_ebss = .);  /* Explicitly provide _ebss symbol */
+        . = ALIGN(32);
         __ram_zero$$Limit = .;
     }> RAM
     /* Initialized thread local storage */
@@ -510,8 +511,33 @@ SECTIONS
         *(.rodata*)
         KEEP(*(.mcuboot_sce9_key))
         KEEP(*(.version))
+
+        . = ALIGN(32);
+        __preinit_array_start = .;
+        KEEP(*(.preinit_array))
+        . = ALIGN(32);
+        __preinit_array_end = .;
+        
+        . = ALIGN(32);
+        __init_array_start = .;
+        KEEP(*(SORT(.init_array.*)))
+        KEEP(*(.init_array))
+        . = ALIGN(32);
+        __init_array_end = .;
+        
+        . = ALIGN(32);
+        __fini_array_start = .;
+        KEEP(*(SORT(.fini_array.*)))
+        KEEP(*(.fini_array))
+        . = ALIGN(32);
+        __fini_array_end = .;
+        
+        . = ALIGN(32);
+        __exidx_start = .;
+        __exidx_end = .;
+        
         __flash_readonly$$Limit = .;
-    }> FLASH
+    }> FLASH AT > FLASH
     __flash_ctor$$ :
     {
 
@@ -527,34 +553,12 @@ SECTIONS
         *(.dtors)
 
     }> FLASH
-    __flash_preinit_array$$ :
-    {
-        __preinit_array_start = .;
-        KEEP(*(.preinit_array))
-        __preinit_array_end = .;
-    }> FLASH
     __flash_.got$$ :
     {
 
         *(.got.plt)
         *(.got)
 
-    }> FLASH
-    __flash_init_array$$ :
-    {
-        __init_array_start = .;
-        _sinit = .;  /* Define _sinit for C++ initialization */
-        KEEP(*(SORT(.init_array.*)))
-        KEEP(*(.init_array))
-        __init_array_end = .;
-        _einit = .;  /* Define _einit for C++ initialization */
-    }> FLASH
-    __flash_fini_array$$ :
-    {
-        __fini_array_start = .;
-        KEEP(*(SORT(.fini_array.*)))
-        KEEP(*(.fini_array))
-        __fini_array_end = .;
     }> FLASH
     /* Discard exception tables */
     /DISCARD/ :
@@ -565,12 +569,6 @@ SECTIONS
         *(.ARM.exidx*)
         *(.gnu.linkonce.armexidx.*)
 
-    }> FLASH
-    /* Dummy section to hold required exidx labels */
-    __flash_arm.exidx$$ :
-    {
-        __exidx_start = .;
-        __exidx_end = .;
     }> FLASH
     .flash.endof ALIGN(.,32768) :
     {

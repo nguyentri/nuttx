@@ -178,10 +178,10 @@
 #define R_SCI_SMR_MP                     (1 <<  2)                     /* Bit 2: Multi-Processor Mode (Valid only in asynchronous mode) */
 #define R_SCI_SMR_CKS_SHIFT              (0)                           /* Bits 1-0:  Clock Select */
 #define R_SCI_SMR_CKS_MASK               (3 << R_SCI_SMR_CKS_SHIFT)
-#  define R_SCI_SMR_CKS_DIV_0            (0 << R_SCI_SMR_CKS_SHIFT)    /* PCLKA clock (n = 0) */
-#  define R_SCI_SMR_CKS_DIV_4            (1 << R_SCI_SMR_CKS_SHIFT)    /* PCLKA/4 clock (n = 0) */
-#  define R_SCI_SMR_CKS_DIV_16           (2 << R_SCI_SMR_CKS_SHIFT)    /* PCLKA/16 clock (n = 0) */
-#  define R_SCI_SMR_CKS_DIV_64           (3 << R_SCI_SMR_CKS_SHIFT)    /* PCLKA/64 clock (n = 0) */
+#define R_SCI_SMR_CKS_DIV_0            (0 << R_SCI_SMR_CKS_SHIFT)    /* PCLKA clock (n = 0) */
+#define R_SCI_SMR_CKS_DIV_4            (1 << R_SCI_SMR_CKS_SHIFT)    /* PCLKA/4 clock (n = 0) */
+#define R_SCI_SMR_CKS_DIV_16           (2 << R_SCI_SMR_CKS_SHIFT)    /* PCLKA/16 clock (n = 0) */
+#define R_SCI_SMR_CKS_DIV_64           (3 << R_SCI_SMR_CKS_SHIFT)    /* PCLKA/64 clock (n = 0) */
 
 /* Bit Rate Register  */
 
@@ -366,6 +366,34 @@
 #define R_SCI_SPTR_SPB2IO                (1 <<  2) /* 04: Serial port break I/O bit (It's selected whether the value of SPB2DT is output to TxD terminal.) */
 #define R_SCI_SPTR_SPB2DT                (1 <<  1) /* 02: Serial port break data select bit (The output level of TxD terminal is selected when.) */
 #define R_SCI_SPTR_RXDMON                (1 <<  0) /* 01: Serial input data monitor bit (The state of the RXD terminal is shown.) */
+
+#if defined (CONFIG_RA_SCI0_UART)
+#define SCI0_RXI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive data full */
+#define SCI0_TXI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit data empty */
+#define SCI0_TEI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit end */
+#define SCI0_ERI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive error */
+#endif
+
+#if defined  (CONFIG_RA_SCI1_UART)
+#define SCI1_RXI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive data full */
+#define SCI1_TXI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit data empty */
+#define SCI1_TEI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit end */
+#define SCI1_ERI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive error */
+#endif
+
+#if defined (CONFIG_RA_SCI2_UART)
+#define SCI2_RXI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive data full */
+#define SCI2_TXI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit data empty */
+#define SCI2_TEI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit end */
+#define SCI2_ERI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive error */
+#endif
+
+#if defined (CONFIG_RA_SCI9_UART)
+#define SCI9_RXI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive data full */
+#define SCI9_TXI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit data empty */
+#define SCI9_TEI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit end */
+#define SCI9_ERI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive error */
+#endif
 
 /****************************************************************************
  * Public Types

@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/include/ra8/chip.h
+ * boards/arm/ra8/fpb-ra8e1/src/fpb_ra8e1_boardinitialize.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -18,42 +18,69 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_ARM_INCLUDE_RA_CHIP_H
-#define __ARCH_ARM_INCLUDE_RA_CHIP_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
 
-/****************************************************************************
- * Pre-processor Prototypes
- ****************************************************************************/
+#include <debug.h>
 
-/* NVIC priority levels *****************************************************/
+#include <nuttx/board.h>
+#include <arch/board/board.h>
 
-/* Each priority field holds a priority value, 0-15. The lower the value, the
- * greater the priority of the corresponding interrupt. The processor
- * implements only bits[7:4] of each field, bits[3:0] read as zero and ignore
- * writes.
- */
-
-#define NVIC_SYSH_PRIORITY_MIN        0xf0 /* All bits[7:4] set is minimum priority */
-#define NVIC_SYSH_PRIORITY_DEFAULT    0x80 /* Midpoint is the default */
-#define NVIC_SYSH_PRIORITY_MAX        0x00 /* Zero is maximum priority */
-#define NVIC_SYSH_PRIORITY_STEP       0x10 /* Four bits of interrupt priority used */
+#include "arm_internal.h"
+#include "fpb-ra8e1.h"
 
 /****************************************************************************
- * Public Types
+ * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Data
+ * Name: fpb_ra8e1_boardinitialize
+ *
+ * Description:
+ *   All RA8E1 architectures must provide the following entry point.  This
+ *   entry point is called early in the initialization -- after all memory
+ *   has been configured and mapped but before any devices have been
+ *   initialized.
+ *
  ****************************************************************************/
+
+void fpb_ra8e1_boardinitialize(void)
+{
+  /* Configure SPI chip selects if SPI drivers are enabled */
+
+#ifdef CONFIG_RA_SPI
+  fpb_ra8e1_spi_initialize();
+#endif
+
+#ifdef CONFIG_ARCH_LEDS
+  /* Configure on-board LEDs if LED support has been selected. */
+
+  board_autoled_initialize();
+#endif
+}
 
 /****************************************************************************
- * Public Functions Prototypes
+ * Name: board_late_initialize
+ *
+ * Description:
+ *   If CONFIG_BOARD_LATE_INITIALIZE is selected, then an additional
+ *   initialization call will be performed in the boot-up sequence to a
+ *   function called board_late_initialize().  board_late_initialize() will
+ *   be called immediately after up_initialize() is called and just before
+ *   the initial application is started.  This additional initialization
+ *   phase may be used, for example, to initialize board-specific device
+ *   drivers.
+ *
  ****************************************************************************/
 
-#endif /* __ARCH_ARM_INCLUDE_RA_CHIP_H */
+#ifdef CONFIG_BOARD_LATE_INITIALIZE
+void board_late_initialize(void)
+{
+  /* Perform board-specific initialization */
+
+  ra8e1_bringup();
+}
+#endif

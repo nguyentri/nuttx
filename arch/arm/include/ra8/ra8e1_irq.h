@@ -68,55 +68,74 @@
 #  define RA_IRQ_IELSR29      (RA_IRQ_FIRST + 29)  /* 29:  Event selected in the ICU.IELSR29 register */
 #  define RA_IRQ_IELSR30      (RA_IRQ_FIRST + 30)  /* 30:  Event selected in the ICU.IELSR30 register */
 #  define RA_IRQ_IELSR31      (RA_IRQ_FIRST + 31)  /* 31:  Event selected in the ICU.IELSR31 register */
+#  define RA_IRQ_IELSR32      (RA_IRQ_FIRST + 32)  /* 32:  Event selected in the ICU.IELSR32 register */
+#  define RA_IRQ_IELSR33      (RA_IRQ_FIRST + 33)  /* 33:  Event selected in the ICU.IELSR33 register */
+#  define RA_IRQ_IELSR34      (RA_IRQ_FIRST + 34)  /* 34:  Event selected in the ICU.IELSR34 register */
+#  define RA_IRQ_IELSR35      (RA_IRQ_FIRST + 35)  /* 35:  Event selected in the ICU.IELSR35 register */
+#  define RA_IRQ_IELSR36      (RA_IRQ_FIRST + 36)  /* 36:  Event selected in the ICU.IELSR36 register */
+#  define RA_IRQ_IELSR37      (RA_IRQ_FIRST + 37)  /* 37:  Event selected in the ICU.IELSR37 register */
+#  define RA_IRQ_IELSR38      (RA_IRQ_FIRST + 38)  /* 38:  Event selected in the ICU.IELSR38 register */
+#  define RA_IRQ_IELSR39      (RA_IRQ_FIRST + 39)  /* 39:  Event selected in the ICU.IELSR39 register */
+#  define RA_IRQ_IELSR40      (RA_IRQ_FIRST + 40)  /* 40:  Event selected in the ICU.IELSR40 register */
+#  define RA_IRQ_IELSR41      (RA_IRQ_FIRST + 41)  /* 41:  Event selected in the ICU.IELSR41 register */
+#  define RA_IRQ_IELSR42      (RA_IRQ_FIRST + 42)  /* 42:  Event selected in the ICU.IELSR42 register */
+#  define RA_IRQ_IELSR43      (RA_IRQ_FIRST + 43)  /* 43:  Event selected in the ICU.IELSR43 register */
+#  define RA_IRQ_IELSR44      (RA_IRQ_FIRST + 44)  /* 44:  Event selected in the ICU.IELSR44 register */
+#  define RA_IRQ_IELSR45      (RA_IRQ_FIRST + 45)  /* 45:  Event selected in the ICU.IELSR45 register */
+#  define RA_IRQ_IELSR46      (RA_IRQ_FIRST + 46)  /* 46:  Event selected in the ICU.IELSR46 register */
+#  define RA_IRQ_IELSR47      (RA_IRQ_FIRST + 47)  /* 47:  Event selected in the ICU.IELSR47 register */
+#  define RA_IRQ_IELSR48      (RA_IRQ_FIRST + 48)  /* 48:  Event selected in the ICU.IELSR48 register */
+#  define RA_IRQ_IELSR49      (RA_IRQ_FIRST + 49)  /* 49:  Event selected in the ICU.IELSR49 register */
+#  define RA_IRQ_IELSR50      (RA_IRQ_FIRST + 50)  /* 50:  Event selected in the ICU.IELSR50 register */
+#  define RA_IRQ_IELSR51      (RA_IRQ_FIRST + 51)  /* 51:  Event selected in the ICU.IELSR51 register */
+#  define RA_IRQ_IELSR52      (RA_IRQ_FIRST + 52)  /* 52:  Event selected in the ICU.IELSR52 register */
+#  define RA_IRQ_IELSR53      (RA_IRQ_FIRST + 53)  /* 53:  Event selected in the ICU.IELSR53 register */
+#  define RA_IRQ_IELSR54      (RA_IRQ_FIRST + 54)  /* 54:  Event selected in the ICU.IELSR54 register */
+#  define RA_IRQ_IELSR55      (RA_IRQ_FIRST + 55)  /* 55:  Event selected in the ICU.IELSR55 register */
+#  define RA_IRQ_IELSR56      (RA_IRQ_FIRST + 56)  /* 56:  Event selected in the ICU.IELSR56 register */
+#  define RA_IRQ_IELSR57      (RA_IRQ_FIRST + 57)  /* 57:  Event selected in the ICU.IELSR57 register */
+#  define RA_IRQ_IELSR58      (RA_IRQ_FIRST + 58)  /* 58:  Event selected in the ICU.IELSR58 register */
+#  define RA_IRQ_IELSR59      (RA_IRQ_FIRST + 59)  /* 59:  Event selected in the ICU.IELSR59 register */
+#  define RA_IRQ_IELSR60      (RA_IRQ_FIRST + 60)  /* 60:  Event selected in the ICU.IELSR60 register */
+#  define RA_IRQ_IELSR61      (RA_IRQ_FIRST + 61)  /* 61:  Event selected in the ICU.IELSR61 register */
+#  define RA_IRQ_IELSR62      (RA_IRQ_FIRST + 62)  /* 62:  Event selected in the ICU.IELSR62 register */
+#  define RA_IRQ_IELSR63      (RA_IRQ_FIRST + 63)  /* 63:  Event selected in the ICU.IELSR63 register */
+#  define RA_IRQ_IELSR64      (RA_IRQ_FIRST + 64)  /* 64:  Event selected in the ICU.IELSR64 register */
+#  define RA_IRQ_IELSR65      (RA_IRQ_FIRST + 65)  /* 65:  Event selected in the ICU.IELSR65 register */
+#  define RA_IRQ_IELSR66      (RA_IRQ_FIRST + 66)  /* 66:  Event selected in the ICU.IELSR66 register */
+#  define RA_IRQ_IELSR67      (RA_IRQ_FIRST + 67)  /* 67:  Event selected in the ICU.IELSR67 register */
+#  define RA_IRQ_IELSR68      (RA_IRQ_FIRST + 68)  /* 68:  Event selected in the ICU.IELSR68 register */
+#  define RA_IRQ_IELSR69      (RA_IRQ_FIRST + 69)  /* 69:  Event selected in the ICU.IELSR69 register */
+#  define RA_IRQ_IELSR70      (RA_IRQ_FIRST + 70)  /* 70:  Event selected in the ICU.IELSR70 register */
+#  define RA_IRQ_IELSR71      (RA_IRQ_FIRST + 71)  /* 71:  Event selected in the ICU.IELSR71 register */
+#  define RA_IRQ_IELSR72      (RA_IRQ_FIRST + 72)  /* 72:  Event selected in the ICU.IELSR72 register */
+#  define RA_IRQ_IELSR73      (RA_IRQ_FIRST + 73)  /* 73:  Event selected in the ICU.IELSR73 register */
+#  define RA_IRQ_IELSR74      (RA_IRQ_FIRST + 74)  /* 74:  Event selected in the ICU.IELSR74 register */
+#  define RA_IRQ_IELSR75      (RA_IRQ_FIRST + 75)  /* 75:  Event selected in the ICU.IELSR75 register */
+#  define RA_IRQ_IELSR76      (RA_IRQ_FIRST + 76)  /* 76:  Event selected in the ICU.IELSR76 register */
+#  define RA_IRQ_IELSR77      (RA_IRQ_FIRST + 77)  /* 77:  Event selected in the ICU.IELSR77 register */
+#  define RA_IRQ_IELSR78      (RA_IRQ_FIRST + 78)  /* 78:  Event selected in the ICU.IELSR78 register */
+#  define RA_IRQ_IELSR79      (RA_IRQ_FIRST + 79)  /* 79:  Event selected in the ICU.IELSR79 register */
+#  define RA_IRQ_IELSR80      (RA_IRQ_FIRST + 80)  /* 80:  Event selected in the ICU.IELSR80 register */
+#  define RA_IRQ_IELSR81      (RA_IRQ_FIRST + 81)  /* 81:  Event selected in the ICU.IELSR81 register */
+#  define RA_IRQ_IELSR82      (RA_IRQ_FIRST + 82)  /* 82:  Event selected in the ICU.IELSR82 register */
+#  define RA_IRQ_IELSR83      (RA_IRQ_FIRST + 83)  /* 83:  Event selected in the ICU.IELSR83 register */
+#  define RA_IRQ_IELSR84      (RA_IRQ_FIRST + 84)  /* 84:  Event selected in the ICU.IELSR84 register */
+#  define RA_IRQ_IELSR85      (RA_IRQ_FIRST + 85)  /* 85:  Event selected in the ICU.IELSR85 register */
+#  define RA_IRQ_IELSR86      (RA_IRQ_FIRST + 86)  /* 86:  Event selected in the ICU.IELSR86 register */
+#  define RA_IRQ_IELSR87      (RA_IRQ_FIRST + 87)  /* 87:  Event selected in the ICU.IELSR87 register */
+#  define RA_IRQ_IELSR88      (RA_IRQ_FIRST + 88)  /* 88:  Event selected in the ICU.IELSR88 register */
+#  define RA_IRQ_IELSR89      (RA_IRQ_FIRST + 89)  /* 89:  Event selected in the ICU.IELSR89 register */
+#  define RA_IRQ_IELSR90      (RA_IRQ_FIRST + 90)  /* 90:  Event selected in the ICU.IELSR90 register */
+#  define RA_IRQ_IELSR91      (RA_IRQ_FIRST + 91)  /* 91:  Event selected in the ICU.IELSR91 register */
+#  define RA_IRQ_IELSR92      (RA_IRQ_FIRST + 92)  /* 92:  Event selected in the ICU.IELSR92 register */
+#  define RA_IRQ_IELSR93      (RA_IRQ_FIRST + 93)  /* 93:  Event selected in the ICU.IELSR93 register */
+#  define RA_IRQ_IELSR94      (RA_IRQ_FIRST + 94)  /* 94:  Event selected in the ICU.IELSR94 register */
+#  define RA_IRQ_IELSR95      (RA_IRQ_FIRST + 95)  /* 95:  Event selected in the ICU.IELSR95 register */
 
-/* RA8E1 supports additional external interrupt vectors beyond IELSR 0-31.
- * According to FSP BSP configuration, RA8E1 has 96 total external interrupt vectors.
- * The first 32 are configurable via IELSR registers, the remaining 64 are direct
- * peripheral interrupt vectors.
- */
-#  define RA_IRQ_NEXTINT      (RA8E1_IRQ_NEXTERNAL)  /* 96 external interrupt vectors for RA8E1 */
+/* RA8E1 has 96 external interrupt vectors + 16 Cortex-M85 core vectors = 112 total */
+# define RA_IRQ_NEXTINT      96    /* 96 external interrupt vectors */
 
-#if (CONFIG_RA_SCI0_UART)
-#define SCI0_RXI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive data full */
-#define SCI0_TXI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit data empty */
-#define SCI0_TEI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit end */
-#define SCI0_ERI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive error */
-#endif
-
-#if (CONFIG_RA_SCI1_UART)
-#define SCI1_RXI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive data full */
-#define SCI1_TXI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit data empty */
-#define SCI1_TEI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit end */
-#define SCI1_ERI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive error */
-#endif
-
-#if (CONFIG_RA_SCI2_UART)
-#define SCI2_RXI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive data full */
-#define SCI2_TXI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit data empty */
-#define SCI2_TEI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit end */
-#define SCI2_ERI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive error */
-#endif
-
-#if (CONFIG_RA_SCI3_UART)
-#define SCI3_RXI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive data full */
-#define SCI3_TXI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit data empty */
-#define SCI3_TEI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit end */
-#define SCI3_ERI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive error */
-#endif
-
-#if (CONFIG_RA_SCI4_UART)
-#define SCI4_RXI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive data full */
-#define SCI4_TXI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit data empty */
-#define SCI4_TEI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit end */
-#define SCI4_ERI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive error */
-#endif
-
-#if (CONFIG_RA_SCI9_UART)
-#define SCI9_RXI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive data full */
-#define SCI9_TXI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit data empty */
-#define SCI9_TEI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit end */
-#define SCI9_ERI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive error */
-#endif
 /****************************************************************************
  * Public Types
  ****************************************************************************/

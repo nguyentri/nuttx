@@ -69,7 +69,7 @@ extern uint32_t __ram_thread_stack$$Limit;
 const uintptr_t g_idle_topstack = (uintptr_t)&__ram_thread_stack$$Limit + CONFIG_IDLETHREAD_STACKSIZE;
 
 /****************************************************************************
- * ID Code Definitions 
+ * ID Code Definitions
  * Following Renesas FSP pattern for device identification
  ****************************************************************************/
 
@@ -100,7 +100,7 @@ __attribute__((__used__)) =
  **********************************************************************************************************************/
 /* We use RA_ prefixed macros from ra_start.h to avoid duplicate definitions */
 /* Any usage of macros in this file should be converted to RA_ equivalents */
-
+#if defined (CONFIG_RA_LINKER_C) && CONFIG_RA_LINKER_C
 /* boot loaded applications cannot set ofs registers (only do so in the boot loader) */
 #if !defined(CONFIG_RA_BOOTLOADED_APPLICATION) || !CONFIG_RA_BOOTLOADED_APPLICATION
 
@@ -224,7 +224,6 @@ extern ra_init_info_t const g_init_info;
  * Exported global functions (to be accessed by other files)
  **********************************************************************************************************************/
 
-//#if defined (CONFIG_RA_LINKER_C) && CONFIG_RA_LINKER_C
 /***********************************************************************************************************************
  * Objects allocated by bsp_linker.c
  **********************************************************************************************************************/
@@ -336,7 +335,7 @@ const ra_init_info_t g_init_info =
     .p_nocache_list = nocache_list
 };
 
-//#endif /* CONFIG_RA_LINKER_C */
+#endif /* CONFIG_RA_LINKER_C */
 
 /****************************************************************************
  * Private Functions
@@ -405,17 +404,22 @@ void __start(void)
 #endif
   showprogress('B');
 
+  /* After basic low-level init, register enhanced console */
+#ifdef CONFIG_RA_SCI_UART_CONSOLE
+  ra_uart_console_register();
+#endif
+  showprogress('C');
+
   /* Phase 5: Board-level Initialization */
   /* 8. Initialize onboard resources */
   ra_board_initialize();
-  showprogress('C');
+  showprogress('D');
 
   /* Phase 6: Start NuttX */
   /* 9. Then start NuttX main initialization */
   showprogress('\r');
   showprogress('\n');
 
-  /* Call NuttX kernel initialization */
   nx_start();
 
   /* Shouldn't get here */
@@ -441,14 +445,14 @@ void ra_option_bytes_init(void)
   /* Reference Renesas FSP logic for OFS registers */
   /* Option bytes are typically handled by linker sections and bootloader */
   /* On RA8E1, these are defined in ra_start.h and placed by linker */
-  
+
   /* Option bytes include:
    * - RA_OPTION_SETTING_OFS0: IWDT and WDT settings
    * - RA_OPTION_SETTING_OFS2: Boot mode selection
    * - RA_OPTION_SETTING_OFS1_SEC: Security settings for TrustZone
    * - RA_OPTION_SETTING_OFS1_SEL: Secure/Non-secure selection
    */
-  
+
   /* These are handled automatically by the linker script and bootloader */
   /* No runtime configuration needed here */
 }
@@ -469,10 +473,10 @@ void ra_trustzone_init(void)
   /* Reference: https://developer.arm.com/documentation/100720/0300 */
   /* uint32_t * p_main_stack_top = (uint32_t *) &g_main_stack[CONFIG_RA_SECURE_STACK_BYTES]; */
   /* *p_main_stack_top = RA_TZ_STACK_SEAL_VALUE; */
-  
+
   /* Configure SAU, IDAU, and secure memory regions */
   /* RA_SecurityInit(); */
-  
+
 #elif defined(CONFIG_RA_TZ_NONSECURE_BUILD)
   /* Configure non-secure memory regions and permissions */
   /* Non-secure VTOR is set by secure project, skip here */
@@ -495,9 +499,9 @@ static void ra_cortex_m85_init(void)
    * This will be handled by NuttX ARM-specific initialization
    * See sections 6.5, 6.6, and 6.7 in Arm Cortex-M85 Technical Reference Manual
    */
-   
+
   /* D-Cache configuration and errata handling will be done by NuttX */
-  
+
   /* FPU configuration will be done by arm_fpuconfig() */
 #endif
 }
@@ -513,7 +517,7 @@ static void ra_cortex_m85_init(void)
 void ra_clock_init(void)
 {
   /* Setup system clocks following Renesas SystemInit sequence */
-  
+
   /* Step 1: Configure Cortex-M85 core features first */
   ra_cortex_m85_init();
 
@@ -524,7 +528,7 @@ void ra_clock_init(void)
    * This replaces the Renesas bsp_clock_init() call
    */
   ra_clock();
-  
+
   /* Step 4: Post-clock initialization */
   /* Additional Renesas-specific setup like TRNG reset would go here */
   /* These are handled by existing NuttX drivers as needed */
@@ -565,7 +569,7 @@ void ra_tcm_init(void)
    * Zero initialize TCM memory if ECC is enabled and this is the first project
    * This prevents ECC errors on first access
    */
-   
+
   /* TCM initialization will be handled by NuttX memory management */
   /* The linker script should properly configure TCM regions */
 #endif
@@ -580,6 +584,7 @@ void ra_tcm_init(void)
  ****************************************************************************/
 void ra_ram_init (const uint32_t external)
 {
+#if defined (CONFIG_RA_LINKER_C) && CONFIG_RA_LINKER_C
     /* Initialize C runtime environment. */
     for (uint32_t i = 0; i < g_init_info.zero_count; i++)
     {
@@ -598,4 +603,30 @@ void ra_ram_init (const uint32_t external)
                    ((uintptr_t) g_init_info.p_copy_list[i].p_limit - (uintptr_t) g_init_info.p_copy_list[i].p_base));
         }
     }
+#else
+  const register uint32_t *src;
+  register uint32_t *dest;
+  /* Clear .bss.  We'll do this inline (vs. calling memset) just to be
+   * certain that there are no issues with the state of global variables.
+   */
+
+  for (dest = (uint32_t *)_sbss; dest < (uint32_t *)_ebss; )
+    {
+      *dest++ = 0;
+    }
+
+  /* Move the initialized data section from his temporary holding spot in
+   * FLASH into the correct place in OCRAM.  The correct place in OCRAM is
+   * give by _sdata and _edata.  The temporary location is in FLASH at the
+   * end of all of the other read-only data (.text, .rodata) at _eronly.
+   */
+
+  for (src = (const uint32_t *)_eronly,
+       dest = (uint32_t *)_sdata; dest < (uint32_t *)_edata;
+      )
+    {
+      *dest++ = *src++;
+    }
+
+#endif
 }

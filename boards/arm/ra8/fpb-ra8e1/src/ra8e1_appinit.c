@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/ra8/fpb-ra8e1/src/ra8e1_boot.c
+ * boards/arm/ra8/fpb-ra8e1/src/ra8e1_appinit.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -24,9 +24,21 @@
 
 #include <nuttx/config.h>
 
+#include <sys/types.h>
+#include <sys/mount.h>
+#include <stdio.h>
+#include <string.h>
+#include <fcntl.h>
+#include <syslog.h>
+#include <errno.h>
 #include <debug.h>
 
+#include <nuttx/arch.h>
 #include <nuttx/board.h>
+#include <nuttx/sdio.h>
+#include <nuttx/mmcsd.h>
+
+#include <arch/board/board.h>
 
 #include "fpb-ra8e1.h"
 
@@ -35,41 +47,36 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ra_board_initialize
+ * Name: board_app_initialize
  *
  * Description:
- *   All RA8E1 architectures must provide the following entry point.  This
- *   entry point is called early in the initialization -- after all memory
- *   has been configured and mapped but before any devices have been
- *   initialized.
+ *   Perform application specific initialization.  This function is never
+ *   called directly from application code, but only indirectly via the
+ *   (non-standard) boardctl() interface using the command BOARDIOC_INIT.
+ *
+ * Input Parameters:
+ *   arg - The boardctl() argument is passed to the board_app_initialize()
+ *         implementation without modification.  The argument has no
+ *         meaning to NuttX; the meaning of the argument is a contract
+ *         between the board-specific initialization logic and the
+ *         matching application logic.  The value could be such things as a
+ *         mode enumeration value, a set of DIP switch switch settings, a
+ *         pointer to configuration data read from a file or serial FLASH,
+ *         or whatever you would like to do with it.  Every implementation
+ *         should accept zero/NULL as a default configuration.
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; a negated errno value is returned on
+ *   any failure to indicate the nature of the failure.
  *
  ****************************************************************************/
 
-void ra_board_initialize(void)
+int board_app_initialize(uintptr_t arg)
 {
-  /* Configure on-board LEDs if LED support has been selected. */
-#ifdef CONFIG_ARCH_LEDS
-  board_autoled_initialize();
+#ifndef CONFIG_BOARD_LATE_INITIALIZE
+  /* Perform board-specific initialization if not done in board_late_initialize() */
+  return ra8e1_bringup();
+#else
+  return OK;
 #endif
 }
-
-/****************************************************************************
- * Name: board_late_initialize
- *
- * Description:
- *   If CONFIG_BOARD_LATE_INITIALIZE is selected, then an additional
- *   initialization call will be performed in the boot-up sequence to a
- *   function called board_late_initialize(). board_late_initialize() will be
- *   called immediately after up_initialize() is called and just before the
- *   initial application is started.  This additional initialization phase
- *   may be used, for example, to initialize board-specific device drivers.
- *
- ****************************************************************************/
-
-// Late initialization will call ra8e1_bringup if enabled
-#ifdef CONFIG_BOARD_LATE_INITIALIZE
-void board_late_initialize(void)
-{
-  ra8e1_bringup();
-}
-#endif

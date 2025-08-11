@@ -52,7 +52,8 @@
 #define R_SYSTEM_SCKDIVCR_OFFSET          0x0020  /* System Clock Division Control Register (32-bits) */
 #define R_SYSTEM_SCKSCR_OFFSET            0x0026  /* System Clock Source Control Register (8-bits) */
 #define R_SYSTEM_PLLCR_OFFSET             0x002a  /* PLL Control Register (8-bits) */
-#define R_SYSTEM_PLLCCR2_OFFSET           0x002b  /* PLL Clock Control Register 2 (8-bits) */
+#define R_SYSTEM_PLLCCR_OFFSET            0x0028  /* PLL Clock Control Register (16-bits) */
+#define R_SYSTEM_PLLCCR2_OFFSET           0x004c  /* PLL Clock Control Register 2 (16-bits) */
 #define R_SYSTEM_MEMWAIT_OFFSET           0x0031  /* Memory Wait Cycle Control Register (8-bits) */
 #define R_SYSTEM_MOSCCR_OFFSET            0x0032  /* Main Clock Oscillator Control Register (8-bits) */
 #define R_SYSTEM_HOCOCR_OFFSET            0x0036  /* High-Speed On-Chip Oscillator Control Register (8-bits) */
@@ -113,6 +114,7 @@
 #  define R_SYSTEM_SCKDIVCR              (R_SYSTEM_BASE + R_SYSTEM_SCKDIVCR_OFFSET)
 #  define R_SYSTEM_SCKSCR                (R_SYSTEM_BASE + R_SYSTEM_SCKSCR_OFFSET)
 #  define R_SYSTEM_PLLCR                 (R_SYSTEM_BASE + R_SYSTEM_PLLCR_OFFSET)
+#  define R_SYSTEM_PLLCCR                (R_SYSTEM_BASE + R_SYSTEM_PLLCCR_OFFSET)
 #  define R_SYSTEM_PLLCCR2               (R_SYSTEM_BASE + R_SYSTEM_PLLCCR2_OFFSET)
 #  define R_SYSTEM_MEMWAIT               (R_SYSTEM_BASE + R_SYSTEM_MEMWAIT_OFFSET)
 #  define R_SYSTEM_MOSCCR                (R_SYSTEM_BASE + R_SYSTEM_MOSCCR_OFFSET)
@@ -321,13 +323,31 @@
 
 #define R_SYSTEM_PLLCR_PLLSTP             (1 <<  0) /* 01: PLL Stop Control */
 
-/* PLL Clock Control Register 2 (8-bits) */
+/* PLL Clock Control Register (16-bits) */
+
+#define R_SYSTEM_PLLCCR_PLIDIV_SHIFT      (0)       /* Bits 1-0: PLL Input Frequency Division Ratio Select */
+#define R_SYSTEM_PLLCCR_PLIDIV_MASK       (0x03 << R_SYSTEM_PLLCCR_PLIDIV_SHIFT)
+#define R_SYSTEM_PLLCCR_PLSRCSEL_SHIFT    (4)       /* Bit 4: PLL Clock Source Select */
+#define R_SYSTEM_PLLCCR_PLSRCSEL_MASK     (0x01 << R_SYSTEM_PLLCCR_PLSRCSEL_SHIFT)
+#define R_SYSTEM_PLLCCR_PLLMULNF_SHIFT    (6)       /* Bits 7-6: PLL Frequency Multiplication Factor Select (fractional part) */
+#define R_SYSTEM_PLLCCR_PLLMULNF_MASK     (0x03 << R_SYSTEM_PLLCCR_PLLMULNF_SHIFT)
+#define R_SYSTEM_PLLCCR_PLLMUL_SHIFT      (8)       /* Bits 15-8: PLL Frequency Multiplication Factor Select */
+#define R_SYSTEM_PLLCCR_PLLMUL_MASK       (0xFF << R_SYSTEM_PLLCCR_PLLMUL_SHIFT)
+
+/* PLL Clock Control Register 2 (16-bits) */
 
 #define R_SYSTEM_PLLCCR2                  (R_SYSTEM_BASE + R_SYSTEM_PLLCCR2_OFFSET)
-#define R_SYSTEM_PLLCCR2_PLODIV_SHIFT     (6) /* 40: PLL Output Frequency Division Ratio Select */
-#define R_SYSTEM_PLLCCR2_PLODIV_MASK      (0x03)
-#define R_SYSTEM_PLLCCR2_PLLMUL_SHIFT     (0) /* 01: PLL Frequency Multiplication Factor Select */
-#define R_SYSTEM_PLLCCR2_PLLMUL_MASK      (0x1f)
+#define R_SYSTEM_PLLCCR2_PLODIV0_SHIFT    (0)       /* Bits 3-0: PLL1P Output Frequency Division Ratio Select */
+#define R_SYSTEM_PLLCCR2_PLODIV0_MASK     (0x0F << R_SYSTEM_PLLCCR2_PLODIV0_SHIFT)
+#define R_SYSTEM_PLLCCR2_PLODIV0_Pos      (0)       /* For compatibility with Kconfig */
+#define R_SYSTEM_PLLCCR2_PLODIV1_SHIFT    (4)       /* Bits 7-4: PLL1Q Output Frequency Division Ratio Select */
+#define R_SYSTEM_PLLCCR2_PLODIV1_MASK     (0x0F << R_SYSTEM_PLLCCR2_PLODIV1_SHIFT)
+#define R_SYSTEM_PLLCCR2_PLODIV1_Pos      (4)       /* For compatibility with Kconfig */
+#define R_SYSTEM_PLLCCR2_PLODIV2_SHIFT    (8)       /* Bits 11-8: PLL1R Output Frequency Division Ratio Select */
+#define R_SYSTEM_PLLCCR2_PLODIV2_MASK     (0x0F << R_SYSTEM_PLLCCR2_PLODIV2_SHIFT)
+#define R_SYSTEM_PLLCCR2_PLODIV2_Pos      (8)       /* For compatibility with Kconfig */
+#define R_SYSTEM_PLLCCR2_PLLSEL_SHIFT     (12)      /* Bit 12: PLL Clock Source Select */
+#define R_SYSTEM_PLLCCR2_PLLSEL           (1 << R_SYSTEM_PLLCCR2_PLLSEL_SHIFT)
 
 /* Memory Wait Cycle Control Register (8-bits) */
 

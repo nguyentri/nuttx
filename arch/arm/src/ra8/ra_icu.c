@@ -50,6 +50,7 @@
 #include "hardware/ra_sci.h"
 #include "hardware/ra_mstp.h"
 #include "hardware/ra_system.h"
+#include "hardware/ra_icu.h"
 #include "ra_icu.h"
 
 /****************************************************************************
@@ -80,17 +81,17 @@ static void *g_icu_args[RA_ICU_MAX_IRQ_NUM];
 static int ra_icu_interrupt(int irq, void *context, void *arg)
 {
   int icu_irq = (int)arg;
-  
+
   /* Clear the interrupt flag */
   ra_icu_clear_irq(irq);
-  
+
   /* Call the registered handler if available */
   if (g_icu_handlers[icu_irq] != NULL)
     {
       return ((int (*)(int, void *, void *))g_icu_handlers[icu_irq])
                (irq, context, g_icu_args[icu_irq]);
     }
-  
+
   return OK;
 }
 
@@ -109,14 +110,14 @@ static int ra_icu_interrupt(int irq, void *context, void *arg)
 void ra_icu_initialize(void)
 {
   int i;
-  
+
   /* Clear all handlers */
   for (i = 0; i < RA_ICU_MAX_IRQ_NUM; i++)
     {
       g_icu_handlers[i] = NULL;
       g_icu_args[i] = NULL;
     }
-  
+
   /* Clear all interrupt flags */
   putreg16(0xFFFF, R_ICU_NMICLR);
 }
@@ -135,13 +136,13 @@ int ra_icu_attach_irq(int icu_irq, int (*handler)(int, void *, void *), void *ar
     {
       return -EINVAL;
     }
-  
+
   g_icu_handlers[icu_irq] = handler;
   g_icu_args[icu_irq] = arg;
-  
+
   /* Attach the common interrupt handler using IELSR IRQ numbers */
   irq_attach(RA_IRQ_FIRST + icu_irq, ra_icu_interrupt, (void *)(uintptr_t)icu_irq);
-  
+
   return OK;
 }
 
@@ -159,13 +160,13 @@ int ra_icu_detach(int icu_irq)
     {
       return -EINVAL;
     }
-  
+
   g_icu_handlers[icu_irq] = NULL;
   g_icu_args[icu_irq] = NULL;
-  
+
   /* Detach the interrupt handler */
   irq_detach(icu_irq);
-  
+
   return OK;
 }
 
@@ -209,32 +210,32 @@ void ra_icu_disable(int icu_irq)
  *
  ****************************************************************************/
 
-int ra_icu_config(int icu_irq, uint8_t mode, bool filter_enable, 
+int ra_icu_config(int icu_irq, uint8_t mode, bool filter_enable,
                   uint8_t filter_clock)
 {
   uint32_t regaddr;
   uint8_t regval;
-  
+
   if (icu_irq < 0 || icu_irq >= 16)  /* Only IRQ0-15 have configuration */
     {
       return -EINVAL;
     }
-  
+
   regaddr = R_ICU_IRQCR(icu_irq);
   regval = 0;
-  
+
   /* Set detection mode */
   regval |= (mode & R_ICU_IRQCR_IRQMD_MASK) << R_ICU_IRQCR_IRQMD;
-  
+
   /* Set filter configuration */
   if (filter_enable)
     {
       regval |= R_ICU_IRQCR_FLTEN;
       regval |= (filter_clock & R_ICU_IRQCR_FCLKSEL_MASK) << R_ICU_IRQCR_FCLKSEL_SHIFT;
     }
-  
+
   putreg8(regval, regaddr);
-  
+
   return OK;
 }
 
@@ -250,20 +251,20 @@ int ra_icu_set_event(int icu_slot, int event)
 {
   uint32_t regaddr;
   uint32_t regval;
-  
+
   if (icu_slot < 0 || icu_slot >= R_ICU_IELSR_SIZE)
     {
       return -EINVAL;
     }
-  
+
   regaddr = R_ICU_IELSR(icu_slot);
   regval = getreg32(regaddr);
-  
+
   regval &= ~(R_ICU_IELSR_IELS_MASK << R_ICU_IELSR_IELS_SHIFT);
   regval |= (event & R_ICU_IELSR_IELS_MASK) << R_ICU_IELSR_IELS_SHIFT;
-  
+
   putreg32(regval, regaddr);
-  
+
   return OK;
 }
 
@@ -354,7 +355,7 @@ void ra_icu_attach_all(void)
   putreg32(EVENT_ADC0_SCAN_END_B, R_ICU_IELSR(1));    /* ADC0 Scan End B */
   putreg32(EVENT_ADC0_WINDOW_A, R_ICU_IELSR(2));      /* ADC0 Window A */
   putreg32(EVENT_ADC0_WINDOW_B, R_ICU_IELSR(3));      /* ADC0 Window B */
-  
+
   /* ADC1 interrupts */
   putreg32(EVENT_ADC1_SCAN_END, R_ICU_IELSR(4));      /* ADC1 Scan End */
   putreg32(EVENT_ADC1_SCAN_END_B, R_ICU_IELSR(5));    /* ADC1 Scan End B */
@@ -365,16 +366,16 @@ void ra_icu_attach_all(void)
   /* GPT Timer/PWM Interrupt Configuration */
 #ifdef CONFIG_RA_GPT
   /* GPT0 interrupts - commonly used for PWM and timing */
-  putreg32(EVENT_GPT0_CAPTURE_COMPARE_A, R_ICU_IELSR(8));     /* GPT0 Compare A */
-  putreg32(EVENT_GPT0_CAPTURE_COMPARE_B, R_ICU_IELSR(9));     /* GPT0 Compare B */
-  putreg32(EVENT_GPT0_COUNTER_OVERFLOW, R_ICU_IELSR(10));     /* GPT0 Overflow */
-  putreg32(EVENT_GPT0_COUNTER_UNDERFLOW, R_ICU_IELSR(11));    /* GPT0 Underflow */
-  
+  /* putreg32(EVENT_GPT0_CAPTURE_COMPARE_A, R_ICU_IELSR(8)); */     /* GPT0 Compare A */
+  /* putreg32(EVENT_GPT0_CAPTURE_COMPARE_B, R_ICU_IELSR(9)); */     /* GPT0 Compare B */
+  /* putreg32(EVENT_GPT0_COUNTER_OVERFLOW, R_ICU_IELSR(10)); */     /* GPT0 Overflow */
+  /* putreg32(EVENT_GPT0_COUNTER_UNDERFLOW, R_ICU_IELSR(11)); */    /* GPT0 Underflow */
+
   /* GPT3 interrupts - commonly used in examples */
-  putreg32(EVENT_GPT3_CAPTURE_COMPARE_A, R_ICU_IELSR(12));    /* GPT3 Compare A */
-  putreg32(EVENT_GPT3_CAPTURE_COMPARE_B, R_ICU_IELSR(13));    /* GPT3 Compare B */
-  putreg32(EVENT_GPT3_COUNTER_OVERFLOW, R_ICU_IELSR(14));     /* GPT3 Overflow */
-  putreg32(EVENT_GPT3_COUNTER_UNDERFLOW, R_ICU_IELSR(15));    /* GPT3 Underflow */
+  /* putreg32(EVENT_GPT3_CAPTURE_COMPARE_A, R_ICU_IELSR(12)); */    /* GPT3 Compare A */
+  /* putreg32(EVENT_GPT3_CAPTURE_COMPARE_B, R_ICU_IELSR(13)); */    /* GPT3 Compare B */
+  /* putreg32(EVENT_GPT3_COUNTER_OVERFLOW, R_ICU_IELSR(14)); */     /* GPT3 Overflow */
+  /* putreg32(EVENT_GPT3_COUNTER_UNDERFLOW, R_ICU_IELSR(15)); */    /* GPT3 Underflow */
 #endif
 
 #ifdef CONFIG_RA_PWM
@@ -392,7 +393,7 @@ void ra_icu_attach_all(void)
   putreg32(EVENT_SPI0_TXI, R_ICU_IELSR(21));          /* SPI0 TX */
   putreg32(EVENT_SPI0_TEI, R_ICU_IELSR(22));          /* SPI0 Transfer End */
   putreg32(EVENT_SPI0_ERI, R_ICU_IELSR(23));          /* SPI0 Error */
-  
+
   /* SPI1 interrupts */
   putreg32(EVENT_SPI1_RXI, R_ICU_IELSR(24));          /* SPI1 RX */
   putreg32(EVENT_SPI1_TXI, R_ICU_IELSR(25));          /* SPI1 TX */
@@ -407,7 +408,7 @@ void ra_icu_attach_all(void)
   putreg32(EVENT_IIC0_TXI, R_ICU_IELSR(29));          /* IIC0 TX */
   putreg32(EVENT_IIC0_TEI, R_ICU_IELSR(30));          /* IIC0 Transfer End */
   putreg32(EVENT_IIC0_ERI, R_ICU_IELSR(31));          /* IIC0 Error */
-  
+
   /* IIC1 interrupts */
   putreg32(EVENT_IIC1_RXI, R_ICU_IELSR(32));          /* IIC1 RX */
   putreg32(EVENT_IIC1_TXI, R_ICU_IELSR(33));          /* IIC1 TX */
@@ -546,6 +547,17 @@ void ra_icu_attach_all(void)
   putreg32(EVENT_CAN0_FIFO_RX, R_ICU_IELSR(100));     /* CAN0 RX FIFO */
 #endif
 }
+
+#ifdef CONFIG_RA_SYSTICK_GPT
+  /* Map GPT0 Compare A event to a fixed ICU slot if not already set */
+  /* putreg32(EVENT_GPT0_CAPTURE_COMPARE_A, R_ICU_IELSR(8)); */
+#endif
+#ifdef CONFIG_RA_SCI_UART
+#  ifdef CONFIG_RA_SCI_UART_DMA_ENABLE
+  /* Ensure DMAC channels 0/1 mapped for SCI2 TX/RX if needed */
+  /* These events (DMAC0/1) already assigned above when CONFIG_RA_DMAC; keep slot numbers consistent */
+#  endif
+#endif
 
 /****************************************************************************
  * Name: ra_icu_clear_irq

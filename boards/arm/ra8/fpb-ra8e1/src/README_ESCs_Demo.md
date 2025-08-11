@@ -143,8 +143,8 @@ Required config options:
 ```
 CONFIG_RA8E1_PWM_ESCS_DEMO=y
 CONFIG_PWM=y
-CONFIG_RA8_GPT=y
-CONFIG_RA8_GPT_PWM=y
+CONFIG_RA_GPT=y
+CONFIG_RA_GPT_PWM=y
 ```
 
 ### Customization

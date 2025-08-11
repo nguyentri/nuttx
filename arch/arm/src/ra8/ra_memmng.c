@@ -68,8 +68,8 @@
 #  define CONFIG_RA_SRAM_BASE         0x22060000  /* Main SRAM base */
 #endif
 
-#ifndef CONFIG_RA8_SRAM_SIZE
-#  define CONFIG_RA8_SRAM_SIZE         0x80000     /* 512KB - matches linker */
+#ifndef CONFIG_RA_SRAM_SIZE
+#  define CONFIG_RA_SRAM_SIZE         0x80000     /* 512KB - matches linker */
 #endif
 
 #ifndef CONFIG_RA_EXTERNAL_RAM_BASE
@@ -333,10 +333,10 @@ bool ra_mem_validate(void)
       valid = false;
     }
 
-  if (CONFIG_RA8_SRAM_SIZE != 0x80000)
+  if (CONFIG_RA_SRAM_SIZE != 0x80000)
     {
       syslog(LOG_ERR, "SRAM size mismatch: config=%d linker=524288 bytes\n", 
-             CONFIG_RA8_SRAM_SIZE);
+             CONFIG_RA_SRAM_SIZE);
       valid = false;
     }
 

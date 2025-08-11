@@ -42,7 +42,7 @@
 
 #include "arm_internal.h"
 #include "chip.h"
-#include "ra_uart.h"
+#include "hardware/ra_uart.h"
 #include "hardware/ra_sci.h"
 #include "hardware/ra_memorymap.h"
 #include "ra_gpio.h"
@@ -155,7 +155,7 @@ typedef struct
  ****************************************************************************/
 
 /* DMA channel pool */
-static ra_dma_channel_t g_dma_channels[] = 
+static ra_dma_channel_t g_dma_channels[] =
 {
     { RA_DMAC0_BASE, 0, RA_IRQ_IELSR0, false },
     { RA_DMAC1_BASE, 1, RA_IRQ_IELSR1, false },
@@ -180,9 +180,9 @@ static ra_dma_channel_t *ra_uart_dma_allocate_channel(void)
 {
     irqstate_t flags;
     int i;
-    
+
     flags = enter_critical_section();
-    
+
     for (i = 0; i < RA_NUM_DMA_CHANNELS; i++)
     {
         if (!g_dma_channels[i].in_use)
@@ -192,7 +192,7 @@ static ra_dma_channel_t *ra_uart_dma_allocate_channel(void)
             return &g_dma_channels[i];
         }
     }
-    
+
     leave_critical_section(flags);
     return NULL;
 }
@@ -208,7 +208,7 @@ static ra_dma_channel_t *ra_uart_dma_allocate_channel(void)
 static void ra_uart_dma_free_channel(ra_dma_channel_t *channel)
 {
     irqstate_t flags;
-    
+
     if (channel != NULL)
     {
         flags = enter_critical_section();
@@ -225,36 +225,36 @@ static void ra_uart_dma_free_channel(ra_dma_channel_t *channel)
  *
  ****************************************************************************/
 
-static int ra_uart_dma_setup_transfer(ra_dma_channel_t *dma, 
+static int ra_uart_dma_setup_transfer(ra_dma_channel_t *dma,
                                        uint32_t src_addr, uint32_t dst_addr,
                                        uint16_t count, bool is_tx)
 {
     uint32_t tmdr = 0;
     uint32_t amd = 0;
-    
+
     if (dma == NULL)
     {
         return -EINVAL;
     }
-    
+
     /* Disable DMA channel */
     putreg32(0, dma->base + RA_DMAC_DMCNT_OFFSET);
-    
+
     /* Set source and destination addresses */
     putreg32(src_addr, dma->base + RA_DMAC_DMSAR_OFFSET);
     putreg32(dst_addr, dma->base + RA_DMAC_DMDAR_OFFSET);
-    
+
     /* Set transfer count */
     putreg32(count, dma->base + RA_DMAC_DMCRA_OFFSET);
-    
+
     /* Configure transfer mode */
     tmdr = (0 << RA_DMAC_DMTMD_DCTG_SHIFT) |    /* Software trigger */
            (0 << RA_DMAC_DMTMD_SZ_SHIFT) |      /* Byte transfer */
            (0 << RA_DMAC_DMTMD_DTS_SHIFT) |     /* Read-after-write */
            (0 << RA_DMAC_DMTMD_MD_SHIFT);       /* Normal mode */
-    
+
     putreg32(tmdr, dma->base + RA_DMAC_DMTMD_OFFSET);
-    
+
     /* Configure address mode */
     if (is_tx)
     {
@@ -266,12 +266,12 @@ static int ra_uart_dma_setup_transfer(ra_dma_channel_t *dma,
         /* RX: Source fixed, destination incremented */
         amd = (0 << 14) | (1 << 12);
     }
-    
+
     putreg32(amd, dma->base + RA_DMAC_DMAMD_OFFSET);
-    
+
     /* Enable transfer end interrupt */
     putreg32(1, dma->base + RA_DMAC_DMINT_OFFSET);
-    
+
     return OK;
 }
 
@@ -289,13 +289,13 @@ static int ra_uart_dma_start_transfer(ra_dma_channel_t *dma)
     {
         return -EINVAL;
     }
-    
+
     /* Enable DMA transfer */
     putreg32(RA_DMAC_DMCNT_DTE, dma->base + RA_DMAC_DMCNT_OFFSET);
-    
+
     /* Start transfer */
     putreg32(1, dma->base + RA_DMAC_DMREQ_OFFSET);
-    
+
     return OK;
 }
 
@@ -327,7 +327,7 @@ static void ra_uart_dma_stop_transfer(ra_dma_channel_t *dma)
 static int ra_uart_configure_pins(const ra_uart_config_t *config)
 {
     int ret = OK;
-    
+
     /* Configure TX pin */
     if (config->tx_pin != 0)
     {
@@ -337,7 +337,7 @@ static int ra_uart_configure_pins(const ra_uart_config_t *config)
             return ret;
         }
     }
-    
+
     /* Configure RX pin */
     if (config->rx_pin != 0)
     {
@@ -347,7 +347,7 @@ static int ra_uart_configure_pins(const ra_uart_config_t *config)
             return ret;
         }
     }
-    
+
     /* Configure flow control pins if enabled */
     if (config->flow_control)
     {
@@ -359,7 +359,7 @@ static int ra_uart_configure_pins(const ra_uart_config_t *config)
                 return ret;
             }
         }
-        
+
         if (config->cts_pin != 0)
         {
             ret = ra_gpio_config(config->cts_pin);
@@ -369,7 +369,7 @@ static int ra_uart_configure_pins(const ra_uart_config_t *config)
             }
         }
     }
-    
+
     return ret;
 }
 
@@ -389,10 +389,10 @@ static int ra_uart_configure_registers(ra_uart_dev_t *dev)
     uint8_t scr = 0;
     uint8_t semr = 0;
     uint32_t brr = 0;
-    
+
     /* Disable transmit and receive */
     putreg8(0, base + R_SCI_SCR_OFFSET);
-    
+
     /* Configure Serial Mode Register (SMR) */
     switch (config->bits)
     {
@@ -405,7 +405,7 @@ static int ra_uart_configure_registers(ra_uart_dev_t *dev)
         default:
             return -EINVAL;
     }
-    
+
     switch (config->parity)
     {
         case 0: /* No parity */
@@ -419,28 +419,28 @@ static int ra_uart_configure_registers(ra_uart_dev_t *dev)
         default:
             return -EINVAL;
     }
-    
+
     if (config->stop == 2)
     {
         smr |= RA_SCI_SMR_STOP;
     }
-    
+
     putreg8(smr, base + R_SCI_SMR_OFFSET);
-    
+
     /* Configure baud rate */
     /* Simplified baud rate calculation - should be enhanced for production */
-    brr = (RA_PCLK / (32 * config->baud)) - 1;
+    brr = (CONFIG_RA_ICLK_FREQUENCY / (32 * config->baud)) - 1;
     if (brr > 255)
     {
         return -EINVAL;
     }
-    
+
     putreg8(brr, base + R_SCI_BRR_OFFSET);
-    
+
     /* Configure extended mode register */
     semr |= RA_SCI_SEMR_ABCS | RA_SCI_SEMR_BGDM;
     putreg8(semr, base + R_SCI_SEMR_OFFSET);
-    
+
     /* Configure control register */
     scr = RA_SCI_SCR_TE | RA_SCI_SCR_RE | RA_SCI_SCR_TIE | RA_SCI_SCR_RIE;
     if (config->flow_control)
@@ -448,9 +448,9 @@ static int ra_uart_configure_registers(ra_uart_dev_t *dev)
         /* Enable transmit end interrupt for flow control */
         scr |= RA_SCI_SCR_TEIE;
     }
-    
+
     putreg8(scr, base + R_SCI_SCR_OFFSET);
-    
+
     return OK;
 }
 
@@ -465,18 +465,18 @@ static int ra_uart_configure_registers(ra_uart_dev_t *dev)
 static int ra_uart_tx_dma_callback(int irq, void *context, void *arg)
 {
     ra_uart_dev_t *dev = (ra_uart_dev_t *)arg;
-    
+
     if (dev != NULL)
     {
         dev->state = RA_UART_STATE_IDLE;
         dev->events |= RA_UART_EVENT_TX_COMPLETE;
-        
+
         if (dev->callback != NULL)
         {
             dev->callback(dev, RA_UART_EVENT_TX_COMPLETE);
         }
     }
-    
+
     return OK;
 }
 
@@ -491,18 +491,18 @@ static int ra_uart_tx_dma_callback(int irq, void *context, void *arg)
 static int ra_uart_rx_dma_callback(int irq, void *context, void *arg)
 {
     ra_uart_dev_t *dev = (ra_uart_dev_t *)arg;
-    
+
     if (dev != NULL)
     {
         dev->state = RA_UART_STATE_IDLE;
         dev->events |= RA_UART_EVENT_RX_COMPLETE;
-        
+
         if (dev->callback != NULL)
         {
             dev->callback(dev, RA_UART_EVENT_RX_COMPLETE);
         }
     }
-    
+
     return OK;
 }
 
@@ -521,25 +521,25 @@ static int ra_uart_rx_dma_callback(int irq, void *context, void *arg)
 int ra_uart_initialize(ra_uart_dev_t *dev)
 {
     int ret;
-    
+
     if (dev == NULL || dev->config == NULL)
     {
         return -EINVAL;
     }
-    
+
     /* Initialize device state */
     dev->state = RA_UART_STATE_UNINITIALIZED;
     dev->tx_dma_ctrl = NULL;
     dev->rx_dma_ctrl = NULL;
     dev->events = 0;
-    
+
     /* Configure pins */
     ret = ra_uart_configure_pins(dev->config);
     if (ret < 0)
     {
         return ret;
     }
-    
+
     /* Allocate DMA channels if enabled */
     if (dev->config->tx_dma.enabled)
     {
@@ -549,7 +549,7 @@ int ra_uart_initialize(ra_uart_dev_t *dev)
             syslog(LOG_ERR, "Failed to allocate TX DMA channel\n");
             return -ENOMEM;
         }
-        
+
         /* Attach TX DMA interrupt */
         ret = irq_attach(((ra_dma_channel_t *)dev->tx_dma_ctrl)->irq,
                          ra_uart_tx_dma_callback, dev);
@@ -558,10 +558,10 @@ int ra_uart_initialize(ra_uart_dev_t *dev)
             ra_uart_dma_free_channel((ra_dma_channel_t *)dev->tx_dma_ctrl);
             return ret;
         }
-        
+
         up_enable_irq(((ra_dma_channel_t *)dev->tx_dma_ctrl)->irq);
     }
-    
+
     if (dev->config->rx_dma.enabled)
     {
         dev->rx_dma_ctrl = ra_uart_dma_allocate_channel();
@@ -574,7 +574,7 @@ int ra_uart_initialize(ra_uart_dev_t *dev)
             syslog(LOG_ERR, "Failed to allocate RX DMA channel\n");
             return -ENOMEM;
         }
-        
+
         /* Attach RX DMA interrupt */
         ret = irq_attach(((ra_dma_channel_t *)dev->rx_dma_ctrl)->irq,
                          ra_uart_rx_dma_callback, dev);
@@ -587,10 +587,10 @@ int ra_uart_initialize(ra_uart_dev_t *dev)
             }
             return ret;
         }
-        
+
         up_enable_irq(((ra_dma_channel_t *)dev->rx_dma_ctrl)->irq);
     }
-    
+
     /* Configure UART registers */
     ret = ra_uart_configure_registers(dev);
     if (ret < 0)
@@ -598,9 +598,9 @@ int ra_uart_initialize(ra_uart_dev_t *dev)
         ra_uart_finalize(dev);
         return ret;
     }
-    
+
     dev->state = RA_UART_STATE_IDLE;
-    
+
     return OK;
 }
 
@@ -618,13 +618,13 @@ void ra_uart_finalize(ra_uart_dev_t *dev)
     {
         return;
     }
-    
+
     /* Disable UART */
     if (dev->config != NULL)
     {
         putreg8(0, dev->config->base + R_SCI_SCR_OFFSET);
     }
-    
+
     /* Free DMA channels */
     if (dev->tx_dma_ctrl != NULL)
     {
@@ -634,7 +634,7 @@ void ra_uart_finalize(ra_uart_dev_t *dev)
         ra_uart_dma_free_channel((ra_dma_channel_t *)dev->tx_dma_ctrl);
         dev->tx_dma_ctrl = NULL;
     }
-    
+
     if (dev->rx_dma_ctrl != NULL)
     {
         ra_uart_dma_stop_transfer((ra_dma_channel_t *)dev->rx_dma_ctrl);
@@ -643,20 +643,20 @@ void ra_uart_finalize(ra_uart_dev_t *dev)
         ra_uart_dma_free_channel((ra_dma_channel_t *)dev->rx_dma_ctrl);
         dev->rx_dma_ctrl = NULL;
     }
-    
+
     /* Free buffers */
     if (dev->tx_buffer != NULL)
     {
         kmm_free(dev->tx_buffer);
         dev->tx_buffer = NULL;
     }
-    
+
     if (dev->rx_buffer != NULL)
     {
         kmm_free(dev->rx_buffer);
         dev->rx_buffer = NULL;
     }
-    
+
     dev->state = RA_UART_STATE_UNINITIALIZED;
 }
 
@@ -668,31 +668,31 @@ void ra_uart_finalize(ra_uart_dev_t *dev)
  *
  ****************************************************************************/
 
-int ra_uart_send_dma(ra_uart_dev_t *dev, const uint8_t *buffer, 
+int ra_uart_send_dma(ra_uart_dev_t *dev, const uint8_t *buffer,
                      uint16_t length)
 {
     ra_dma_channel_t *dma;
     int ret;
-    
+
     if (dev == NULL || buffer == NULL || length == 0)
     {
         return -EINVAL;
     }
-    
+
     if (dev->state != RA_UART_STATE_IDLE)
     {
         return -EBUSY;
     }
-    
+
     if (!dev->config->tx_dma.enabled || dev->tx_dma_ctrl == NULL)
     {
         return -ENOTSUP;
     }
-    
+
     dma = (ra_dma_channel_t *)dev->tx_dma_ctrl;
-    
+
     /* Setup DMA transfer */
-    ret = ra_uart_dma_setup_transfer(dma, 
+    ret = ra_uart_dma_setup_transfer(dma,
                                      (uint32_t)buffer,
                                      dev->config->base + R_SCI_TDR_OFFSET,
                                      length, true);
@@ -700,11 +700,11 @@ int ra_uart_send_dma(ra_uart_dev_t *dev, const uint8_t *buffer,
     {
         return ret;
     }
-    
+
     /* Update state */
     dev->state = RA_UART_STATE_TX_IN_PROGRESS;
     dev->tx_count = length;
-    
+
     /* Start DMA transfer */
     ret = ra_uart_dma_start_transfer(dma);
     if (ret < 0)
@@ -712,7 +712,7 @@ int ra_uart_send_dma(ra_uart_dev_t *dev, const uint8_t *buffer,
         dev->state = RA_UART_STATE_IDLE;
         return ret;
     }
-    
+
     return OK;
 }
 
@@ -724,29 +724,29 @@ int ra_uart_send_dma(ra_uart_dev_t *dev, const uint8_t *buffer,
  *
  ****************************************************************************/
 
-int ra_uart_receive_dma(ra_uart_dev_t *dev, uint8_t *buffer, 
+int ra_uart_receive_dma(ra_uart_dev_t *dev, uint8_t *buffer,
                         uint16_t length)
 {
     ra_dma_channel_t *dma;
     int ret;
-    
+
     if (dev == NULL || buffer == NULL || length == 0)
     {
         return -EINVAL;
     }
-    
+
     if (dev->state != RA_UART_STATE_IDLE)
     {
         return -EBUSY;
     }
-    
+
     if (!dev->config->rx_dma.enabled || dev->rx_dma_ctrl == NULL)
     {
         return -ENOTSUP;
     }
-    
+
     dma = (ra_dma_channel_t *)dev->rx_dma_ctrl;
-    
+
     /* Setup DMA transfer */
     ret = ra_uart_dma_setup_transfer(dma,
                                      dev->config->base + R_SCI_RDR_OFFSET,
@@ -756,11 +756,11 @@ int ra_uart_receive_dma(ra_uart_dev_t *dev, uint8_t *buffer,
     {
         return ret;
     }
-    
+
     /* Update state */
     dev->state = RA_UART_STATE_RX_IN_PROGRESS;
     dev->rx_count = length;
-    
+
     /* Start DMA transfer */
     ret = ra_uart_dma_start_transfer(dma);
     if (ret < 0)
@@ -768,7 +768,7 @@ int ra_uart_receive_dma(ra_uart_dev_t *dev, uint8_t *buffer,
         dev->state = RA_UART_STATE_IDLE;
         return ret;
     }
-    
+
     return OK;
 }
 
@@ -783,19 +783,19 @@ int ra_uart_receive_dma(ra_uart_dev_t *dev, uint8_t *buffer,
 int ra_uart_abort_transfer(ra_uart_dev_t *dev, bool tx)
 {
     ra_dma_channel_t *dma;
-    
+
     if (dev == NULL)
     {
         return -EINVAL;
     }
-    
+
     if (tx)
     {
         if (dev->state != RA_UART_STATE_TX_IN_PROGRESS)
         {
             return -EINVAL;
         }
-        
+
         dma = (ra_dma_channel_t *)dev->tx_dma_ctrl;
     }
     else
@@ -804,17 +804,17 @@ int ra_uart_abort_transfer(ra_uart_dev_t *dev, bool tx)
         {
             return -EINVAL;
         }
-        
+
         dma = (ra_dma_channel_t *)dev->rx_dma_ctrl;
     }
-    
+
     if (dma != NULL)
     {
         ra_uart_dma_stop_transfer(dma);
     }
-    
+
     dev->state = RA_UART_STATE_IDLE;
-    
+
     return OK;
 }
 
@@ -826,7 +826,7 @@ int ra_uart_abort_transfer(ra_uart_dev_t *dev, bool tx)
  *
  ****************************************************************************/
 
-void ra_uart_set_callback(ra_uart_dev_t *dev, 
+void ra_uart_set_callback(ra_uart_dev_t *dev,
                           void (*callback)(ra_uart_dev_t *dev, uint32_t event),
                           void *context)
 {
@@ -848,26 +848,26 @@ void ra_uart_set_callback(ra_uart_dev_t *dev,
 int ra_uart_config_baudrate(ra_uart_dev_t *dev, uint32_t baud)
 {
     uint32_t brr;
-    
+
     if (dev == NULL || dev->config == NULL)
     {
         return -EINVAL;
     }
-    
+
     if (dev->state != RA_UART_STATE_IDLE)
     {
         return -EBUSY;
     }
-    
+
     /* Calculate and set baud rate */
-    brr = (RA_PCLK / (32 * baud)) - 1;
+    brr = (CONFIG_RA_ICLK_FREQUENCY / (32 * baud)) - 1;
     if (brr > 255)
     {
         return -EINVAL;
     }
-    
+
     putreg8(brr, dev->config->base + R_SCI_BRR_OFFSET);
-    
+
     return OK;
 }
 
@@ -885,6 +885,165 @@ uint32_t ra_uart_get_status(ra_uart_dev_t *dev)
     {
         return 0;
     }
-    
+
     return getreg8(dev->config->base + R_SCI_SSR_OFFSET);
 }
+
+#ifdef CONFIG_RA_SCI_UART_CONSOLE
+#include <nuttx/serial/serial.h>
+
+/* Simple wrapper exposing SCI2 enhanced driver as /dev/console */
+static ra_uart_config_t g_uart2_enh_cfg =
+{
+  .base     = R_SCI2_BASE,
+  .baud     = CONFIG_RA_SCI2_BAUDRATE,
+  .bits     = 8,
+  .parity   = 0,
+  .stop     = 1,
+  .flow_control = false,
+  .rxi_irq  = RA_IRQ_IELSR55,
+  .txi_irq  = RA_IRQ_IELSR56,
+  .tei_irq  = RA_IRQ_IELSR57,
+  .eri_irq  = RA_IRQ_IELSR58,
+  .rxi_ipl  = 3,
+  .txi_ipl  = 3,
+  .tei_ipl  = 3,
+  .eri_ipl  = 3,
+  .tx_dma   = { .channel = 0, .irq = RA_IRQ_IELSR36, .ipl = 4, .enabled =
+#ifdef CONFIG_RA_SCI_UART_DMA_ENABLE
+ true
+#else
+ false
+#endif
+ },
+  .rx_dma   = { .channel = 1, .irq = RA_IRQ_IELSR37, .ipl = 4, .enabled =
+#ifdef CONFIG_RA_SCI_UART_DMA_ENABLE
+ true
+#else
+ false
+#endif
+ },
+  .tx_pin   = GPIO_SCI2_TX,
+  .rx_pin   = GPIO_SCI2_RX,
+  .rts_pin  = 0,
+  .cts_pin  = 0
+};
+
+static ra_uart_dev_t g_uart2_enh_dev =
+{
+  .config = &g_uart2_enh_cfg,
+  .state  = RA_UART_STATE_UNINITIALIZED,
+  .tx_buffer_size = CONFIG_RA_UART_TX_BUFFER_SIZE,
+  .rx_buffer_size = CONFIG_RA_UART_RX_BUFFER_SIZE
+};
+
+/* Minimal serial operations bridging to enhanced API (blocking polled tx/rx) */
+
+static int enh_setup(struct uart_dev_s *dev)
+{
+  if (g_uart2_enh_dev.state == RA_UART_STATE_UNINITIALIZED)
+    {
+      return ra_uart_initialize(&g_uart2_enh_dev);
+    }
+  return OK;
+}
+
+static void enh_shutdown(struct uart_dev_s *dev)
+{
+  ra_uart_finalize(&g_uart2_enh_dev);
+}
+
+static int enh_attach(struct uart_dev_s *dev) { return OK; }
+static void enh_detach(struct uart_dev_s *dev) { }
+
+static int enh_receive(struct uart_dev_s *dev, unsigned int *status)
+{
+  volatile uint8_t *rdr = (uint8_t *)(g_uart2_enh_cfg.base + R_SCI_RDR_OFFSET);
+  uint8_t ch = *rdr;
+  *status = 0;
+  return ch;
+}
+
+static void enh_rxint(struct uart_dev_s *dev, bool enable)
+{
+  uint8_t scr = getreg8(g_uart2_enh_cfg.base + R_SCI_SCR_OFFSET);
+  if (enable) scr |= R_SCI_SCR_RIE; else scr &= ~R_SCI_SCR_RIE;
+  putreg8(scr, g_uart2_enh_cfg.base + R_SCI_SCR_OFFSET);
+}
+
+static bool enh_rxavailable(struct uart_dev_s *dev)
+{
+  return (getreg8(g_uart2_enh_cfg.base + R_SCI_SSR_OFFSET) & R_SCI_SSR_RDRF) != 0;
+}
+
+static void enh_send(struct uart_dev_s *dev, int ch)
+{
+  while (!(getreg8(g_uart2_enh_cfg.base + R_SCI_SSR_OFFSET) & R_SCI_SSR_TDRE));
+  putreg8(ch, g_uart2_enh_cfg.base + R_SCI_TDR_OFFSET);
+}
+
+static void enh_txint(struct uart_dev_s *dev, bool enable)
+{
+  uint8_t scr = getreg8(g_uart2_enh_cfg.base + R_SCI_SCR_OFFSET);
+  if (enable) scr |= R_SCI_SCR_TIE; else scr &= ~R_SCI_SCR_TIE;
+  putreg8(scr, g_uart2_enh_cfg.base + R_SCI_SCR_OFFSET);
+}
+
+static bool enh_txready(struct uart_dev_s *dev)
+{
+  return (getreg8(g_uart2_enh_cfg.base + R_SCI_SSR_OFFSET) & R_SCI_SSR_TDRE) != 0;
+}
+
+static bool enh_txempty(struct uart_dev_s *dev)
+{
+  return (getreg8(g_uart2_enh_cfg.base + R_SCI_SSR_OFFSET) & R_SCI_SSR_TEND) != 0;
+}
+
+static int enh_ioctl(struct file *filep, int cmd, unsigned long arg)
+{ return -ENOTTY; }
+
+static const struct uart_ops_s g_enh_ops =
+{
+  .setup    = enh_setup,
+  .shutdown = enh_shutdown,
+  .attach   = enh_attach,
+  .detach   = enh_detach,
+  .ioctl    = enh_ioctl,
+  .receive  = enh_receive,
+  .rxint    = enh_rxint,
+  .rxavailable = enh_rxavailable,
+  .send     = enh_send,
+  .txint    = enh_txint,
+  .txready  = enh_txready,
+  .txempty  = enh_txempty,
+};
+
+static char g_enh_rxbuf[CONFIG_RA_UART_RX_BUFFER_SIZE];
+static char g_enh_txbuf[CONFIG_RA_UART_TX_BUFFER_SIZE];
+
+static struct uart_dev_s g_enh_uart2 =
+{
+  .isconsole = true,
+  .recv =
+  {
+    .size   = sizeof(g_enh_rxbuf),
+    .buffer = g_enh_rxbuf,
+  },
+  .xmit =
+  {
+    .size   = sizeof(g_enh_txbuf),
+    .buffer = g_enh_txbuf,
+  },
+  .ops = &g_enh_ops,
+};
+
+int ra_uart_console_register(void)
+{
+  int ret = enh_setup(&g_enh_uart2);
+  if (ret < 0)
+    {
+      return ret;
+    }
+  return uart_register("/dev/console", &g_enh_uart2);
+}
+#endif /* CONFIG_RA_SCI_UART_CONSOLE */

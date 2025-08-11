@@ -103,7 +103,7 @@ struct ra_gpt_s
 /* Register access helpers */
 
 static inline uint32_t gpt_getreg(struct ra_gpt_s *priv, int offset);
-static inline void gpt_putreg(struct ra_gpt_s *priv, int offset, 
+static inline void gpt_putreg(struct ra_gpt_s *priv, int offset,
                               uint32_t value);
 
 /* PWM driver methods */
@@ -122,15 +122,6 @@ static int gpt_configure(struct ra_gpt_s *priv);
 static uint32_t gpt_calculate_prescaler(uint32_t frequency, uint32_t pclkd);
 static void gpt_dumpregs(struct ra_gpt_s *priv, const char *msg);
 
-/* Timer interrupt functions */
-
-#if !defined(CONFIG_ARMV8M_SYSTICK) && !defined(CONFIG_TIMER_ARCH)
-static int ra_timerisr(int irq, uint32_t *regs, void *arg);
-#endif
-
-#ifdef CONFIG_RA_SYSTICK_GPT
-static int ra_timer_gpt_isr(int irq, uint32_t *regs, void *arg);
-#endif
 
 /****************************************************************************
  * Private Data
@@ -385,14 +376,14 @@ static int gpt_configure(struct ra_gpt_s *priv)
 
   /* Re-enable write protection */
 
-  gpt_putreg(priv, RA_GPT_GTWP_OFFSET, 
+  gpt_putreg(priv, RA_GPT_GTWP_OFFSET,
              GPT_GTWP_PRKEY | GPT_GTWP_WP | GPT_GTWP_CMNWP);
 
   gpt_dumpregs(priv, "After configuration");
-  
+
   /* Mark as PWM mode */
   priv->pwm_mode = true;
-  
+
   return OK;
 }
 
@@ -463,7 +454,7 @@ static int gpt_shutdown(struct pwm_lowerhalf_s *dev)
 
   /* Re-enable write protection */
 
-  gpt_putreg(priv, RA_GPT_GTWP_OFFSET, 
+  gpt_putreg(priv, RA_GPT_GTWP_OFFSET,
              GPT_GTWP_PRKEY | GPT_GTWP_WP | GPT_GTWP_CMNWP);
 
   priv->started = false;
@@ -518,7 +509,7 @@ static int gpt_start(struct pwm_lowerhalf_s *dev,
   /* Calculate duty cycle values */
 
   duty_a = (period * info->duty) >> 16;
-  
+
 #ifdef CONFIG_PWM_MULTICHAN
   if (info->count > 1)
     {
@@ -571,7 +562,7 @@ static int gpt_start(struct pwm_lowerhalf_s *dev,
 
   /* Re-enable write protection */
 
-  gpt_putreg(priv, RA_GPT_GTWP_OFFSET, 
+  gpt_putreg(priv, RA_GPT_GTWP_OFFSET,
              GPT_GTWP_PRKEY | GPT_GTWP_WP | GPT_GTWP_CMNWP);
 
   gpt_dumpregs(priv, "After start");
@@ -621,7 +612,7 @@ static int gpt_stop(struct pwm_lowerhalf_s *dev)
 
   /* Re-enable write protection */
 
-  gpt_putreg(priv, RA_GPT_GTWP_OFFSET, 
+  gpt_putreg(priv, RA_GPT_GTWP_OFFSET,
              GPT_GTWP_PRKEY | GPT_GTWP_WP | GPT_GTWP_CMNWP);
 
   gpt_dumpregs(priv, "After stop");
@@ -705,15 +696,15 @@ struct pwm_lowerhalf_s *ra_pwm_initialize(int channel)
       if (g_gpt_configs[i].channel == channel)
         {
           lower = &g_gpt_devs[i];
-          
+
           /* Initialize the device structure */
           memset(lower, 0, sizeof(struct ra_gpt_s));
-          
+
           lower->ops = &g_gpt_ops;
           lower->config = &g_gpt_configs[i];
           lower->pwm_mode = true;
           lower->started = false;
-          
+
 #ifdef CONFIG_PWM_MULTICHAN
           lower->nchannels = 2;  /* GTIOCA and GTIOCB */
 #endif
@@ -756,4 +747,3 @@ struct pwm_lowerhalf_s *ra_gpt_initialize(int channel)
 /****************************************************************************
  * End of file
  ****************************************************************************/
- 

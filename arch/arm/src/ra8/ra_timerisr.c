@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/ra8/ra_timer.c
+ * arch/arm/src/ra8/ra_timerisr.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -25,13 +25,22 @@
 #include <nuttx/config.h>
 
 #include <stdint.h>
-#include <time.h>
 #include <debug.h>
+#include <assert.h>
+
 #include <nuttx/arch.h>
+#include <nuttx/irq.h>
+#include <nuttx/clock.h>
 #include <arch/board/board.h>
+#include <arch/irq.h>
 
 #include "nvic.h"
-#include "clock/clock.h"
+#include "hardware/ra_gpt.h"
+#include "hardware/ra8e1/ra8e1_icu.h"
+#include "hardware/ra8e1/ra8e1_memorymap.h"
+#include "ra_clock.h"
+#include "ra_icu.h"
+#include "ra_mstp.h"
 #include "arm_internal.h"
 #include "chip.h"
 
@@ -44,7 +53,9 @@
 #  include "ra_mstp.h"
 #  define RA_TIMER_CLOCK    (RA_PCLKD_FREQUENCY)
 #  define RA_TIMER_RELOAD   ((RA_TIMER_CLOCK / CLK_TCK) - 1)
-#  define RA_GPT_CHANNEL    0
+#  define RA_GPT_CHANNEL    3  /* Use GPT3 for system timer */
+#  define RA_GPT_CHANNEL_BASE  R_GPT3_BASE
+#  define RA_GPT_IRQ_EVENT     EVENT_GPT3_COUNTER_OVERFLOW
 #else
 #  include "ra_clock.h"
 #  define SYSTICK_CLOCK     (RA_ICLK_FREQUENCY)
@@ -67,6 +78,19 @@
 #  endif
 #endif
 
+/* GPT Register Addresses for specific channel */
+#ifdef CONFIG_RA_SYSTICK_GPT
+#  define RA_GPT_GTWP       (RA_GPT_CHANNEL_BASE + RA_GPT_GTWP_OFFSET)
+#  define RA_GPT_GTSTR      (RA_GPT_CHANNEL_BASE + RA_GPT_GTSTR_OFFSET)
+#  define RA_GPT_GTSTP      (RA_GPT_CHANNEL_BASE + RA_GPT_GTSTP_OFFSET)
+#  define RA_GPT_GTCLR      (RA_GPT_CHANNEL_BASE + RA_GPT_GTCLR_OFFSET)
+#  define RA_GPT_GTCR       (RA_GPT_CHANNEL_BASE + RA_GPT_GTCR_OFFSET)
+#  define RA_GPT_GTPR       (RA_GPT_CHANNEL_BASE + RA_GPT_GTPR_OFFSET)
+#  define RA_GPT_GTINTAD    (RA_GPT_CHANNEL_BASE + RA_GPT_GTINTAD_OFFSET)
+#  define RA_GPT_GTST       (RA_GPT_CHANNEL_BASE + RA_GPT_GTST_OFFSET)
+#  define RA_GPT_GTCNT      (RA_GPT_CHANNEL_BASE + RA_GPT_GTCNT_OFFSET)
+#endif
+
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -81,7 +105,7 @@
  ****************************************************************************/
 
 #if !defined(CONFIG_ARMV8M_SYSTICK) && !defined(CONFIG_TIMER_ARCH)
-static int ra_timer_arch_isr(int irq, uint32_t *regs, void *arg)
+int ra_timer_arch_isr(int irq, uint32_t *regs, void *arg)
 {
   /* Process timer interrupt */
 
@@ -95,20 +119,28 @@ static int ra_timer_arch_isr(int irq, uint32_t *regs, void *arg)
  * Function:  ra_timer_gpt_isr
  *
  * Description:
- *   GPT-based timer interrupt handler
+ *   GPT-based timer interrupt handler. Based on the working FSP GPT driver
+ *   implementation and adapted for NuttX system timer.
  *
  ****************************************************************************/
 
 static int ra_timer_gpt_isr(int irq, uint32_t *regs, void *arg)
 {
-  /* Clear GPT compare match flag */
-  uint32_t regaddr = RA_GPT_BASE + RA_GPT_GTSTR_OFFSET;
-  uint32_t channel_mask = (1 << RA_GPT_CHANNEL);
-  
-  putreg32(channel_mask, regaddr);
-  
-  /* Process timer interrupt */
-  nxsched_process_timer();
+  uint32_t status;
+
+  /* Read and clear GPT overflow status flag */
+  status = getreg32(RA_GPT_GTST);
+
+  /* Check if overflow interrupt occurred */
+  if (status & GPT_GTST_TCFPO)
+    {
+      /* Clear overflow flag by writing 0 to it */
+      putreg32(status & ~GPT_GTST_TCFPO, RA_GPT_GTST);
+
+      /* Process timer interrupt */
+      nxsched_process_timer();
+    }
+
   return 0;
 }
 #endif
@@ -122,7 +154,8 @@ static int ra_timer_gpt_isr(int irq, uint32_t *regs, void *arg)
  *
  * Description:
  *   This function is called during start-up to initialize
- *   the timer interrupt.
+ *   the timer interrupt. Implementation based on working FSP GPT driver
+ *   and adapted for NuttX system timer requirements.
  *
  ****************************************************************************/
 
@@ -131,65 +164,63 @@ void up_timer_initialize(void)
   uint32_t regval;
 
 #ifdef CONFIG_RA_SYSTICK_GPT
-  /* FSP-based GPT timer initialization */
-  
+  /* GPT-based timer initialization using GPT3 */
+
   /* Enable GPT module clock */
   ra_mstp_start(RA_MSTP_GPT_1);
-  
-  /* Stop GPT channel */
-  putreg32((1 << RA_GPT_CHANNEL), RA_GPT_BASE + RA_GPT_GTSTP_OFFSET);
-  
-  /* Configure GPT channel for periodic mode */
-  regval = (RA_GPT_GTWP_WP_KEY << RA_GPT_GTWP_WP_SHIFT) |
-           (1 << RA_GPT_CHANNEL);
-  putreg32(regval, RA_GPT_BASE + RA_GPT_GTWP_OFFSET);
-  
-  /* Set count direction and mode */
-  putreg32(0, RA_GPT_BASE + RA_GPT_GTUD_OFFSET + (RA_GPT_CHANNEL * 4));
-  putreg32(0, RA_GPT_BASE + RA_GPT_GTCR_OFFSET + (RA_GPT_CHANNEL * 4));
-  
-  /* Set period (compare match A) */
-  putreg32(RA_TIMER_RELOAD, 
-           RA_GPT_BASE + RA_GPT_GTPR_OFFSET + (RA_GPT_CHANNEL * 4));
-  
-  /* Enable compare match A interrupt */
-  regval = (1 << 16); /* GTCCRA interrupt enable */
-  putreg32(regval, RA_GPT_BASE + RA_GPT_GTIER_OFFSET + (RA_GPT_CHANNEL * 4));
-  
+
+  /* Disable write protection to configure GPT */
+  regval = (GPT_GTWP_PRKEY | GPT_GTWP_WP);
+  putreg32(regval, RA_GPT_GTWP);
+
+  /* Stop GPT channel if running */
+  putreg32((1 << RA_GPT_CHANNEL), RA_GPT_GTSTP);
+
+  /* Clear GPT counter */
+  putreg32(0, RA_GPT_GTCNT);
+
+  /* Configure GPT control register for periodic mode */
+  regval = GPT_GTCR_MD_SAW_WAVE_UP |      /* Saw-wave PWM mode (up-counting) */
+           GPT_GTCR_TPCS_PCLKD_1;         /* Use PCLKD as clock source */
+  putreg32(regval, RA_GPT_GTCR);
+
+  /* Set period register for desired interrupt frequency */
+  putreg32(RA_TIMER_RELOAD, RA_GPT_GTPR);
+
+  /* Enable overflow interrupt */
+  regval = GPT_GTINTAD_GTINTV;  /* Overflow interrupt enable */
+  putreg32(regval, RA_GPT_GTINTAD);
+
+  /* Clear any pending interrupt flags */
+  regval = getreg32(RA_GPT_GTST);
+  regval &= ~GPT_GTST_TCFPO;  /* Clear overflow flag */
+  putreg32(regval, RA_GPT_GTST);
+
+  /* Set up ICU event linking for GPT3 overflow interrupt */
+  ra_icu_set_event(0, RA_GPT_IRQ_EVENT);  /* Use ICU slot 0 for GPT3 overflow */
+
   /* Attach the GPT interrupt vector */
-  irq_attach(RA_IRQ_GPT0_COMPARE_A + RA_GPT_CHANNEL, 
-             (xcpt_t)ra_timer_gpt_isr, NULL);
-  
+  irq_attach(0, (xcpt_t)ra_timer_gpt_isr, NULL);  /* ICU slot 0 */
+
   /* Enable GPT interrupt */
-  up_enable_irq(RA_IRQ_GPT0_COMPARE_A + RA_GPT_CHANNEL);
-  
+  up_enable_irq(0);  /* ICU slot 0 */
+
+  /* Re-enable write protection */
+  regval = (GPT_GTWP_PRKEY);  /* Remove WP bit but keep key */
+  putreg32(regval, RA_GPT_GTWP);
+
   /* Start GPT timer */
-  putreg32((1 << RA_GPT_CHANNEL), RA_GPT_BASE + RA_GPT_GTSTR_OFFSET);
-  
-#elif defined(CONFIG_ARMV8M_SYSTICK) && defined(CONFIG_TIMER_ARCH)
-  /* ARM Cortex-M systick with timer arch */
-  up_timer_set_lowerhalf(systick_initialize(true, SYSTICK_CLOCK, -1));
-  
+  putreg32((1 << RA_GPT_CHANNEL), RA_GPT_GTSTR);
+
 #else
   /* Standard ARM Cortex-M SysTick configuration */
-  
-  /* Set the SysTick interrupt to the default priority */
-  regval = getreg32(NVIC_SYSH12_15_PRIORITY);
-  regval &= ~NVIC_SYSH_PRIORITY_PR15_MASK;
-  regval |= (NVIC_SYSH_PRIORITY_DEFAULT << NVIC_SYSH_PRIORITY_PR15_SHIFT);
-  putreg32(regval, NVIC_SYSH12_15_PRIORITY);
-
-  /* Configure SysTick to interrupt at the requested rate */
-  putreg32(SYSTICK_RELOAD, NVIC_SYSTICK_RELOAD);
-
-  /* Attach the timer interrupt vector */
-  irq_attach(RA_IRQ_SYSTICK, (xcpt_t)ra_timer_arch_isr, NULL);
-
-  /* Enable SysTick interrupts */
-  putreg32((NVIC_SYSTICK_CTRL_CLKSOURCE | NVIC_SYSTICK_CTRL_TICKINT |
-            NVIC_SYSTICK_CTRL_ENABLE), NVIC_SYSTICK_CTRL);
-
-  /* And enable the timer interrupt */
-  up_enable_irq(RA_IRQ_SYSTICK);
+  /* TODO: Implement proper SysTick fallback if needed */
+  /* For now, GPT is the primary timer method for RA8E1 */
 #endif
 }
+
+#ifdef CONFIG_RA_SYSTICK_GPT
+#  ifndef EVENT_GPT3_COUNTER_OVERFLOW
+#    warning "EVENT_GPT3_COUNTER_OVERFLOW not defined; verify IRQ mapping for GPT3"
+#  endif
+#endif

@@ -204,44 +204,303 @@ menu "MCU Clocks Configuration"
 
 choice
    prompt "MCU Clock Source"
-   default RA_CLOCK_HOCO
+   default RA_CLOCK_PLL1P
    help
      Select the MCU clock source.
 
 config RA_CLOCK_HOCO
    bool "HOCO (High-Speed On-Chip Oscillator)"
+   help
+     Use High-Speed On-Chip Oscillator as system clock.
+     Frequency configurable from 16MHz to 64MHz.
 
 config RA_CLOCK_MOCO
    bool "MOCO (Medium-Speed On-Chip Oscillator)"
+   help
+     Use Medium-Speed On-Chip Oscillator (8MHz) as system clock.
 
 config RA_CLOCK_LOCO
    bool "LOCO (Low-Speed On-Chip Oscillator)"
+   help
+     Use Low-Speed On-Chip Oscillator (32.768kHz) as system clock.
 
 config RA_CLOCK_MAIN
    bool "Main Oscillator (External Crystal)"
+   help
+     Use external crystal oscillator as system clock.
 
 config RA_CLOCK_PLL
    bool "PLL (Phase-Locked Loop)"
+   help
+     Use PLL output as system clock (legacy option, same as PLL1P).
+
+config RA_CLOCK_PLL1P
+   bool "PLL1P (Phase-Locked Loop Output P)"
+   help
+     Use PLL1P output as system clock.
+     Provides highest performance up to 360MHz for RA8E1.
 
 endchoice
 
 config RA_MCU_CLOCK_FREQUENCY
    int "MCU Core Clock Frequency (Hz)"
-   default 200000000 if RA_CLOCK_PLL
+   default 360000000 if RA_CLOCK_PLL1P
+   default 360000000 if RA_CLOCK_PLL
    default 48000000 if RA_CLOCK_HOCO
    default 8000000 if RA_CLOCK_MOCO
    default 32768 if RA_CLOCK_LOCO
-   default 24000000 if RA_CLOCK_MAIN
+   default 20000000 if RA_CLOCK_MAIN
    help
      Set the MCU core clock frequency in Hertz.
-     RA8E1 supports up to 200MHz with PLL enabled.
+     RA8E1 supports up to 360MHz with PLL1P enabled.
+
+config RA_HOCO_FREQUENCY
+   int "HOCO Frequency (Hz)"
+   default 20000000
+   range 16000000 64000000
+   help
+     HOCO (High-Speed On-Chip Oscillator) frequency in Hz.
+     Valid frequencies: 16, 18, 20, 24, 32, 48, 64 MHz.
+     Default is 20MHz for RA8E1.
+
+config RA_XTAL_FREQUENCY
+   int "External Crystal Frequency (Hz)"
+   default 20000000
+   range 1000000 25000000
+   help
+     External crystal oscillator frequency in Hz.
+     Typically 20MHz for RA8E1 FPB board.
+
+if RA_CLOCK_PLL || RA_CLOCK_PLL1P
+
+menu "PLL Configuration"
+
+choice
+   prompt "PLL Source Clock"
+   default RA_PLL_SOURCE_HOCO
+   help
+     Select the PLL input source clock.
+
+config RA_PLL_SOURCE_HOCO
+   bool "HOCO (High-Speed On-Chip Oscillator)"
+
+config RA_PLL_SOURCE_MAIN_OSC
+   bool "Main Oscillator (External Crystal)"
+
+endchoice
+
+config RA_PLL_DIV
+   int "PLL Input Divider"
+   default 1
+   range 0 15
+   help
+     PLL input divider value (0 = /1, 1 = /2, 2 = /3, etc.).
+     For RA8E1: HOCO 20MHz / 2 = 10MHz PLL input.
+
+config RA_PLL_MUL
+   int "PLL Multiplier"
+   default 72
+   range 20 150
+   help
+     PLL multiplier value.
+     For RA8E1: 10MHz * 72 = 720MHz PLL output.
+
+config RA_PLL1P_DIV
+   int "PLL1P Output Divider"
+   default 1
+   range 0 15
+   help
+     PLL1P output divider (0 = /1, 1 = /2, etc.).
+     For RA8E1: 720MHz / 2 = 360MHz system clock.
+
+config RA_PLL1Q_DIV
+   int "PLL1Q Output Divider"
+   default 1
+   range 0 15
+   help
+     PLL1Q output divider for peripheral clocks.
+
+config RA_PLL1R_DIV
+   int "PLL1R Output Divider"
+   default 1
+   range 0 15
+   help
+     PLL1R output divider for peripheral clocks.
+
+endmenu
+
+endif # RA_CLOCK_PLL || RA_CLOCK_PLL1P
+
+menu "System Clock Dividers"
+
+config RA_CPUCLK_DIV
+   int "CPU Clock Divider"
+   default 0
+   range 0 11
+   help
+     CPU clock divider (0=/1, 1=/2, 2=/4, 3=/8, 4=/16, 5=/32, 6=/64, 7=/128, 8=/3, 9=/6, 10=/12, 11=/24).
+
+config RA_ICK_DIV
+   int "ICLK Divider"
+   default 8
+   range 0 11
+   help
+     Internal clock (ICLK) divider for system bus.
+     Default: 8 (/3) gives 120MHz from 360MHz system clock.
+
+config RA_PCKA_DIV
+   int "PCLKA Divider"
+   default 8
+   range 0 11
+   help
+     Peripheral Clock A divider.
+     Default: 8 (/3) gives 120MHz.
+
+config RA_PCKB_DIV
+   int "PCLKB Divider"
+   default 9
+   range 0 11
+   help
+     Peripheral Clock B divider.
+     Default: 9 (/6) gives 60MHz.
+
+config RA_PCKC_DIV
+   int "PCLKC Divider"
+   default 9
+   range 0 11
+   help
+     Peripheral Clock C divider.
+     Default: 9 (/6) gives 60MHz.
+
+config RA_PCKD_DIV
+   int "PCLKD Divider"
+   default 8
+   range 0 11
+   help
+     Peripheral Clock D divider.
+     Default: 8 (/3) gives 120MHz.
+
+config RA_PCKE_DIV
+   int "PCLKE Divider"
+   default 8
+   range 0 11
+   help
+     Peripheral Clock E divider.
+     Default: 8 (/3) gives 120MHz.
+
+config RA_BCLK_DIV
+   int "BCLK Divider"
+   default 10
+   range 0 11
+   help
+     Bus Clock divider.
+     Default: 10 (/12) gives 30MHz.
+
+config RA_FCLK_DIV
+   int "FCLK Divider"
+   default 9
+   range 0 11
+   help
+     Flash Clock divider.
+     Default: 9 (/6) gives 60MHz.
+
+endmenu
+
+menu "Peripheral Clock Sources"
+
+choice
+   prompt "SCI Clock Source"
+   default RA_SCICLK_SOURCE_PLL1P
+   help
+     Select SCI (Serial Communication Interface) clock source.
+
+config RA_SCICLK_SOURCE_PLL1P
+   bool "PLL1P"
+   depends on RA_CLOCK_PLL || RA_CLOCK_PLL1P
+
+config RA_SCICLK_SOURCE_DISABLED
+   bool "Disabled"
+
+endchoice
+
+config RA_SCICLK_DIV
+   int "SCI Clock Divider"
+   default 2
+   range 0 8
+   depends on !RA_SCICLK_SOURCE_DISABLED
+   help
+     SCI clock divider (0=/1, 1=/2, 2=/4, 3=/6, 4=/8, 5=/3, 6=/5, 7=/10, 8=/16).
+     Default: 2 (/4) gives 90MHz from 360MHz PLL1P.
+
+choice
+   prompt "SPI Clock Source"
+   default RA_SPICLK_SOURCE_DISABLED
+   help
+     Select SPI clock source.
+
+config RA_SPICLK_SOURCE_PLL1P
+   bool "PLL1P"
+   depends on RA_CLOCK_PLL || RA_CLOCK_PLL1P
+
+config RA_SPICLK_SOURCE_DISABLED
+   bool "Disabled"
+
+endchoice
+
+choice
+   prompt "CAN-FD Clock Source"
+   default RA_CANFDCLK_SOURCE_DISABLED
+   help
+     Select CAN-FD clock source.
+
+config RA_CANFDCLK_SOURCE_PLL1P
+   bool "PLL1P"
+   depends on RA_CLOCK_PLL || RA_CLOCK_PLL1P
+
+config RA_CANFDCLK_SOURCE_DISABLED
+   bool "Disabled"
+
+endchoice
+
+choice
+   prompt "USB Clock Source"
+   default RA_USBCLK_SOURCE_DISABLED
+   help
+     Select USB clock source.
+
+config RA_USBCLK_SOURCE_PLL1P
+   bool "PLL1P"
+   depends on RA_CLOCK_PLL || RA_CLOCK_PLL1P
+
+config RA_USBCLK_SOURCE_DISABLED
+   bool "Disabled"
+
+endchoice
+
+choice
+   prompt "Octal SPI Clock Source"
+   default RA_OCTACLK_SOURCE_DISABLED
+   help
+     Select Octal SPI clock source.
+
+config RA_OCTACLK_SOURCE_PLL1P
+   bool "PLL1P"
+   depends on RA_CLOCK_PLL || RA_CLOCK_PLL1P
+
+config RA_OCTACLK_SOURCE_DISABLED
+   bool "Disabled"
+
+endchoice
+
+endmenu
 
 config RA_MCU_PLL_ENABLE
    bool "Enable PLL"
-   default y
+   default y if RA_CLOCK_PLL || RA_CLOCK_PLL1P
    help
      Enable or disable the PLL clock for frequency multiplication.
-     Required for maximum performance (200MHz).
+     Required for maximum performance (360MHz).
+
 endmenu
 
 menu "Memory Configuration"
@@ -627,15 +886,15 @@ endmenu
 menu "RA8 UART+DMA Driver"
 comment "Enhanced UART driver with DMA support for specialized applications"
 
-config RA_SCI_UART
-   bool "Enable RA8 SCI UART+DMA driver"
+config RA_SCI_UART_DMA_ENABLE
+   bool "Enable RA8 UART+DMA driver"
    default n
    help
      Enable the enhanced RA8 SCI UART driver with DMA support.
      This driver provides specialized features for GPS, SBUS, and other protocols.
      Based on FSP reference implementations for optimal performance.
 
-if RA_SCI_UART
+if RA_SCI_UART_DMA_ENABLE
 
 config RA_UART2_SBUS
    bool "UART2 for SBUS RC receiver"
@@ -682,18 +941,6 @@ config RA_UART3_TX_BUFFER_SIZE
      Size of the UART3 transmit buffer for GPS commands.
      Used for sending configuration commands to GPS module.
 
-config RA_UART_DMA_ENABLE
-   bool "Enable DMA for UART transfers"
-   default y
-   depends on RA_SCI_UART
-   select RA_DMA
-   help
-     Enable DMA transfers for improved UART performance and reduced CPU usage.
-     Uses DMAC channels 0-3 for UART2/3 RX/TX operations.
-     Based on FSP DMAC reference implementation.
-
-if RA_UART_DMA_ENABLE
-
 config RA_UART_DMA_CHANNELS
    int "Number of DMA channels to reserve for UART"
    default 4
@@ -710,13 +957,11 @@ config RA_UART_DMA_IRQ_PRIORITY
      Interrupt priority for DMA transfers (0=highest, 15=lowest).
      Should be lower than UART interrupt priority.
 
-endif # RA_UART_DMA_ENABLE
-
 config RA_UART_IRQ_PRIORITY
    int "UART interrupt priority"
    default 12
    range 0 15
-   depends on RA_SCI_UART
+   depends on RA_SCI_UART_DMA_ENABLE
    help
      Interrupt priority for UART RX/TX/error interrupts (0=highest, 15=lowest).
      Based on FSP reference: priority 12 provides good responsiveness.
@@ -725,7 +970,7 @@ config RA_UART_CLOCK_SOURCE
    int "SCI clock source selection"
    default 0
    range 0 3
-   depends on RA_SCI_UART
+   depends on RA_SCI_UART_DMA_ENABLE
    help
      SCI clock source selection:
      0 = PCLKA (48MHz typical)
@@ -736,7 +981,7 @@ config RA_UART_CLOCK_SOURCE
 config RA_UART_NOISE_FILTER
    bool "Enable digital noise filter"
    default y
-   depends on RA_SCI_UART
+   depends on RA_SCI_UART_DMA_ENABLE
    help
      Enable digital noise filter for improved signal integrity.
      Recommended for SBUS and other high-speed protocols.
@@ -744,7 +989,7 @@ config RA_UART_NOISE_FILTER
 config RA_UART_RX_BUFFER_SIZE
    int "UART RX buffer size"
    default 256
-   depends on RA_SCI_UART
+   depends on RA_SCI_UART_DMA_ENABLE
    help
      Size of the UART receive buffer in bytes.
      Larger buffers can handle burst data better.
@@ -752,7 +997,7 @@ config RA_UART_RX_BUFFER_SIZE
 config RA_UART_TX_BUFFER_SIZE
    int "UART TX buffer size"
    default 256
-   depends on RA_SCI_UART
+   depends on RA_SCI_UART_DMA_ENABLE
    help
      Size of the UART transmit buffer in bytes.
      Larger buffers reduce blocking on transmit.
@@ -760,12 +1005,12 @@ config RA_UART_TX_BUFFER_SIZE
 config RA_UART_DEBUG
    bool "Enable UART debug output"
    default n
-   depends on RA_SCI_UART && DEBUG_FEATURES
+   depends on RA_SCI_UART_DMA_ENABLE && DEBUG_FEATURES
    help
      Enable debug output for the RA8 UART+DMA driver.
      Provides detailed information about transfers and errors.
 
-endif # RA_SCI_UART
+endif # RA_SCI_UART_DMA_ENABLE
 endmenu
 
 menu "I2C"
@@ -1473,7 +1718,7 @@ config RA_IWDT_TIMEOUT
     help
       IWDT timeout period selection:
       0: 128 cycles
-      1: 512 cycles  
+      1: 512 cycles
       2: 1024 cycles
       3: 2048 cycles
 
@@ -1493,7 +1738,7 @@ config RA_IWDT_WINDOW_END
       IWDT window end position:
       0: 75%, 1: 50%, 2: 25%, 3: 0% (no window)
 
-config RA_IWDT_WINDOW_START  
+config RA_IWDT_WINDOW_START
     int "IWDT Window Start Position"
     default 3
     range 0 3
@@ -1554,7 +1799,7 @@ config RA_WDT_WINDOW_END
       0: 75%, 1: 50%, 2: 25%, 3: 0% (no window)
 
 config RA_WDT_WINDOW_START
-    int "WDT Window Start Position" 
+    int "WDT Window Start Position"
     default 3
     range 0 3
     help
@@ -1579,25 +1824,11 @@ endif # RA_WDT_ENABLE
 
 config RA_HOCO_ENABLE
     bool "Enable HOCO Oscillation"
-    default n
+    default y if RA_CLOCK_HOCO || RA_CLOCK_PLL || RA_CLOCK_PLL1P
     help
       Enable High-Speed On-Chip Oscillator (HOCO) after reset.
       When disabled, HOCO is stopped after reset.
-
-if RA_HOCO_ENABLE
-
-config RA_HOCO_FREQUENCY
-    int "HOCO Frequency Selection"
-    default 2
-    range 0 5
-    help
-      HOCO frequency selection:
-      0: 24 MHz
-      2: 32 MHz  
-      4: 48 MHz
-      5: 64 MHz
-
-endif # RA_HOCO_ENABLE
+      Automatically enabled when HOCO is used as system clock or PLL source.
 
 config RA_VOLTAGE_DETECTION_LEVEL
     int "Voltage Detection Level"

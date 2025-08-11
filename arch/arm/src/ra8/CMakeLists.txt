@@ -29,7 +29,7 @@ target_include_directories(arch PRIVATE
 # Required RA8 core files
 set(SRCS
     ra_start.c
-    ra_timer.c
+    ra_timerisr.c
     ra_clock.c
     ra_irq.c
     ra_lowputc.c

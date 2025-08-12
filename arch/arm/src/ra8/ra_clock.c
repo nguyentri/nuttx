@@ -91,6 +91,7 @@ void ra_clock(void)
            R_SYSTEM_PRCR);
 
   /* Step 2: Configure VBATT Control - FSP requirement */
+#if defined (CONFIG_RA_VBATT_SWITCH) && (CONFIG_RA_VBATT_SWITCH)
   /* The VBTCR1.BPWSWSTP must be set after reset on MCUs that have
    * VBTCR1.BPWSWSTP.
    * Reference section 11.2.1 "VBATT Control Register 1 (VBTCR1)" and Figure
@@ -103,6 +104,7 @@ void ra_clock(void)
   while ((getreg8(R_SYSTEM_VBTSR) & R_SYSTEM_VBTSR_VBTRVLD) == 0)
     {
     }
+#endif
 
 #if defined(CONFIG_RA_CLOCK_HOCO) || defined(CONFIG_RA_CLOCK_PLL) || defined(CONFIG_RA_CLOCK_PLL1P)
   /* Step 3: Configure HOCO (High-Speed On-Chip Oscillator) */

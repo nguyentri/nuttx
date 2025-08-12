@@ -1909,3 +1909,10 @@ config RA_BOOTLOADED_APPLICATION
      Enable bootloaded application support.
      This allows the application to be loaded via a bootloader.
      Useful for firmware updates and flexible deployment.
+
+config RA_VBATT_SWITCH
+   bool "VBATT Switch"
+   default n
+   help
+     Enable VBATT switch functionality.
+     VCC can switch to VBAT if the voltage drops too low.

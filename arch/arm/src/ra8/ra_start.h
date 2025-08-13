@@ -55,7 +55,7 @@
 #define RA_STACK_ALIGNMENT        (8)
 
 /* TrustZone build configuration macros */
-#ifndef CONFIG_RA_TZ_SECURE_BUILD 
+#ifndef CONFIG_RA_TZ_SECURE_BUILD
 #  define CONFIG_RA_TZ_SECURE_BUILD 0
 #endif
 
@@ -117,7 +117,7 @@
 
 /* OFS1_SEC based on Kconfig */
 #ifdef CONFIG_RA_HOCO_ENABLE
-#  define RA_OFS1_SEC_HOCO_FREQ  (CONFIG_RA_HOCO_FREQUENCY << RA_OFS1_HOCOFRQ_OFFSET)
+#  define RA_OFS1_SEC_HOCO_FREQ  (RA_HOCO_FREQUENCY << RA_OFS1_HOCOFRQ_OFFSET)
 #else
 #  define RA_OFS1_SEC_HOCO_FREQ  (0)
 #endif
@@ -201,7 +201,6 @@
 void ra_board_initialize(void);
 void ra_option_bytes_init(void);
 void ra_trustzone_init(void);
-void ra_clock_init(void);
 void ra_vector_table_init(void);
 void ra_ram_init (const uint32_t external);
 

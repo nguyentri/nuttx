@@ -32,6 +32,8 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#define RENESAS_CORTEX_M85
+
 /* Register Offsets *********************************************************/
 
 #define R_SYSTEM_VBTCR1_OFFSET            0x041f  /* VBATT Control Register 1 (8-bits) */
@@ -50,27 +52,55 @@
 #define R_SYSTEM_VBTWFR_OFFSET            0x04bf  /* VBATT Wakeup Trigger Source Flag Register (8-bits) */
 #define R_SYSTEM_VBTBKR_OFFSET            0x0500  /* VBATT Backup Register (8-bits) */
 #define R_SYSTEM_SCKDIVCR_OFFSET          0x0020  /* System Clock Division Control Register (32-bits) */
+#define R_SYSTEM_SCKDIVCR2_OFFSET         0x0024  /* System Clock Division Control Register 2 (8-bits) */
 #define R_SYSTEM_SCKSCR_OFFSET            0x0026  /* System Clock Source Control Register (8-bits) */
 #define R_SYSTEM_PLLCR_OFFSET             0x002a  /* PLL Control Register (8-bits) */
 #define R_SYSTEM_PLLCCR_OFFSET            0x0028  /* PLL Clock Control Register (16-bits) */
-#define R_SYSTEM_PLLCCR2_OFFSET           0x004c  /* PLL Clock Control Register 2 (16-bits) */
-#define R_SYSTEM_MEMWAIT_OFFSET           0x0031  /* Memory Wait Cycle Control Register (8-bits) */
+#define R_SYSTEM_BCKCR_OFFSET             0x0030  /* External Bus Clock Control Register (8-bits) */
 #define R_SYSTEM_MOSCCR_OFFSET            0x0032  /* Main Clock Oscillator Control Register (8-bits) */
 #define R_SYSTEM_HOCOCR_OFFSET            0x0036  /* High-Speed On-Chip Oscillator Control Register (8-bits) */
 #define R_SYSTEM_MOCOCR_OFFSET            0x0038  /* Middle-Speed On-Chip Oscillator Control Register (8-bits) */
-#define R_SYSTEM_SOSCCR_OFFSET            0x0480  /* Sub-Clock Oscillator Control Register (8-bits) */
-#define R_SYSTEM_LOCOCR_OFFSET            0x0490  /* Low-Speed On-Chip Oscillator Control Register (8-bits) */
+#define R_SYSTEM_FLLCR1_OFFSET            0x0039  /* FLL Control Register 1 (8-bits) */
+#define R_SYSTEM_FLLCR2_OFFSET            0x003a  /* FLL Control Register 2 (16-bits) */
 #define R_SYSTEM_OSCSF_OFFSET             0x003c  /* Oscillation Stabilization Flag Register (8-bits) */
 #define R_SYSTEM_CKOCR_OFFSET             0x003e  /* Clock Out Control Register (8-bits) */
 #define R_SYSTEM_TRCKCR_OFFSET            0x003f  /* Trace Clock Control Register (8-bits) */
 #define R_SYSTEM_OSTDCR_OFFSET            0x0040  /* Oscillation Stop Detection Control Register (8-bits) */
 #define R_SYSTEM_OSTDSR_OFFSET            0x0041  /* Oscillation Stop Detection Status Register (8-bits) */
-#define R_SYSTEM_SLCDSCKCR_OFFSET         0x0050  /* Segment LCD Source Clock Control Register (8-bits) */
+#define R_SYSTEM_PLL2CCR_OFFSET           0x0048  /* PLL2 Clock Control Register (16-bits) */
+#define R_SYSTEM_PLL2CR_OFFSET            0x004a  /* PLL2 Control Register (8-bits) */
+#define R_SYSTEM_PLLCCR2_OFFSET           0x004c  /* PLL Clock Control Register 2 (16-bits) */
+#define R_SYSTEM_PLL2CCR2_OFFSET          0x004e  /* PLL2 Clock Control Register 2 (16-bits) */
+#define R_SYSTEM_EBCKOCR_OFFSET           0x0052  /* External Bus Clock Output Control Register (8-bits) */
+#define R_SYSTEM_SDCKOCR_OFFSET           0x0053  /* SDRAM Clock Output Control Register (8-bits) */
+#define R_SYSTEM_SCICKDIVCR_OFFSET        0x0054  /* SCI Clock Divider Control Register (8-bits) */
+#define R_SYSTEM_SCICKCR_OFFSET           0x0055  /* SCI Clock Control Register (8-bits) */
+#define R_SYSTEM_SPICKDIVCR_OFFSET        0x0056  /* SPI Clock Divider Control Register (8-bits) */
+#define R_SYSTEM_SPICKCR_OFFSET           0x0057  /* SPI Clock Control Register (8-bits) */
+#define R_SYSTEM_ADCCKDIVCR_OFFSET        0x005a  /* ADC Clock Divider Control Register (8-bits) */
+#define R_SYSTEM_ADCCKCR_OFFSET           0x005b  /* ADC Clock Control Register (8-bits) */
+#define R_SYSTEM_GPTCKDIVCR_OFFSET        0x005c  /* GPT Clock Divider Control Register (8-bits) */
+#define R_SYSTEM_GPTCKCR_OFFSET           0x005d  /* GPT Clock Control Register (8-bits) */
+#define R_SYSTEM_LCDCKDIVCR_OFFSET        0x005e  /* LCD Clock Divider Control Register (8-bits) */
+#define R_SYSTEM_LCDCKCR_OFFSET           0x005f  /* LCD Clock Control Register (8-bits) */
 #define R_SYSTEM_MOCOUTCR_OFFSET          0x0061  /* MOCO User Trimming Control Register (8-bits) */
 #define R_SYSTEM_HOCOUTCR_OFFSET          0x0062  /* HOCO User Trimming Control Register (8-bits) */
+#define R_SYSTEM_USBCKDIVCR_OFFSET        0x006c  /* USB Clock Divider Control Register (8-bits) */
+#define R_SYSTEM_OCTACKDIVCR_OFFSET       0x006d  /* OCTA Clock Divider Control Register (8-bits) */
+#define R_SYSTEM_CANFDCKDIVCR_OFFSET      0x006e  /* CANFD Clock Divider Control Register (8-bits) */
+#define R_SYSTEM_USB60CKDIVCR_OFFSET      0x006f  /* USB60 Clock Divider Control Register (8-bits) */
+#define R_SYSTEM_I3CCKDIVCR_OFFSET        0x0070  /* I3C Clock Divider Control Register (8-bits) */
+#define R_SYSTEM_USBCKCR_OFFSET           0x0074  /* USB Clock Control Register (8-bits) */
+#define R_SYSTEM_OCTACKCR_OFFSET          0x0075  /* OCTA Clock Control Register (8-bits) */
+#define R_SYSTEM_CANFDCKCR_OFFSET         0x0076  /* CANFD Clock Control Register (8-bits) */
+#define R_SYSTEM_USB60CKCR_OFFSET         0x0077  /* USB60 Clock Control Register (8-bits) */
+#define R_SYSTEM_I3CCKCR_OFFSET           0x0078  /* I3C Clock Control Register (8-bits) */
+#define R_SYSTEM_OPCCR_OFFSET             0x00a0  /* Operating Power Control Register (8-bits) */
 #define R_SYSTEM_MOSCWTCR_OFFSET          0x00a2  /* Main Clock Oscillator Wait Control Register (8-bits) */
 #define R_SYSTEM_HOCOWTCR_OFFSET          0x00a5  /* High-Speed On-Chip Oscillator Wait Control Register (8-bits) */
-#define R_SYSTEM_USBCKCR_OFFSET           0x00d0  /* USB Clock Control Register (8-bits) */
+#define R_SYSTEM_SOPCCR_OFFSET            0x00aa  /* Sub Operating Power Control Register (8-bits) */
+#define R_SYSTEM_LOCOCR_OFFSET            0x0400  /* Low-Speed On-Chip Oscillator Control Register (8-bits) */
+#define R_SYSTEM_SOSCCR_OFFSET            0x0c00  /* Sub-Clock Oscillator Control Register (8-bits) */
 #define R_SYSTEM_MOMCR_OFFSET             0x0413  /* Main Clock Oscillator Mode Oscillation Control Register (8-bits) */
 #define R_SYSTEM_SOMCR_OFFSET             0x0481  /* Sub-Clock Oscillator Mode Control Register (8-bits) */
 #define R_SYSTEM_LOCOUTCR_OFFSET          0x0492  /* LOCO User Trimming Control Register (8-bits) */
@@ -88,7 +118,7 @@
 #define R_SYSTEM_LVDCR0_OFFSET            0x041a  /* Voltage Monitor Circuit Control Register 0 (8-bits) */
 #define R_SYSTEM_LVDCR1_OFFSET            0x00e0  /* Voltage Monitor Circuit Control Register 1 (8-bits) */
 #define R_SYSTEM_LVDSR_OFFSET             0x00e1  /* Voltage Monitor Circuit Status Register (8-bits) */
-#define R_SYSTEM_PRCR_OFFSET              0x03fe  /* Protect Register (16-bits) */
+#define R_SYSTEM_PRCR_OFFSET              0x03fa  /* Protect Register (16-bits) */
 #define R_SYSTEM_RSTSR0_OFFSET            0x0410  /* Reset Status Register 0 (8-bits) */
 #define R_SYSTEM_RSTSR2_OFFSET            0x0411  /* Reset Status Register 2 (8-bits) */
 #define R_SYSTEM_RSTSR1_OFFSET            0x00c0  /* Reset Status Register 1 (16-bits) */
@@ -112,27 +142,55 @@
 #  define R_SYSTEM_VBTWFR                (R_SYSTEM_BASE + R_SYSTEM_VBTWFR_OFFSET)
 #  define R_SYSTEM_VBTBKR(p)             (R_SYSTEM_BASE + R_SYSTEM_VBTBKR_OFFSET + p*0x0001)
 #  define R_SYSTEM_SCKDIVCR              (R_SYSTEM_BASE + R_SYSTEM_SCKDIVCR_OFFSET)
+#  define R_SYSTEM_SCKDIVCR2             (R_SYSTEM_BASE + R_SYSTEM_SCKDIVCR2_OFFSET)
 #  define R_SYSTEM_SCKSCR                (R_SYSTEM_BASE + R_SYSTEM_SCKSCR_OFFSET)
 #  define R_SYSTEM_PLLCR                 (R_SYSTEM_BASE + R_SYSTEM_PLLCR_OFFSET)
 #  define R_SYSTEM_PLLCCR                (R_SYSTEM_BASE + R_SYSTEM_PLLCCR_OFFSET)
-#  define R_SYSTEM_PLLCCR2               (R_SYSTEM_BASE + R_SYSTEM_PLLCCR2_OFFSET)
-#  define R_SYSTEM_MEMWAIT               (R_SYSTEM_BASE + R_SYSTEM_MEMWAIT_OFFSET)
+#  define R_SYSTEM_BCKCR                 (R_SYSTEM_BASE + R_SYSTEM_BCKCR_OFFSET)
 #  define R_SYSTEM_MOSCCR                (R_SYSTEM_BASE + R_SYSTEM_MOSCCR_OFFSET)
 #  define R_SYSTEM_HOCOCR                (R_SYSTEM_BASE + R_SYSTEM_HOCOCR_OFFSET)
 #  define R_SYSTEM_MOCOCR                (R_SYSTEM_BASE + R_SYSTEM_MOCOCR_OFFSET)
-#  define R_SYSTEM_SOSCCR                (R_SYSTEM_BASE + R_SYSTEM_SOSCCR_OFFSET)
-#  define R_SYSTEM_LOCOCR                (R_SYSTEM_BASE + R_SYSTEM_LOCOCR_OFFSET)
+#  define R_SYSTEM_FLLCR1                (R_SYSTEM_BASE + R_SYSTEM_FLLCR1_OFFSET)
+#  define R_SYSTEM_FLLCR2                (R_SYSTEM_BASE + R_SYSTEM_FLLCR2_OFFSET)
 #  define R_SYSTEM_OSCSF                 (R_SYSTEM_BASE + R_SYSTEM_OSCSF_OFFSET)
 #  define R_SYSTEM_CKOCR                 (R_SYSTEM_BASE + R_SYSTEM_CKOCR_OFFSET)
 #  define R_SYSTEM_TRCKCR                (R_SYSTEM_BASE + R_SYSTEM_TRCKCR_OFFSET)
 #  define R_SYSTEM_OSTDCR                (R_SYSTEM_BASE + R_SYSTEM_OSTDCR_OFFSET)
 #  define R_SYSTEM_OSTDSR                (R_SYSTEM_BASE + R_SYSTEM_OSTDSR_OFFSET)
-#  define R_SYSTEM_SLCDSCKCR             (R_SYSTEM_BASE + R_SYSTEM_SLCDSCKCR_OFFSET)
+#  define R_SYSTEM_PLL2CCR               (R_SYSTEM_BASE + R_SYSTEM_PLL2CCR_OFFSET)
+#  define R_SYSTEM_PLL2CR                (R_SYSTEM_BASE + R_SYSTEM_PLL2CR_OFFSET)
+#  define R_SYSTEM_PLLCCR2               (R_SYSTEM_BASE + R_SYSTEM_PLLCCR2_OFFSET)
+#  define R_SYSTEM_PLL2CCR2              (R_SYSTEM_BASE + R_SYSTEM_PLL2CCR2_OFFSET)
+#  define R_SYSTEM_EBCKOCR               (R_SYSTEM_BASE + R_SYSTEM_EBCKOCR_OFFSET)
+#  define R_SYSTEM_SDCKOCR               (R_SYSTEM_BASE + R_SYSTEM_SDCKOCR_OFFSET)
+#  define R_SYSTEM_SCICKDIVCR            (R_SYSTEM_BASE + R_SYSTEM_SCICKDIVCR_OFFSET)
+#  define R_SYSTEM_SCICKCR               (R_SYSTEM_BASE + R_SYSTEM_SCICKCR_OFFSET)
+#  define R_SYSTEM_SPICKDIVCR            (R_SYSTEM_BASE + R_SYSTEM_SPICKDIVCR_OFFSET)
+#  define R_SYSTEM_SPICKCR               (R_SYSTEM_BASE + R_SYSTEM_SPICKCR_OFFSET)
+#  define R_SYSTEM_ADCCKDIVCR            (R_SYSTEM_BASE + R_SYSTEM_ADCCKDIVCR_OFFSET)
+#  define R_SYSTEM_ADCCKCR               (R_SYSTEM_BASE + R_SYSTEM_ADCCKCR_OFFSET)
+#  define R_SYSTEM_GPTCKDIVCR            (R_SYSTEM_BASE + R_SYSTEM_GPTCKDIVCR_OFFSET)
+#  define R_SYSTEM_GPTCKCR               (R_SYSTEM_BASE + R_SYSTEM_GPTCKCR_OFFSET)
+#  define R_SYSTEM_LCDCKDIVCR            (R_SYSTEM_BASE + R_SYSTEM_LCDCKDIVCR_OFFSET)
+#  define R_SYSTEM_LCDCKCR               (R_SYSTEM_BASE + R_SYSTEM_LCDCKCR_OFFSET)
 #  define R_SYSTEM_MOCOUTCR              (R_SYSTEM_BASE + R_SYSTEM_MOCOUTCR_OFFSET)
 #  define R_SYSTEM_HOCOUTCR              (R_SYSTEM_BASE + R_SYSTEM_HOCOUTCR_OFFSET)
+#  define R_SYSTEM_USBCKDIVCR            (R_SYSTEM_BASE + R_SYSTEM_USBCKDIVCR_OFFSET)
+#  define R_SYSTEM_OCTACKDIVCR           (R_SYSTEM_BASE + R_SYSTEM_OCTACKDIVCR_OFFSET)
+#  define R_SYSTEM_CANFDCKDIVCR          (R_SYSTEM_BASE + R_SYSTEM_CANFDCKDIVCR_OFFSET)
+#  define R_SYSTEM_USB60CKDIVCR          (R_SYSTEM_BASE + R_SYSTEM_USB60CKDIVCR_OFFSET)
+#  define R_SYSTEM_I3CCKDIVCR            (R_SYSTEM_BASE + R_SYSTEM_I3CCKDIVCR_OFFSET)
+#  define R_SYSTEM_USBCKCR               (R_SYSTEM_BASE + R_SYSTEM_USBCKCR_OFFSET)
+#  define R_SYSTEM_OCTACKCR              (R_SYSTEM_BASE + R_SYSTEM_OCTACKCR_OFFSET)
+#  define R_SYSTEM_CANFDCKCR             (R_SYSTEM_BASE + R_SYSTEM_CANFDCKCR_OFFSET)
+#  define R_SYSTEM_USB60CKCR             (R_SYSTEM_BASE + R_SYSTEM_USB60CKCR_OFFSET)
+#  define R_SYSTEM_I3CCKCR               (R_SYSTEM_BASE + R_SYSTEM_I3CCKCR_OFFSET)
+#  define R_SYSTEM_OPCCR                 (R_SYSTEM_BASE + R_SYSTEM_OPCCR_OFFSET)
 #  define R_SYSTEM_MOSCWTCR              (R_SYSTEM_BASE + R_SYSTEM_MOSCWTCR_OFFSET)
 #  define R_SYSTEM_HOCOWTCR              (R_SYSTEM_BASE + R_SYSTEM_HOCOWTCR_OFFSET)
-#  define R_SYSTEM_USBCKCR               (R_SYSTEM_BASE + R_SYSTEM_USBCKCR_OFFSET)
+#  define R_SYSTEM_SOPCCR                (R_SYSTEM_BASE + R_SYSTEM_SOPCCR_OFFSET)
+#  define R_SYSTEM_LOCOCR                (R_SYSTEM_BASE + R_SYSTEM_LOCOCR_OFFSET)
+#  define R_SYSTEM_SOSCCR                (R_SYSTEM_BASE + R_SYSTEM_SOSCCR_OFFSET)
 #  define R_SYSTEM_MOMCR                 (R_SYSTEM_BASE + R_SYSTEM_MOMCR_OFFSET)
 #  define R_SYSTEM_SOMCR                 (R_SYSTEM_BASE + R_SYSTEM_SOMCR_OFFSET)
 #  define R_SYSTEM_LOCOUTCR              (R_SYSTEM_BASE + R_SYSTEM_LOCOUTCR_OFFSET)
@@ -155,6 +213,19 @@
 #  define R_SYSTEM_RSTSR2                (R_SYSTEM_BASE + R_SYSTEM_RSTSR2_OFFSET)
 #  define R_SYSTEM_RSTSR1                (R_SYSTEM_BASE + R_SYSTEM_RSTSR1_OFFSET)
 #  define R_SYSTEM_BKRACR                (R_SYSTEM_BASE + R_SYSTEM_BKRACR_OFFSET)
+
+/* SRAM Registers (from R_SRAM_BASE) */
+#define R_SRAM_SRAMPRCR_OFFSET            0x0000  /* SRAM Protection Control Register (16-bits) */
+#define R_SRAM_SRAMWTSC_OFFSET            0x0008  /* SRAM Wait State Control Register (8-bits) */
+
+#define R_SRAM_SRAMPRCR                   (R_SRAM_BASE + R_SRAM_SRAMPRCR_OFFSET)
+#define R_SRAM_SRAMWTSC                   (R_SRAM_BASE + R_SRAM_SRAMWTSC_OFFSET)
+
+/* SRAM register bit definitions */
+#define R_SRAM_SRAMPRCR_PR                (1 << 0)   /* Protection enable */
+#define R_SRAM_SRAMPRCR_KW_SHIFT          8          /* Key code shift position */
+#define R_SRAM_SRAMPRCR_KW_MASK           (0xFF << R_SRAM_SRAMPRCR_KW_SHIFT)
+#define R_SRAM_SRAMPRCR_KW_VALUE          (0xA5)     /* Key code value */
 
 /* Register Bitfield Definitions ********************************************/
 
@@ -248,7 +319,10 @@
 /* VBATT Backup Register (8-bits) */
 
 #define R_SYSTEM_VBTBKR_SIZE              512
-#define R_SYSTEM_VBTBKR_VBTBKR            (8 <<  0) /* 01: VBTBKR is a 512-byte readable/writable register to store data powered by VBATT. The value of this register is retained even when VCC is not powered but VBATT is powered. VBTBKR is initialized by VBATT selected voltage power-on-reset. */
+ /* 01: VBTBKR is a 512-byte readable/writable register to store data powered by VBATT.
+  * The value of this register is retained even when VCC is not powered but VBATT is powered. VBTBKR is initialized by VBATT selected voltage power-on-reset.
+  */
+#define R_SYSTEM_VBTBKR_VBTBKR            (8 <<  0)
 #define R_SYSTEM_VBTBKR_VBTBKR_MASK       (0xff)
 
 /* System Clock Division Control Register (32-bits) */
@@ -307,6 +381,13 @@
 #  define R_SYSTEM_SCKDIVCR_PCKD_DIV_16         (4 << R_SYSTEM_SCKDIVCR_PCKD_SHIFT)    /* CLK/16 */
 #  define R_SYSTEM_SCKDIVCR_PCKD_DIV_32         (5 << R_SYSTEM_SCKDIVCR_PCKD_SHIFT)    /* CLK/32 */
 #  define R_SYSTEM_SCKDIVCR_PCKD_DIV_64         (6 << R_SYSTEM_SCKDIVCR_PCKD_SHIFT)    /* CLK/64 */
+
+/* System Clock Division Control Register 2 (8-bits) */
+
+#define R_SYSTEM_SCKDIVCR2_CPUCK_SHIFT           (0)                                    /* Bits 3-0: CPU Clock (CPUCLK) Select */
+#define R_SYSTEM_SCKDIVCR2_CPUCK_MASK            (0x0F << R_SYSTEM_SCKDIVCR2_CPUCK_SHIFT)
+#define R_SYSTEM_SCKDIVCR2_CPUCK_Pos             (0)                                    /* For compatibility with Renesas FSP */
+#define R_SYSTEM_SCKDIVCR2_CPUCK_Msk             (0x0FUL)                               /* For compatibility with Renesas FSP */
 
 /* System Clock Source Control Register (8-bits) */
 
@@ -431,6 +512,18 @@
 /* USB Clock Control Register (8-bits) */
 
 #define R_SYSTEM_USBCKCR_USBCLKSEL        (1 <<  0) /* 01: USB Clock Source Select */
+
+/* SCI Clock Control Register (8-bits) */
+
+#define R_SYSTEM_SCICKCR_SCICKSREQ        (1 <<  6) /* 40: SCI Clock Source Change Request */
+#define R_SYSTEM_SCICKCR_SCICKSRDY        (1 <<  7) /* 80: SCI Clock Source Ready */
+#define R_SYSTEM_SCICKCR_SCICLKSEL_SHIFT  (0)       /* Bits 2-0: SCI Clock Source Select */
+#define R_SYSTEM_SCICKCR_SCICLKSEL_MASK   (0x07)
+
+/* SCI Clock Divider Control Register (8-bits) */
+
+#define R_SYSTEM_SCICKDIVCR_SCICKDIV_SHIFT (0)      /* Bits 3-0: SCI Clock Divider */
+#define R_SYSTEM_SCICKDIVCR_SCICKDIV_MASK  (0x0F)
 
 /* Main Clock Oscillator Mode Oscillation Control Register (8-bits) */
 
@@ -585,6 +678,45 @@
 
 #define R_SYSTEM_BKRACR_BKRACS_SHIFT            (0) /* 01: Backup Register Access Control Register */
 #define R_SYSTEM_BKRACR_BKRACS_MASK             (0x07)
+
+/* Hardware register wait macro (simplified) */
+#define RA_HARDWARE_REGISTER_WAIT(reg, expected) \
+  do { \
+    while ((reg) != (expected)) \
+      { \
+        /* Wait for register to reach expected value */ \
+      } \
+  } while (0)
+
+
+/* Software delay loop */
+inline void ra_delay_loop (__attribute__((unused)) uint32_t loop_cnt)
+{
+    __asm volatile (
+#if defined(RENESAS_CORTEX_M85) && (defined(__ARMCC_VERSION) || defined(__GNUC__))
+
+        /* Align the branch target to a 64-bit boundary, a CM85 specific optimization. */
+        /* IAR does not support alignment control within inline assembly. */
+        ".balign 8\n"
+#endif
+        "sw_delay_loop:         \n"
+#if defined(__ICCARM__) || defined(__ARMCC_VERSION) || (defined(__llvm__) && !defined(__CLANG_TIDY__))
+        "   subs r0, #1         \n"    ///< 1 cycle
+#elif defined(__GNUC__)
+        "   sub r0, r0, #1      \n"    ///< 1 cycle
+#endif
+
+        "   cmp r0, #0          \n"    ///< 1 cycle
+
+/* CM0 and CM23 have a different instruction set */
+#if defined(__CORE_CM0PLUS_H_GENERIC) || defined(__CORE_CM23_H_GENERIC)
+        "   bne sw_delay_loop   \n"    ///< 2 cycles
+#else
+        "   bne.n sw_delay_loop \n"    ///< 2 cycles
+#endif
+        "   bx lr               \n");  ///< 2 cycles
+}
+
 
 /****************************************************************************
  * Public Types

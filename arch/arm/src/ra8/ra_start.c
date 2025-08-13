@@ -38,7 +38,7 @@
 #include "ra_clock.h"
 #include "ra_lowputc.h"
 #include "ra_start.h"
-
+#include "hardware/ra_flash.h"
 #include "hardware/ra_system.h"
 #include "hardware/ra_option_setting.h"
 
@@ -360,6 +360,33 @@ const ra_init_info_t g_init_info =
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: ra_cortex_m85_init
+ *
+ * Description:
+ *   Initialize Cortex-M85 specific features following Renesas SystemInit
+ *
+ ****************************************************************************/
+static void ra_cortex_m85_init(void)
+{
+#ifdef CONFIG_ARCH_CORTEXM85
+  /* Following Renesas SystemInit for Cortex-M85:
+   * Enable instruction cache, branch prediction, and LOB extension
+   * This will be handled by NuttX ARM-specific initialization
+   * See sections 6.5, 6.6, and 6.7 in Arm Cortex-M85 Technical Reference Manual
+   */
+
+  /* D-Cache configuration and errata handling will be done by NuttX */
+
+  /* FPU configuration will be done by arm_fpuconfig() */
+
+  /* Enable flash cache and wait for it to be ready */
+  //putreg16(1U, R_FCACHE_FCACHEIV);
+  //RA_HARDWARE_REGISTER_WAIT(getreg16(R_FCACHE_FCACHEIV), 1U);
+  //putreg16(1U, R_FCACHE_FCACHEE);
+#endif
+}
+
+/****************************************************************************
  * Name: __start
  *
  * Description:
@@ -373,9 +400,8 @@ void __start(void)
      * See sections 6.5, 6.6, and 6.7 in the Arm Cortex-M85 Processor Technical Reference Manual (Document ID: 101924_0002_05_en, Issue: 05)
      * See section D1.2.9 in the Armv8-M Architecture Reference Manual (Document number: DDI0553B.w, Document version: ID07072023) */
 
-  /* Phase 1: Option Bytes and Security Configuration */
-  /* 1. Configure Option Bytes (Security, Boot, etc.) - handled by linker */
-  ra_option_bytes_init();
+  /* 1. Cortex-M85 Initialization */
+  ra_cortex_m85_init();
 
   /* 2. TrustZone Configuration - early security setup */
 #if CONFIG_RA_TZ_SECURE_BUILD || CONFIG_RA_TZ_NONSECURE_BUILD
@@ -384,7 +410,7 @@ void __start(void)
 
   /* Phase 2: Core and Clock Initialization */
   /* 3. Setup System Clocks (includes Cortex-M85 core features) */
-  ra_clock_init();
+  ra_clock();
 
   /* 4. Set Vector Table Base Address */
   ra_vector_table_init();
@@ -481,57 +507,6 @@ void ra_trustzone_init(void)
   /* Configure non-secure memory regions and permissions */
   /* Non-secure VTOR is set by secure project, skip here */
 #endif
-}
-
-/****************************************************************************
- * Name: ra_cortex_m85_init
- *
- * Description:
- *   Initialize Cortex-M85 specific features following Renesas SystemInit
- *
- ****************************************************************************/
-
-static void ra_cortex_m85_init(void)
-{
-#ifdef CONFIG_ARCH_CORTEXM85
-  /* Following Renesas SystemInit for Cortex-M85:
-   * Enable instruction cache, branch prediction, and LOB extension
-   * This will be handled by NuttX ARM-specific initialization
-   * See sections 6.5, 6.6, and 6.7 in Arm Cortex-M85 Technical Reference Manual
-   */
-
-  /* D-Cache configuration and errata handling will be done by NuttX */
-
-  /* FPU configuration will be done by arm_fpuconfig() */
-#endif
-}
-
-/****************************************************************************
- * Name: ra_clock_init
- *
- * Description:
- *   Initialize system clocks following Renesas SystemInit sequence
- *
- ****************************************************************************/
-
-void ra_clock_init(void)
-{
-  /* Setup system clocks following Renesas SystemInit sequence */
-
-  /* Step 1: Configure Cortex-M85 core features first */
-  ra_cortex_m85_init();
-
-  /* Step 2: Pre-clock initialization (Renesas R_RA_WarmStart equivalent) */
-  /* This would include early variable initialization if needed */
-
-  /* Step 3: Configure system clocks using existing NuttX ra_clock function
-   * This replaces the Renesas bsp_clock_init() call
-   */
-  ra_clock();
-
-  /* Step 4: Post-clock initialization */
-  /* Additional Renesas-specific setup like TRNG reset would go here */
-  /* These are handled by existing NuttX drivers as needed */
 }
 
 /****************************************************************************

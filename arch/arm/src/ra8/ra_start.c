@@ -430,16 +430,10 @@ void __start(void)
 #endif
   showprogress('B');
 
-  /* After basic low-level init, register enhanced console */
-#ifdef CONFIG_RA_SCI_UART_CONSOLE
-  ra_uart_console_register();
-#endif
-  showprogress('C');
-
   /* Phase 5: Board-level Initialization */
   /* 8. Initialize onboard resources */
   ra_board_initialize();
-  showprogress('D');
+  showprogress('C');
 
   /* Phase 6: Start NuttX */
   /* 9. Then start NuttX main initialization */

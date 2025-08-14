@@ -29,11 +29,6 @@ ifeq ($(CONFIG_BOARDCTL),y)
 CSRCS += ra8e1_appinit.c
 endif
 
-# UART/SCI initialization
-ifeq ($(CONFIG_RA_SCI_UART),y)
-CSRCS += ra8e1_uart_initialize.c
-endif
-
 # LED support
 ifeq ($(CONFIG_ARCH_LEDS),y)
 CSRCS += ra8e1_auto_leds.c
@@ -41,16 +36,9 @@ else
 CSRCS += ra8e1_user_leds.c
 endif
 
-# Button/Switch support  
+# Button/Switch support
 ifeq ($(CONFIG_RA8E1_SWITCH),y)
 CSRCS += ra8e1_buttons.c
-endif
-
-############################################################################
-# Peripheral initialization, User Driver interfaces on FPB-RA8E1
-############################################################################
-ifeq ($(CONFIG_RA_SPI),y)
-CSRCS += ra8e1_spi_initialize.c
 endif
 
 ############################################################################
@@ -108,7 +96,7 @@ ifeq ($(CONFIG_RA8E1_SPI_LOOPBACK_DEMO),y)
 CSRCS += ra8e1_spi_loopback_demo.c
 endif
 
-# GY-912 sensor support  
+# GY-912 sensor support
 ifeq ($(CONFIG_RA8E1_SPI_GY912_DEMO),y)
 CSRCS += ra8e1_spi_gy912_demo.c
 endif

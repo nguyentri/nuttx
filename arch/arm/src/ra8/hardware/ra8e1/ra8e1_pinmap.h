@@ -110,6 +110,8 @@
 
 #define GPIO_RXD2_MISO2_SCL2_1              (gpio_pinset_t){ PORT3,PIN1, (PFS_PSEL_SCI | R_PFS_PMR)}
 #define GPIO_TXD2_MOSI2_SDA2_1              (gpio_pinset_t){ PORT3,PIN2, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_RXD2_MISO2_SCL2_2              (gpio_pinset_t){ PORT8,PIN1, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_TXD2_MOSI2_SDA2_2              (gpio_pinset_t){ PORT8,PIN2, (PFS_PSEL_SCI | R_PFS_PMR)}
 
 #define GPIO_RXD9_MISO9_SCL9_1              (gpio_pinset_t){ PORT1,PIN10, (PFS_PSEL_SCI1 | R_PFS_PMR)}
 #define GPIO_TXD9_MOSI9_SDA9_1              (gpio_pinset_t){ PORT1,PIN9, (PFS_PSEL_SCI1 | R_PFS_PMR)}

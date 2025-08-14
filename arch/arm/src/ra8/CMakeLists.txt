@@ -75,7 +75,7 @@ endif()
 
 # Enhanced UART+DMA driver
 if(CONFIG_RA_SCI_UART)
-  list(APPEND SRCS ra_uart.c)
+  list(APPEND SRCS ra_sci.c)
 endif()
 
 # Flash memory driver

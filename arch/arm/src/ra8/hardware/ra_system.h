@@ -105,7 +105,6 @@
 #define R_SYSTEM_SOMCR_OFFSET             0x0481  /* Sub-Clock Oscillator Mode Control Register (8-bits) */
 #define R_SYSTEM_LOCOUTCR_OFFSET          0x0492  /* LOCO User Trimming Control Register (8-bits) */
 #define R_SYSTEM_SBYCR_OFFSET             0x000c  /* Standby Control Register (16-bits) */
-#define R_SYSTEM_MSTPCRA_OFFSET           0x001c  /* Module Stop Control Register A (32-bits) */
 #define R_SYSTEM_SNZCR_OFFSET             0x0092  /* Snooze Control Register (8-bits) */
 #define R_SYSTEM_SNZEDCR_OFFSET           0x0094  /* Snooze End Control Register (8-bits) */
 #define R_SYSTEM_SNZREQCR_OFFSET          0x0098  /* Snooze Request Control Register (32-bits) */
@@ -195,7 +194,6 @@
 #  define R_SYSTEM_SOMCR                 (R_SYSTEM_BASE + R_SYSTEM_SOMCR_OFFSET)
 #  define R_SYSTEM_LOCOUTCR              (R_SYSTEM_BASE + R_SYSTEM_LOCOUTCR_OFFSET)
 #  define R_SYSTEM_SBYCR                 (R_SYSTEM_BASE + R_SYSTEM_SBYCR_OFFSET)
-#  define R_SYSTEM_MSTPCRA               (R_SYSTEM_BASE + R_SYSTEM_MSTPCRA_OFFSET)
 #  define R_SYSTEM_SNZCR                 (R_SYSTEM_BASE + R_SYSTEM_SNZCR_OFFSET)
 #  define R_SYSTEM_SNZEDCR               (R_SYSTEM_BASE + R_SYSTEM_SNZEDCR_OFFSET)
 #  define R_SYSTEM_SNZREQCR              (R_SYSTEM_BASE + R_SYSTEM_SNZREQCR_OFFSET)

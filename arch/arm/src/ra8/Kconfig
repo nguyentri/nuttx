@@ -753,49 +753,6 @@ config RA_SCI9_UART
    ---help---
       Enable support for SCI9 UART peripheral.
 
-# Baud rate configuration for SCI UARTs
-config RA_SCI0_BAUDRATE
-   int "SCI0 Baud Rate (bps)"
-   default 115200
-   depends on RA_SCI0_UART
-   help
-     Set the baud rate for SCI0. Valid ranges depend on hardware limits.
-
-config RA_SCI1_BAUDRATE
-   int "SCI1 Baud Rate (bps)"
-   default 115200
-   depends on RA_SCI1_UART
-   help
-     Set the baud rate for SCI1.
-
-config RA_SCI2_BAUDRATE
-   int "SCI2 Baud Rate (bps)"
-   default 115200
-   depends on RA_SCI2_UART
-   help
-     Set the baud rate for SCI2.
-
-config RA_SCI3_BAUDRATE
-   int "SCI3 Baud Rate (bps)"
-   default 115200
-   depends on RA_SCI3_UART
-   help
-     Set the baud rate for SCI3.
-
-config RA_SCI4_BAUDRATE
-   int "SCI4 Baud Rate (bps)"
-   default 115200
-   depends on RA_SCI4_UART
-   help
-     Set the baud rate for SCI4.
-
-config RA_SCI9_BAUDRATE
-   int "SCI9 Baud Rate (bps)"
-   default 115200
-   depends on RA_SCI9_UART
-   help
-     Set the baud rate for SCI9.
-
 # Buffer sizes for SCI UARTs
 config RA_SCI0_RXBUFSIZE
    int "SCI0 receive buffer size"

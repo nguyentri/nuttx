@@ -44,7 +44,7 @@
 #include "arm_internal.h"
 #include "chip.h"
 #include "ra_gpio.h"
-#include "ra_uart.h"
+#include "ra_sci.h"
 #include "ra8e1_demo_log.h"
 
 /* GPS NMEA Parameters */
@@ -101,7 +101,7 @@ struct nmea_parser_s
 static struct nmea_parser_s g_nmea_parser;
 
 /* UART device for GPS */
-static ra_uart_dev_t g_gps_uart;
+static ra_sci_dev_t g_gps_uart;
 
 /* GPS data */
 static struct gps_data_s g_gps_data;
@@ -118,7 +118,7 @@ static volatile bool g_demo_running = false;
  ****************************************************************************/
 
 static int gps_uart_initialize(void);
-static void gps_uart_callback(ra_uart_dev_t *dev, uint32_t event);
+static void gps_uart_callback(ra_sci_dev_t *dev, uint32_t event);
 static void nmea_process_byte(uint8_t byte);
 static bool nmea_parse_sentence(const char *sentence);
 static bool nmea_checksum_valid(const char *sentence);
@@ -148,7 +148,7 @@ static void print_menu(void);
 
 static int gps_uart_initialize(void)
 {
-  ra_uart_config_t config;
+  ra_sci_config_t config;
   int ret;
 
   /* Configure UART for GPS */
@@ -178,7 +178,7 @@ static int gps_uart_initialize(void)
   g_gps_uart.callback = gps_uart_callback;
   
   /* Initialize UART with DMA */
-  ret = ra_uart_initialize(&g_gps_uart);
+  ret = ra_sci_initialize(&g_gps_uart);
   if (ret < 0)
     {
       demoerr("GPS: Failed to initialize UART: %d\n", ret);
@@ -197,7 +197,7 @@ static int gps_uart_initialize(void)
  *
  ****************************************************************************/
 
-static void gps_uart_callback(ra_uart_dev_t *dev, uint32_t event)
+static void gps_uart_callback(ra_sci_dev_t *dev, uint32_t event)
 {
   int i;
   
@@ -824,7 +824,7 @@ int ra8e1_gps_demo_main(int argc, char *argv[])
     }
   
   /* Cleanup */
-  ra_uart_finalize(&g_gps_uart);
+  ra_sci_finalize(&g_gps_uart);
   demoinfo("GPS demo finished\n");
   
   return OK;

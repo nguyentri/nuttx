@@ -44,7 +44,7 @@
 #include "arm_internal.h"
 #include "chip.h"
 #include "ra_gpio.h"
-#include "ra_uart.h"
+#include "ra_sci.h"
 #include "ra8e1_demo_log.h"
 
 /* SBUS Protocol Parameters */
@@ -131,7 +131,7 @@ struct sbus_parser_s
 static struct sbus_parser_s g_sbus_parser;
 
 /* UART device for SBUS */
-static ra_uart_dev_t g_sbus_uart;
+static ra_sci_dev_t g_sbus_uart;
 
 /* SBUS data */
 static struct sbus_data_s g_sbus_data;
@@ -148,7 +148,7 @@ static volatile bool g_demo_running = false;
  ****************************************************************************/
 
 static int sbus_uart_initialize(void);
-static void sbus_uart_callback(ra_uart_dev_t *dev, uint32_t event);
+static void sbus_uart_callback(ra_sci_dev_t *dev, uint32_t event);
 static int sbus_parse_frame(const uint8_t *frame, struct sbus_data_s *data);
 static bool sbus_validate_frame(const uint8_t *frame);
 static void sbus_print_channels(const struct sbus_data_s *data);
@@ -170,7 +170,7 @@ static void print_menu(void);
 
 static int sbus_uart_initialize(void)
 {
-  ra_uart_config_t config;
+  ra_sci_config_t config;
   int ret;
 
   /* Configure UART for SBUS */
@@ -196,7 +196,7 @@ static int sbus_uart_initialize(void)
   g_sbus_uart.callback = sbus_uart_callback;
   
   /* Initialize UART with DMA */
-  ret = ra_uart_initialize(&g_sbus_uart);
+  ret = ra_sci_initialize(&g_sbus_uart);
   if (ret < 0)
     {
       demoprintf("SBUS: Failed to initialize UART: %d\n", ret);
@@ -215,7 +215,7 @@ static int sbus_uart_initialize(void)
  *
  ****************************************************************************/
 
-static void sbus_uart_callback(ra_uart_dev_t *dev, uint32_t event)
+static void sbus_uart_callback(ra_sci_dev_t *dev, uint32_t event)
 {
   uint8_t byte;
   int i;
@@ -557,7 +557,7 @@ int ra8e1_sbus_demo_main(int argc, char *argv[])
     }
   
   /* Cleanup */
-  ra_uart_finalize(&g_sbus_uart);
+  ra_sci_finalize(&g_sbus_uart);
   demoprintf("SBUS demo finished\n");
   
   return OK;

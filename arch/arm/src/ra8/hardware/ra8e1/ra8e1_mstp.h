@@ -36,15 +36,19 @@
 
 /* Register Offsets *********************************************************/
 
-#define R_MSTP_MSTPCRB_OFFSET             0x0000
-#define R_MSTP_MSTPCRC_OFFSET             0x0004
-#define R_MSTP_MSTPCRD_OFFSET             0x0008
+#define R_MSTP_MSTPCRA_OFFSET           0x0000  /* Module Stop Control Register A (32-bits) */
+#define R_MSTP_MSTPCRB_OFFSET           0x0004  /* Module Stop Control Register B (32-bits) */
+#define R_MSTP_MSTPCRC_OFFSET           0x0008  /* Module Stop Control Register C (32-bits) */
+#define R_MSTP_MSTPCRD_OFFSET           0x000C  /* Module Stop Control Register D (32-bits) */
+#define R_MSTP_MSTPCRE_OFFSET           0x0010  /* Module Stop Control Register E (32-bits) */
 
 /* Register Addresses *******************************************************/
 
-#define R_MSTP_MSTPCRB                    (R_MSTP_BASE + R_MSTP_MSTPCRB_OFFSET)
-#define R_MSTP_MSTPCRC                    (R_MSTP_BASE + R_MSTP_MSTPCRC_OFFSET)
-#define R_MSTP_MSTPCRD                    (R_MSTP_BASE + R_MSTP_MSTPCRD_OFFSET)
+#  define R_MSTP_MSTPCRA               (R_MSTP_BASE   + R_MSTP_MSTPCRA_OFFSET)
+#  define R_MSTP_MSTPCRB               (R_MSTP_BASE   + R_MSTP_MSTPCRB_OFFSET)
+#  define R_MSTP_MSTPCRC               (R_MSTP_BASE   + R_MSTP_MSTPCRC_OFFSET)
+#  define R_MSTP_MSTPCRD               (R_MSTP_BASE   + R_MSTP_MSTPCRD_OFFSET)
+#  define R_MSTP_MSTPCRE               (R_MSTP_BASE   + R_MSTP_MSTPCRE_OFFSET)
 
 /* Register Bitfield Definitions ********************************************/
 

@@ -109,29 +109,6 @@ void board_autoled_off(int led);
 int ra8e1_gpio_initialize(void);
 #endif
 
-/****************************************************************************
- * Name: fpb_ra8e1_spi_initialize
- *
- * Description:
- *   Initialize SPI drivers
- *
- ****************************************************************************/
-
-#ifdef CONFIG_RA_SPI
-int fpb_ra8e1_spi_initialize(void);
-#endif
-
-/****************************************************************************
- * Name: ra8e1_uart_initialize
- *
- * Description:
- *   Initialize UART/SCI drivers for RA8E1
- *
- ****************************************************************************/
-
-#ifdef CONFIG_RA_SCI_UART
-int ra8e1_uart_initialize(void);
-#endif
 
 #ifdef CONFIG_RA_SPI_LOOPBACK_DEMO
 int ra8e1_spi_loopback_demo_init(void);

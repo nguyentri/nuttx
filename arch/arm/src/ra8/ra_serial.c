@@ -320,7 +320,7 @@ static uart_dev_t g_uart0port =
 static struct up_dev_s  g_uart1priv =
 {
   .scibase    = R_SCI1_BASE,
-  .mstp         = R_MSTP_MSTPCRB_SCI2,
+  .mstp         = R_MSTP_MSTPCRB_SCI1,
   .rxirq        = SCI1_RXI,
   .txirq        = SCI1_TXI,
   .teirq        = SCI1_TEI,
@@ -666,16 +666,20 @@ static int up_setup(struct uart_dev_s *dev)
 {
   struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
 
-#if defined(CONFIG_RA_SCI0_UART)
+  /* Configure GPIO pins for non-console UARTs only
+   * Console UART pins are already configured in ra_lowsetup()
+   * following iMXRT pattern
+   */
+#if defined(CONFIG_RA_SCI0_UART) && !defined(CONFIG_SCI0_SERIAL_CONSOLE)
   ra_configgpio(GPIO_SCI0_RX);
   ra_configgpio(GPIO_SCI0_TX);
-#elif defined(CONFIG_RA_SCI1_UART)
+#elif defined(CONFIG_RA_SCI1_UART) && !defined(CONFIG_SCI1_SERIAL_CONSOLE)
   ra_configgpio(GPIO_SCI1_RX);
   ra_configgpio(GPIO_SCI1_TX);
-#elif defined(CONFIG_RA_SCI2_UART)
+#elif defined(CONFIG_RA_SCI2_UART) && !defined(CONFIG_SCI2_SERIAL_CONSOLE)
   ra_configgpio(GPIO_SCI2_RX);
   ra_configgpio(GPIO_SCI2_TX);
-#elif defined(CONFIG_RA_SCI9_UART)
+#elif defined(CONFIG_RA_SCI9_UART) && !defined(CONFIG_SCI9_SERIAL_CONSOLE)
   ra_configgpio(GPIO_SCI9_RX);
   ra_configgpio(GPIO_SCI9_TX);
 #endif

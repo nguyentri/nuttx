@@ -39,8 +39,8 @@
 
 /* Alternate function pin selections */
 
-#define GPIO_SCI2_RX   GPIO_RXD2_MISO2_SCL2_1  /* P301 */
-#define GPIO_SCI2_TX   GPIO_TXD2_MOSI2_SDA2_1  /* P302 */
+#define GPIO_SCI2_RX   GPIO_RXD2_MISO2_SCL2_2  /* P801 */
+#define GPIO_SCI2_TX   GPIO_TXD2_MOSI2_SDA2_2  /* P802 */
 
 #define GPIO_SCI1_RX   GPIO_RXD1_MISO1_SCL1_3  /* P502 */
 #define GPIO_SCI1_TX   GPIO_TXD1_MOSI1_SDA1_3  /* P501 */

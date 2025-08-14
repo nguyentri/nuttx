@@ -79,7 +79,7 @@ endif
 
 # Enhanced UART+DMA driver
 ifeq ($(CONFIG_RA_SCI_UART),y)
-CHIP_CSRCS += ra_uart.c
+CHIP_CSRCS += ra_sci.c
 endif
 
 # Flash memory driver

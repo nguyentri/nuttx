@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/ra8/ra_uart.h
+ * arch/arm/src/ra8/ra_sci.h
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -123,7 +123,7 @@ typedef enum
     RA_UART_STATE_TX_IN_PROGRESS,
     RA_UART_STATE_RX_IN_PROGRESS,
     RA_UART_STATE_ERROR
-} ra_uart_state_t;
+} ra_sci_state_t;
 
 /* DMA Transfer Configuration */
 typedef struct
@@ -132,7 +132,7 @@ typedef struct
     uint32_t irq;               /* DMA interrupt */
     uint8_t  ipl;               /* Interrupt priority level */
     bool     enabled;           /* DMA enabled for this direction */
-} ra_uart_dma_config_t;
+} ra_sci_dma_config_t;
 
 /* UART Configuration Structure */
 typedef struct
@@ -155,21 +155,21 @@ typedef struct
     uint8_t  eri_ipl;           /* Error interrupt priority */
     
     /* DMA Configuration */
-    ra_uart_dma_config_t tx_dma;
-    ra_uart_dma_config_t rx_dma;
+    ra_sci_dma_config_t tx_dma;
+    ra_sci_dma_config_t rx_dma;
     
     /* Pin Configuration */
     uint32_t tx_pin;            /* TX pin */
     uint32_t rx_pin;            /* RX pin */
     uint32_t rts_pin;           /* RTS pin (if flow control) */
     uint32_t cts_pin;           /* CTS pin (if flow control) */
-} ra_uart_config_t;
+} ra_sci_config_t;
 
 /* UART Device Structure */
 typedef struct
 {
-    const ra_uart_config_t *config;  /* UART configuration */
-    ra_uart_state_t state;           /* Current state */
+    const ra_sci_config_t *config;  /* UART configuration */
+    ra_sci_state_t state;           /* Current state */
     
     /* DMA Control Blocks */
     void *tx_dma_ctrl;               /* TX DMA control block */
@@ -187,9 +187,9 @@ typedef struct
     volatile uint32_t events;        /* Event flags */
     
     /* Callback */
-    void (*callback)(struct ra_uart_dev_s *dev, uint32_t event);
+    void (*callback)(struct ra_sci_dev_s *dev, uint32_t event);
     void *callback_context;
-} ra_uart_dev_t;
+} ra_sci_dev_t;
 
 /****************************************************************************
  * Public Data
@@ -211,7 +211,7 @@ extern "C"
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ra_uart_initialize
+ * Name: ra_sci_initialize
  *
  * Description:
  *   Initialize UART driver with DMA support
@@ -224,10 +224,10 @@ extern "C"
  *
  ****************************************************************************/
 
-int ra_uart_initialize(ra_uart_dev_t *dev);
+int ra_sci_initialize(ra_sci_dev_t *dev);
 
 /****************************************************************************
- * Name: ra_uart_finalize
+ * Name: ra_sci_finalize
  *
  * Description:
  *   Finalize UART driver and free resources
@@ -240,10 +240,10 @@ int ra_uart_initialize(ra_uart_dev_t *dev);
  *
  ****************************************************************************/
 
-void ra_uart_finalize(ra_uart_dev_t *dev);
+void ra_sci_finalize(ra_sci_dev_t *dev);
 
 /****************************************************************************
- * Name: ra_uart_send_dma
+ * Name: ra_sci_send_dma
  *
  * Description:
  *   Send data using DMA
@@ -258,11 +258,11 @@ void ra_uart_finalize(ra_uart_dev_t *dev);
  *
  ****************************************************************************/
 
-int ra_uart_send_dma(ra_uart_dev_t *dev, const uint8_t *buffer, 
+int ra_sci_send_dma(ra_sci_dev_t *dev, const uint8_t *buffer, 
                      uint16_t length);
 
 /****************************************************************************
- * Name: ra_uart_receive_dma
+ * Name: ra_sci_receive_dma
  *
  * Description:
  *   Receive data using DMA
@@ -277,11 +277,11 @@ int ra_uart_send_dma(ra_uart_dev_t *dev, const uint8_t *buffer,
  *
  ****************************************************************************/
 
-int ra_uart_receive_dma(ra_uart_dev_t *dev, uint8_t *buffer, 
+int ra_sci_receive_dma(ra_sci_dev_t *dev, uint8_t *buffer, 
                         uint16_t length);
 
 /****************************************************************************
- * Name: ra_uart_abort_transfer
+ * Name: ra_sci_abort_transfer
  *
  * Description:
  *   Abort ongoing DMA transfer
@@ -295,10 +295,10 @@ int ra_uart_receive_dma(ra_uart_dev_t *dev, uint8_t *buffer,
  *
  ****************************************************************************/
 
-int ra_uart_abort_transfer(ra_uart_dev_t *dev, bool tx);
+int ra_sci_abort_transfer(ra_sci_dev_t *dev, bool tx);
 
 /****************************************************************************
- * Name: ra_uart_set_callback
+ * Name: ra_sci_set_callback
  *
  * Description:
  *   Set callback function for UART events
@@ -313,12 +313,12 @@ int ra_uart_abort_transfer(ra_uart_dev_t *dev, bool tx);
  *
  ****************************************************************************/
 
-void ra_uart_set_callback(ra_uart_dev_t *dev, 
-                          void (*callback)(ra_uart_dev_t *dev, uint32_t event),
+void ra_sci_set_callback(ra_sci_dev_t *dev, 
+                          void (*callback)(ra_sci_dev_t *dev, uint32_t event),
                           void *context);
 
 /****************************************************************************
- * Name: ra_uart_config_baudrate
+ * Name: ra_sci_config_baudrate
  *
  * Description:
  *   Configure UART baud rate
@@ -332,10 +332,10 @@ void ra_uart_set_callback(ra_uart_dev_t *dev,
  *
  ****************************************************************************/
 
-int ra_uart_config_baudrate(ra_uart_dev_t *dev, uint32_t baud);
+int ra_sci_config_baudrate(ra_sci_dev_t *dev, uint32_t baud);
 
 /****************************************************************************
- * Name: ra_uart_get_status
+ * Name: ra_sci_get_status
  *
  * Description:
  *   Get UART status
@@ -348,7 +348,7 @@ int ra_uart_config_baudrate(ra_uart_dev_t *dev, uint32_t baud);
  *
  ****************************************************************************/
 
-uint32_t ra_uart_get_status(ra_uart_dev_t *dev);
+uint32_t ra_sci_get_status(ra_sci_dev_t *dev);
 
 #undef EXTERN
 #if defined(__cplusplus)

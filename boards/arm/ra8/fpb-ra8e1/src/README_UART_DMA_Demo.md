@@ -6,8 +6,8 @@ This implementation provides a comprehensive UART driver with DMA support for th
 
 The driver consists of the following components:
 
-1. **ra_uart.h** - Header file with driver API and configuration structures
-2. **ra_uart.c** - Main driver implementation with DMA support
+1. **ra_sci.h** - Header file with driver API and configuration structures
+2. **ra_sci.c** - Main driver implementation with DMA support
 3. **ra_uart_demo.c** - Demonstration application showing driver usage
 4. **ra_uart_main.c** - Simple main function to run the demo
 5. **ra_uart_sample.c** - More comprehensive sample with real hardware integration
@@ -73,26 +73,26 @@ IRQ_DMAC2_INT   = 42    // DMAC2 Transfer Complete
 ### Initialization Functions
 
 ```c
-int ra_uart_initialize(ra_uart_dev_t *dev);
-void ra_uart_finalize(ra_uart_dev_t *dev);
+int ra_sci_initialize(ra_sci_dev_t *dev);
+void ra_sci_finalize(ra_sci_dev_t *dev);
 ```
 
 ### Transfer Functions
 
 ```c
-int ra_uart_send_dma(ra_uart_dev_t *dev, const uint8_t *buffer, uint16_t length);
-int ra_uart_receive_dma(ra_uart_dev_t *dev, uint8_t *buffer, uint16_t length);
-int ra_uart_abort_transfer(ra_uart_dev_t *dev, bool tx);
+int ra_sci_send_dma(ra_sci_dev_t *dev, const uint8_t *buffer, uint16_t length);
+int ra_sci_receive_dma(ra_sci_dev_t *dev, uint8_t *buffer, uint16_t length);
+int ra_sci_abort_transfer(ra_sci_dev_t *dev, bool tx);
 ```
 
 ### Configuration Functions
 
 ```c
-void ra_uart_set_callback(ra_uart_dev_t *dev, 
-                          void (*callback)(ra_uart_dev_t *dev, uint32_t event),
+void ra_sci_set_callback(ra_sci_dev_t *dev,
+                          void (*callback)(ra_sci_dev_t *dev, uint32_t event),
                           void *context);
-int ra_uart_config_baudrate(ra_uart_dev_t *dev, uint32_t baud);
-uint32_t ra_uart_get_status(ra_uart_dev_t *dev);
+int ra_sci_config_baudrate(ra_sci_dev_t *dev, uint32_t baud);
+uint32_t ra_sci_get_status(ra_sci_dev_t *dev);
 ```
 
 ### Event Types
@@ -107,7 +107,7 @@ typedef enum {
     RA_UART_EVENT_ERR_FRAMING     = (1U << 5),
     RA_UART_EVENT_ERR_OVERFLOW    = (1U << 6),
     RA_UART_EVENT_BREAK_DETECT    = (1U << 7)
-} ra_uart_event_t;
+} ra_sci_event_t;
 ```
 
 ## Usage Example
@@ -115,17 +115,17 @@ typedef enum {
 ### Basic Initialization
 
 ```c
-#include "ra_uart.h"
+#include "ra_sci.h"
 
 // UART configuration
-static const ra_uart_config_t uart_config = {
+static const ra_sci_config_t uart_config = {
     .base = R_SCI0_BASE,
     .baud = 115200,
     .bits = 8,
     .parity = 0,        // No parity
     .stop = 1,          // 1 stop bit
     .flow_control = false,
-    
+
     // DMA configuration
     .tx_dma = {
         .channel = 0,
@@ -139,17 +139,17 @@ static const ra_uart_config_t uart_config = {
         .ipl = 3,
         .enabled = true,
     },
-    
+
     // Pin configuration
     .tx_pin = GPIO_SCI0_TXD,
     .rx_pin = GPIO_SCI0_RXD,
 };
 
 // Device instance
-static ra_uart_dev_t uart_device;
+static ra_sci_dev_t uart_device;
 
 // Event callback
-void uart_callback(ra_uart_dev_t *dev, uint32_t event) {
+void uart_callback(ra_sci_dev_t *dev, uint32_t event) {
     switch (event) {
         case RA_UART_EVENT_TX_COMPLETE:
             printf("TX completed\n");
@@ -164,13 +164,13 @@ void uart_callback(ra_uart_dev_t *dev, uint32_t event) {
 // Initialize UART
 int init_uart(void) {
     uart_device.config = &uart_config;
-    
-    int ret = ra_uart_initialize(&uart_device);
+
+    int ret = ra_sci_initialize(&uart_device);
     if (ret < 0) {
         return ret;
     }
-    
-    ra_uart_set_callback(&uart_device, uart_callback, NULL);
+
+    ra_sci_set_callback(&uart_device, uart_callback, NULL);
     return 0;
 }
 ```
@@ -181,7 +181,7 @@ int init_uart(void) {
 uint8_t tx_data[] = "Hello, World!\r\n";
 
 int send_data(void) {
-    return ra_uart_send_dma(&uart_device, tx_data, sizeof(tx_data) - 1);
+    return ra_sci_send_dma(&uart_device, tx_data, sizeof(tx_data) - 1);
 }
 ```
 
@@ -191,7 +191,7 @@ int send_data(void) {
 uint8_t rx_buffer[64];
 
 int receive_data(void) {
-    return ra_uart_receive_dma(&uart_device, rx_buffer, sizeof(rx_buffer));
+    return ra_sci_receive_dma(&uart_device, rx_buffer, sizeof(rx_buffer));
 }
 ```
 
@@ -201,7 +201,7 @@ int receive_data(void) {
 
 ```bash
 # Compile and run the basic demo
-gcc -DSTANDALONE_DEMO ra_uart_demo.c ra_uart_main.c -o uart_demo
+gcc -DSTANDALONE_DEMO ra_sci_demo.c ra_sci_main.c -o uart_demo
 ./uart_demo
 
 # Show configuration details
@@ -251,14 +251,14 @@ config RA_UART_DMA
 2. **Add to Makefile** (arch/arm/src/ra8/Make.defs):
 ```makefile
 ifeq ($(CONFIG_RA_UART_DMA),y)
-CHIP_CSRCS += ra_uart.c
+CHIP_CSRCS += ra_sci.c
 endif
 ```
 
 3. **Board-specific configuration** (boards/arm/ra8/fpb-ra8e1/src/):
 ```c
 #ifdef CONFIG_RA_UART_DMA
-extern int ra_uart_sample_initialize(void);
+extern int ra_sci_sample_initialize(void);
 #endif
 ```
 
@@ -306,7 +306,7 @@ extern int ra_uart_sample_initialize(void);
 
 2. **Check Status Registers**:
 ```c
-uint32_t status = ra_uart_get_status(&uart_device);
+uint32_t status = ra_sci_get_status(&uart_device);
 printf("UART Status: 0x%08X\n", status);
 ```
 

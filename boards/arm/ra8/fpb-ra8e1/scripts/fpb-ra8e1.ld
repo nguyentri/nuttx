@@ -517,25 +517,25 @@ SECTIONS
         KEEP(*(.preinit_array))
         . = ALIGN(32);
         __preinit_array_end = .;
-        
+
         . = ALIGN(32);
         __init_array_start = .;
         KEEP(*(SORT(.init_array.*)))
         KEEP(*(.init_array))
         . = ALIGN(32);
         __init_array_end = .;
-        
+
         . = ALIGN(32);
         __fini_array_start = .;
         KEEP(*(SORT(.fini_array.*)))
         KEEP(*(.fini_array))
         . = ALIGN(32);
         __fini_array_end = .;
-        
+
         . = ALIGN(32);
         __exidx_start = .;
         __exidx_end = .;
-        
+
         __flash_readonly$$Limit = .;
     }> FLASH AT > FLASH
     __flash_ctor$$ :
@@ -859,4 +859,7 @@ PROVIDE( __arm32_tls_tcb_offset = 8);
 /* NuttX specific symbol definitions */
 PROVIDE( _sinit = __init_array_start );
 PROVIDE( _einit = __init_array_end );
+PROVIDE( _sdata = ADDR(__ram_from_flash$$) );
+PROVIDE( _edata = ADDR(__ram_from_flash$$) + SIZEOF(__ram_from_flash$$) );
+PROVIDE( _eronly = ADDR(__flash_readonly$$) + SIZEOF(__flash_readonly$$) );
 PROVIDE( _ebss = ADDR(__ram_zero$$) + SIZEOF(__ram_zero$$) );

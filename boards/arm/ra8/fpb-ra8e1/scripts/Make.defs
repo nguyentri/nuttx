@@ -28,7 +28,7 @@ ifeq ($(CONFIG_BUILD_PROTECTED),y)
 else ifeq ($(CONFIG_BUILD_KERNEL),y)
   LDSCRIPT = kernel-space.ld
 else
-  LDSCRIPT = flash.ld
+  LDSCRIPT = fpb-ra8e1.ld
 endif
 
 ARCHSCRIPT = $(BOARD_DIR)$(DELIM)scripts$(DELIM)$(LDSCRIPT)

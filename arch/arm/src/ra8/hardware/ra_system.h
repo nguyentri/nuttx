@@ -59,6 +59,7 @@
 #define R_SYSTEM_BCKCR_OFFSET             0x0030  /* External Bus Clock Control Register (8-bits) */
 #define R_SYSTEM_MOSCCR_OFFSET            0x0032  /* Main Clock Oscillator Control Register (8-bits) */
 #define R_SYSTEM_HOCOCR_OFFSET            0x0036  /* High-Speed On-Chip Oscillator Control Register (8-bits) */
+#define R_SYSTEM_HOCOCR2_OFFSET           0x0037  /* High-Speed On-Chip Oscillator Control Register 2 (8-bits) */
 #define R_SYSTEM_MOCOCR_OFFSET            0x0038  /* Middle-Speed On-Chip Oscillator Control Register (8-bits) */
 #define R_SYSTEM_FLLCR1_OFFSET            0x0039  /* FLL Control Register 1 (8-bits) */
 #define R_SYSTEM_FLLCR2_OFFSET            0x003a  /* FLL Control Register 2 (16-bits) */
@@ -148,6 +149,7 @@
 #  define R_SYSTEM_BCKCR                 (R_SYSTEM_BASE + R_SYSTEM_BCKCR_OFFSET)
 #  define R_SYSTEM_MOSCCR                (R_SYSTEM_BASE + R_SYSTEM_MOSCCR_OFFSET)
 #  define R_SYSTEM_HOCOCR                (R_SYSTEM_BASE + R_SYSTEM_HOCOCR_OFFSET)
+#  define R_SYSTEM_HOCOCR2               (R_SYSTEM_BASE + R_SYSTEM_HOCOCR2_OFFSET)
 #  define R_SYSTEM_MOCOCR                (R_SYSTEM_BASE + R_SYSTEM_MOCOCR_OFFSET)
 #  define R_SYSTEM_FLLCR1                (R_SYSTEM_BASE + R_SYSTEM_FLLCR1_OFFSET)
 #  define R_SYSTEM_FLLCR2                (R_SYSTEM_BASE + R_SYSTEM_FLLCR2_OFFSET)

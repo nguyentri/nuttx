@@ -1659,6 +1659,13 @@ endmenu
 
 menu "RA8 Option Bytes Configuration"
 
+config RA_OPTION_SETTING_ENABLE
+    bool "Enable Option Setting Configuration"
+    default y
+    help
+      Enable configuration of option setting registers.
+      This allows customization of option function select registers (OFS).
+
 config RA_IWDT_ENABLE
     bool "Enable Independent Watchdog Timer (IWDT)"
     default n
@@ -1856,6 +1863,152 @@ config RA_BOOT_PROTECT_SETTING
     default n
     help
       Enable boot protection configuration settings.
+
+if RA_OPTION_SETTING_ENABLE
+
+comment "Option Setting Register Values"
+
+config RA_OPTION_SETTING_OFS0
+    hex "OFS0 (Option Function Select Register 0)"
+    default 0xFFFFFFFF
+    depends on RA_OFS0_SETTING
+    help
+      Option Function Select Register 0 configuration.
+      This register configures:
+      - Independent Watchdog Timer (IWDT) settings
+      - Watchdog Timer (WDT) settings
+      - Low voltage detection settings
+      - HOCO oscillation enable
+      Default: 0xFFFFFFFF
+
+config RA_OPTION_SETTING_OFS1
+    hex "OFS1 (Option Function Select Register 1)"
+    default 0xFEFFF8F8
+    depends on RA_OFS1_SETTING
+    help
+      Option Function Select Register 1 configuration.
+      This register configures additional system settings including
+      HOCO frequency and various security/power settings.
+      Default: 0xFEFFF8F8 (HOCO frequency settings enabled)
+
+config RA_OPTION_SETTING_OFS2
+    hex "OFS2 (Option Function Select Register 2)"
+    default 0xFFFFFFFF
+    depends on RA_OFS2_SETTING
+    help
+      Option Function Select Register 2 configuration.
+      This register configures:
+      - DCDC power supply settings
+      - Additional power management options
+      Default: 0xFFFFFFFF (DCDC enabled)
+
+config RA_OPTION_SETTING_DUALSEL
+    hex "DUALSEL (Dual Bank Selection)"
+    default 0xFFFFFFFF
+    depends on RA_DUAL_BANK_SETTING
+    help
+      Dual Bank Selection register configuration.
+      Configures dual bank flash operation mode.
+      Default: 0xFFFFFFFF (single bank mode)
+
+config RA_OPTION_SETTING_BANKSEL
+    hex "BANKSEL (Bank Selection)"
+    default 0xFFFFFFFF
+    depends on RA_BANK_SELECT_SETTING
+    help
+      Bank Selection register configuration.
+      Selects active flash bank in dual bank mode.
+      Default: 0xFFFFFFFF (bank 0 selected)
+
+config RA_OPTION_SETTING_BPS
+    hex "BPS (Boot Protection Settings)"
+    default 0xFFFFFFFF
+    depends on RA_BOOT_PROTECT_SETTING
+    help
+      Boot Protection Settings register configuration.
+      Configures boot sector protection.
+      Default: 0xFFFFFFFF (no protection)
+
+config RA_OPTION_SETTING_PBPS
+    hex "PBPS (Permanent Boot Protection Settings)"
+    default 0xFFFFFFFF
+    depends on RA_BOOT_PROTECT_SETTING
+    help
+      Permanent Boot Protection Settings register configuration.
+      Configures permanent boot sector protection.
+      Default: 0xFFFFFFFF (no protection)
+
+config RA_OPTION_SETTING_OFS1_SEC
+    hex "OFS1_SEC (OFS1 Security Settings)"
+    default 0xFDFFF5FF
+    depends on RA_OFS1_SEC_SETTING
+    help
+      Option Function Select Register 1 Security configuration.
+      Configures secure/non-secure memory attribution and HOCO frequency.
+      Only available in TrustZone secure builds.
+      Default: 0xFDFFF5FF (includes HOCO frequency and security settings)
+
+config RA_OPTION_SETTING_BANKSEL_SEC
+    hex "BANKSEL_SEC (Bank Selection Security)"
+    default 0xFFFFFFFF
+    depends on RA_BANK_SELECT_SETTING
+    help
+      Bank Selection Security register configuration.
+      Configures secure bank selection settings.
+      Only available in TrustZone secure builds.
+      Default: 0xFFFFFFFF (default settings)
+
+config RA_OPTION_SETTING_BPS_SEC
+    hex "BPS_SEC (Boot Protection Settings Security)"
+    default 0xFFFFFFFF
+    depends on RA_BOOT_PROTECT_SETTING
+    help
+      Boot Protection Settings Security register configuration.
+      Configures secure boot protection settings.
+      Only available in TrustZone secure builds.
+      Default: 0xFFFFFFFF (no protection)
+
+config RA_OPTION_SETTING_PBPS_SEC
+    hex "PBPS_SEC (Permanent Boot Protection Settings Security)"
+    default 0xFFFFFFFF
+    depends on RA_BOOT_PROTECT_SETTING
+    help
+      Permanent Boot Protection Settings Security register configuration.
+      Configures permanent secure boot protection settings.
+      Only available in TrustZone secure builds.
+      Default: 0xFFFFFFFF (no protection)
+
+config RA_OPTION_SETTING_OFS1_SEL
+    hex "OFS1_SEL (OFS1 Selection)"
+    default 0x00000000
+    depends on RA_OFS1_SEL_SETTING
+    help
+      Option Function Select Register 1 Selection configuration.
+      Selects between secure and non-secure OFS1 settings and clock security.
+      Only available in TrustZone secure builds.
+      Default: 0x00000000 (secure clocks disabled for non-secure access)
+
+config RA_OPTION_SETTING_BANKSEL_SEL
+    hex "BANKSEL_SEL (Bank Selection Selection)"
+    default 0xFFFFFFFF
+    depends on RA_BANK_SELECT_SETTING
+    help
+      Bank Selection Selection register configuration.
+      Selects between secure and non-secure bank settings.
+      Only available in TrustZone secure builds.
+      Default: 0xFFFFFFFF (default selection)
+
+config RA_OPTION_SETTING_BPS_SEL
+    hex "BPS_SEL (Boot Protection Settings Selection)"
+    default 0xFFFFFFFF
+    depends on RA_BOOT_PROTECT_SETTING
+    help
+      Boot Protection Settings Selection register configuration.
+      Selects between secure and non-secure boot protection.
+      Only available in TrustZone secure builds.
+      Default: 0xFFFFFFFF (default selection)
+
+endif # RA_OPTION_SETTING_ENABLE
 
 endmenu
 

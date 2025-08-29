@@ -31,6 +31,7 @@
 
 #include <nuttx/init.h>
 #include <nuttx/arch.h>
+#include <nuttx/cache.h>
 #include <arch/irq.h>
 #include "arch/board/board.h"
 #include "arm_internal.h"
@@ -95,56 +96,53 @@ __attribute__((__used__)) =
 #define RA_PRCR_PRC1_UNLOCK        ((RA_PRCR_KEY) | 0x2U)
 #define RA_PRCR_LOCK               ((RA_PRCR_KEY) | 0x0U)
 
-/***********************************************************************************************************************
- * Macro definitions
- **********************************************************************************************************************/
 /* We use RA_ prefixed macros from ra_start.h to avoid duplicate definitions */
 /* Any usage of macros in this file should be converted to RA_ equivalents */
-#if defined (CONFIG_RA_LINKER_C) && CONFIG_RA_LINKER_C
+#if defined (CONFIG_RA_OPTION_SETTING_ENABLE) && CONFIG_RA_OPTION_SETTING_ENABLE
 /* boot loaded applications cannot set ofs registers (only do so in the boot loader) */
 #if !defined(CONFIG_RA_BOOTLOADED_APPLICATION) || !CONFIG_RA_BOOTLOADED_APPLICATION
 
 /** configuration register output to sections */
-#if defined CONFIG_RA_OPTION_SETTING_OFS0 && !CONFIG_RA_TZ_NONSECURE_BUILD
+#if defined CONFIG_RA_OFS0_SETTING && !CONFIG_RA_TZ_NONSECURE_BUILD
 RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_ofs0") g_ra_cfg_option_setting_ofs0[] = {CONFIG_RA_OPTION_SETTING_OFS0};
 #endif
-#if defined CONFIG_RA_OPTION_SETTING_OFS2 && !CONFIG_RA_TZ_NONSECURE_BUILD
+#if defined CONFIG_RA_OFS2_SETTING && !CONFIG_RA_TZ_NONSECURE_BUILD
 RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_ofs2") g_ra_cfg_option_setting_ofs2[] = {CONFIG_RA_OPTION_SETTING_OFS2};
 #endif
-#if defined CONFIG_RA_OPTION_SETTING_DUALSEL && !CONFIG_RA_TZ_NONSECURE_BUILD
+#if defined CONFIG_RA_DUAL_BANK_SETTING && !CONFIG_RA_TZ_NONSECURE_BUILD
 RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_dualsel") g_ra_cfg_option_setting_dualsel[] = {CONFIG_RA_OPTION_SETTING_DUALSEL};
 #endif
-#if defined CONFIG_RA_OPTION_SETTING_OFS1
+#if defined CONFIG_RA_OFS1_SETTING
 RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_ofs1") g_ra_cfg_option_setting_ofs1[] = {CONFIG_RA_OPTION_SETTING_OFS1};
 #endif
-#if defined CONFIG_RA_OPTION_SETTING_BANKSEL
+#if defined CONFIG_RA_BANK_SELECT_SETTING
 RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_banksel") g_ra_cfg_option_setting_banksel[] = {CONFIG_RA_OPTION_SETTING_BANKSEL};
 #endif
-#if defined CONFIG_RA_OPTION_SETTING_BPS
+#if defined CONFIG_RA_BOOT_PROTECT_SETTING
 RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_bps") g_ra_cfg_option_setting_bps[] = {CONFIG_RA_OPTION_SETTING_BPS};
 #endif
-#if defined CONFIG_RA_OPTION_SETTING_PBPS
+#if defined CONFIG_RA_BOOT_PROTECT_SETTING
 RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_pbps") g_ra_cfg_option_setting_pbps[] = {CONFIG_RA_OPTION_SETTING_PBPS};
 #endif
-#if defined CONFIG_RA_OPTION_SETTING_OFS1_SEC && !CONFIG_RA_TZ_NONSECURE_BUILD
+#if defined CONFIG_RA_OFS1_SEC_SETTING && !CONFIG_RA_TZ_NONSECURE_BUILD
 RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_ofs1_sec") g_ra_cfg_option_setting_ofs1_sec[] = {CONFIG_RA_OPTION_SETTING_OFS1_SEC};
 #endif
-#if defined CONFIG_RA_OPTION_SETTING_BANKSEL_SEC && !CONFIG_RA_TZ_NONSECURE_BUILD
+#if defined CONFIG_RA_BANK_SELECT_SETTING && !CONFIG_RA_TZ_NONSECURE_BUILD
 RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_banksel_sec") g_ra_cfg_option_setting_banksel_sec[] = {CONFIG_RA_OPTION_SETTING_BANKSEL_SEC};
 #endif
-#if defined CONFIG_RA_OPTION_SETTING_BPS_SEC && !CONFIG_RA_TZ_NONSECURE_BUILD
+#if defined CONFIG_RA_BANK_SELECT_SETTING && !CONFIG_RA_TZ_NONSECURE_BUILD
 RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_bps_sec") g_ra_cfg_option_setting_bps_sec[] = {CONFIG_RA_OPTION_SETTING_BPS_SEC};
 #endif
-#if defined CONFIG_RA_OPTION_SETTING_PBPS_SEC && !CONFIG_RA_TZ_NONSECURE_BUILD
+#if defined CONFIG_RA_BOOT_PROTECT_SETTING && !CONFIG_RA_TZ_NONSECURE_BUILD
 RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_pbps_sec") g_ra_cfg_option_setting_pbps_sec[] = {CONFIG_RA_OPTION_SETTING_PBPS_SEC};
 #endif
-#if defined CONFIG_RA_OPTION_SETTING_OFS1_SEL && !CONFIG_RA_TZ_NONSECURE_BUILD
+#if defined CONFIG_RA_OFS1_SEL_SETTING && !CONFIG_RA_TZ_NONSECURE_BUILD
 RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_ofs1_sel") g_ra_cfg_option_setting_ofs1_sel[] = {CONFIG_RA_OPTION_SETTING_OFS1_SEL};
 #endif
-#if defined CONFIG_RA_OPTION_SETTING_BANKSEL_SEL && !CONFIG_RA_TZ_NONSECURE_BUILD
+#if defined CONFIG_RA_BANK_SELECT_SETTING && !CONFIG_RA_TZ_NONSECURE_BUILD
 RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_banksel_sel") g_ra_cfg_option_setting_banksel_sel[] = {CONFIG_RA_OPTION_SETTING_BANKSEL_SEL};
 #endif
-#if defined CONFIG_RA_OPTION_SETTING_BPS_SEL && !CONFIG_RA_TZ_NONSECURE_BUILD
+#if defined CONFIG_RA_BOOT_PROTECT_SETTING && !CONFIG_RA_TZ_NONSECURE_BUILD
 RA_DONT_REMOVE static const uint32_t RA_PLACE_IN_SECTION(".option_setting_bps_sel") g_ra_cfg_option_setting_bps_sel[] = {CONFIG_RA_OPTION_SETTING_BPS_SEL};
 #endif
 
@@ -368,22 +366,30 @@ const ra_init_info_t g_init_info =
  ****************************************************************************/
 static void ra_cortex_m85_init(void)
 {
-#ifdef CONFIG_ARCH_CORTEXM85
-  /* Following Renesas SystemInit for Cortex-M85:
-   * Enable instruction cache, branch prediction, and LOB extension
-   * This will be handled by NuttX ARM-specific initialization
-   * See sections 6.5, 6.6, and 6.7 in Arm Cortex-M85 Technical Reference Manual
-   */
-
-  /* D-Cache configuration and errata handling will be done by NuttX */
-
-  /* FPU configuration will be done by arm_fpuconfig() */
-
-  /* Enable flash cache and wait for it to be ready */
-  //putreg16(1U, R_FCACHE_FCACHEIV);
-  //RA_HARDWARE_REGISTER_WAIT(getreg16(R_FCACHE_FCACHEIV), 1U);
-  //putreg16(1U, R_FCACHE_FCACHEE);
+#ifdef CONFIG_ARMV8M_ICACHE
+  up_enable_icache();
 #endif
+#ifdef CONFIG_ARMV8M_DCACHE
+  up_enable_dcache();
+#endif
+#ifdef CONFIG_ARCH_FPU
+  arm_fpuconfig();
+#endif
+#ifdef CONFIG_ARCH_RAMVECTORS
+  /* Initialize RAM vectors and set VTOR */
+  arm_ramvec_initialize();
+#else
+  /* Set VTOR to point to the vector table using NuttX symbol */
+#if defined(__ICCARM__)
+  putreg32((uint32_t)__vector_table, NVIC_VECTAB);
+#else
+  putreg32((uint32_t)_vectors, NVIC_VECTAB);
+#endif
+#endif
+  /* Enable flash cache and wait for it to be ready */
+  putreg16(1U, R_FCACHE_FCACHEIV);
+  RA_HARDWARE_REGISTER_WAIT(getreg16(R_FCACHE_FCACHEIV), 0U);
+  putreg16(1U, R_FCACHE_FCACHEE);
 }
 
 /****************************************************************************
@@ -553,8 +559,30 @@ void ra_tcm_init(void)
  ****************************************************************************/
 void ra_ram_init (const uint32_t external)
 {
-#if defined (CONFIG_RA_LINKER_C) && CONFIG_RA_LINKER_C
-    /* Initialize C runtime environment. */
+    //const register uint32_t *src;
+    //register uint32_t *dest;
+   /* Clear .bss.  We'll do this inline (vs. calling memset) just to be
+    * certain that there are no issues with the state of global variables.
+    */
+
+    // for (dest = (uint32_t *)_sbss; dest < (uint32_t *)_ebss; )
+    // {
+    //   *dest++ = 0;
+    // }
+
+  /* Move the initialized data section from his temporary holding spot in
+   * FLASH into the correct place in OCRAM.  The correct place in OCRAM is
+   * give by _sdata and _edata.  The temporary location is in FLASH at the
+   * end of all of the other read-only data (.text, .rodata) at _eronly.
+   */
+
+    // for (src = (const uint32_t *)_eronly,
+    //    dest = (uint32_t *)_sdata; dest < (uint32_t *)_edata;
+    //   )
+    // {
+    //   *dest++ = *src++;
+    // }
+
     for (uint32_t i = 0; i < g_init_info.zero_count; i++)
     {
         if (external == g_init_info.p_zero_list[i].type.external)
@@ -572,30 +600,4 @@ void ra_ram_init (const uint32_t external)
                    ((uintptr_t) g_init_info.p_copy_list[i].p_limit - (uintptr_t) g_init_info.p_copy_list[i].p_base));
         }
     }
-#else
-  const register uint32_t *src;
-  register uint32_t *dest;
-  /* Clear .bss.  We'll do this inline (vs. calling memset) just to be
-   * certain that there are no issues with the state of global variables.
-   */
-
-  for (dest = (uint32_t *)_sbss; dest < (uint32_t *)_ebss; )
-    {
-      *dest++ = 0;
-    }
-
-  /* Move the initialized data section from his temporary holding spot in
-   * FLASH into the correct place in OCRAM.  The correct place in OCRAM is
-   * give by _sdata and _edata.  The temporary location is in FLASH at the
-   * end of all of the other read-only data (.text, .rodata) at _eronly.
-   */
-
-  for (src = (const uint32_t *)_eronly,
-       dest = (uint32_t *)_sdata; dest < (uint32_t *)_edata;
-      )
-    {
-      *dest++ = *src++;
-    }
-
-#endif
 }

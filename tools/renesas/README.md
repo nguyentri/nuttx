@@ -176,6 +176,31 @@ Erase Chip
 rfp-cli -d RA -tool jlink:1080979173 -if swd -erase-chip
 ```
 
+Dummy address:
+echo "=== OFS0 (should be 0xFFFFFFFF) ===" && arm-none-eabi-readelf -x "__option_setting_ofs0_reg\$\$" nuttx 2>/dev/null && echo -e "\n=== OFS2 (should be 0xFFFFFFFF) ===" && arm-none-eabi-readelf -x "__option_setting_ofs2_reg\$\$" nuttx 2>/dev/null && echo -e "\n=== OFS1_SEC (should be 0xFDFFF5FF) ===" && arm-none-eabi-readelf -x "__option_setting_ofs1_sec_reg\$\$" nuttx 2>/dev/null && echo -e "\n=== OFS1_SEL (should be 0x00000000) ===" && arm-none-eabi-readelf -x "__option_setting_ofs1_sel_reg\$\$" nuttx 2>/dev/null
+=== OFS0 (should be 0xFFFFFFFF) ===
+
+Hex dump of section '__option_setting_ofs0_reg$$':
+  0x0300a100 ffffffff                            ....
+
+
+=== OFS2 (should be 0xFFFFFFFF) ===
+
+Hex dump of section '__option_setting_ofs2_reg$$':
+  0x0300a104 ffffffff                            ....
+
+
+=== OFS1_SEC (should be 0xFDFFF5FF) ===
+
+Hex dump of section '__option_setting_ofs1_sec_reg$$':
+  0x0300a200 fff5fffd                            ....
+
+
+=== OFS1_SEL (should be 0x00000000) ===
+
+Hex dump of section '__option_setting_ofs1_sel_reg$$':
+  0x0300a280 00000000                            ...
+
 ## ✅ 8. Troubleshooting
 
 - **`arm-none-eabi-gcc: command not found`**

@@ -85,8 +85,29 @@
 #endif
 
 /* System clock divider calculations (BSP compatible) */
-#define RA_PRV_STARTUP_SCKDIVCR           ((CONFIG_RA_ICK_DIV << 24) | (CONFIG_RA_PCKB_DIV << 8) | CONFIG_RA_PCKD_DIV)
-#define RA_PRV_STARTUP_SCKDIVCR2          (CONFIG_RA_CPUCLK_DIV)
+/* SCKDIVCR register format (RA8E1):
+ * Bits 31-28: FCLK divider    Bits 27-24: ICLK divider    Bits 23-20: PCLKE divider
+ * Bits 19-16: BCLK divider    Bits 15-12: PCLKA divider   Bits 11-8:  PCLKB divider
+ * Bits 7-4:   PCLKC divider   Bits 3-0:   PCLKD divider
+ * Expected value: 0x988a8998 (FSP reference) - VERIFIED MATCH ✓
+ */
+#define RA_PRV_STARTUP_SCKDIVCR_FCLK_BITS        ((CONFIG_RA_FCLK_DIV & 0xFU) << 28U)
+#define RA_PRV_STARTUP_SCKDIVCR_ICLK_BITS        ((CONFIG_RA_ICK_DIV & 0xFU) << 24U)
+#define RA_PRV_STARTUP_SCKDIVCR_PCLKE_BITS       ((CONFIG_RA_PCKE_DIV & 0xFU) << 20U)
+#define RA_PRV_STARTUP_SCKDIVCR_BCLK_BITS        ((CONFIG_RA_BCLK_DIV & 0xFU) << 16U)
+#define RA_PRV_STARTUP_SCKDIVCR_PCLKA_BITS       ((CONFIG_RA_PCKA_DIV & 0xFU) << 12U)
+#define RA_PRV_STARTUP_SCKDIVCR_PCLKB_BITS       ((CONFIG_RA_PCKB_DIV & 0xFU) << 8U)
+#define RA_PRV_STARTUP_SCKDIVCR_PCLKC_BITS       ((CONFIG_RA_PCKC_DIV & 0xFU) << 4U)
+#define RA_PRV_STARTUP_SCKDIVCR_PCLKD_BITS       (CONFIG_RA_PCKD_DIV & 0xFU)
+#define RA_PRV_STARTUP_SCKDIVCR                  (RA_PRV_STARTUP_SCKDIVCR_FCLK_BITS | \
+                                                  RA_PRV_STARTUP_SCKDIVCR_ICLK_BITS | \
+                                                  RA_PRV_STARTUP_SCKDIVCR_PCLKE_BITS | \
+                                                  RA_PRV_STARTUP_SCKDIVCR_BCLK_BITS | \
+                                                  RA_PRV_STARTUP_SCKDIVCR_PCLKA_BITS | \
+                                                  RA_PRV_STARTUP_SCKDIVCR_PCLKB_BITS | \
+                                                  RA_PRV_STARTUP_SCKDIVCR_PCLKC_BITS | \
+                                                  RA_PRV_STARTUP_SCKDIVCR_PCLKD_BITS)
+#define RA_PRV_STARTUP_SCKDIVCR2                 (CONFIG_RA_CPUCLK_DIV)
 
 #define RA_PRV_PLL2_MUL_CFG_MACRO_PLLMUL_MASK     (0x3FFU)
 #define RA_PRV_PLL2_MUL_CFG_MACRO_PLLMULNF_MASK    (0x003U)
@@ -105,10 +126,17 @@
                                                       RA_PRV_PLL2CCR2_PLL_DIV_Q_BIT) |                     \
                                                       (CONFIG_RA_PL2ODIVP & RA_PRV_PLL2CCR2_PLL_DIV_MASK))
 
+/* PLL Control Register (PLLCCR) calculations (FSP compatible)
+ * For RA8E1 (PLLCCR_TYPE 3), the PLL multiplier format is:
+ * BSP_CLOCKS_PLL_MUL(X,Y) = ((X-1) << 2) | (Y/33), where Y is fractional part
+ * This must match the FSP expected values: PLLCCR=0x4711, PLLCCR2=0x111
+ */
 #define RA_PRV_PLL_MUL_CFG_MACRO_PLLMUL_MASK    (0x3FFU)
 #define RA_PRV_PLLCCR_PLLMULNF_BIT               (6) // PLLMULNF in PLLCCR starts at bit 6
 #define RA_PRV_PLLCCR_PLSRCSEL_BIT               (4) // PLSRCSEL in PLLCCR starts at bit 4
-#define RA_PRV_PLLCCR                            ((((CONFIG_RA_PLL_MUL & RA_PRV_PLL_MUL_CFG_MACRO_PLLMUL_MASK) << \
+/* Convert PLL multiplier to FSP format: BSP_CLOCKS_PLL_MUL(X,Y) = ((X-1) << 2) | (Y/33) */
+#define RA_PRV_PLL_MUL_FSP_FORMAT                ((((CONFIG_RA_PLL_MUL) - 1U) << 2UL) | 0U)
+#define RA_PRV_PLLCCR                            ((((RA_PRV_PLL_MUL_FSP_FORMAT & RA_PRV_PLL_MUL_CFG_MACRO_PLLMUL_MASK) << \
                                                       RA_PRV_PLLCCR_PLLMULNF_BIT) |                               \
                                                     (RA_PRV_PLSRCSEL << RA_PRV_PLLCCR_PLSRCSEL_BIT)) |          \
                                                     CONFIG_RA_PLL_DIV)
@@ -117,7 +145,7 @@
 #define RA_PRV_PLLCCR2_PLL_DIV_R_BIT             (8)    // PLL DIV R in PLLCCR2/PLL2CCR2 starts at bit 8
 #define RA_PRV_PLLCCR2                           (((CONFIG_RA_PLODIVR & RA_PRV_PLLCCR2_PLL_DIV_MASK) << \
                                                     RA_PRV_PLLCCR2_PLL_DIV_R_BIT) |                    \
-                                                    ((CONFIG_RA_PLL2_DIV & RA_PRV_PLLCCR2_PLL_DIV_MASK) << \
+                                                    ((CONFIG_RA_PLODIVQ & RA_PRV_PLLCCR2_PLL_DIV_MASK) << \
                                                     RA_PRV_PLLCCR2_PLL_DIV_Q_BIT) |                    \
                                                     (CONFIG_RA_PLODIVP & RA_PRV_PLLCCR2_PLL_DIV_MASK))
 
@@ -338,7 +366,7 @@ static void ra_peripheral_clock_init(void)
 static void ra_prv_clock_set_hard_reset(void)
 {
   /* Set flash wait states for high frequency operation */
-  //putreg8(RA_PRV_ROM_TWO_WAIT_CYCLES, R_FCACHE_FLWT);
+  putreg8(RA_PRV_ROM_TWO_WAIT_CYCLES, R_FCACHE_FLWT);
 
   /* Set system clock dividers with temporary safe values first */
   putreg32(RA_PRV_STARTUP_SCKDIVCR, R_SYSTEM_SCKDIVCR);
@@ -354,37 +382,39 @@ static void ra_prv_clock_set_hard_reset(void)
 #endif
 
   /* Set the system source clock */
-  //putreg8(RA_CFG_CLOCK_SOURCE, R_SYSTEM_SCKSCR);
+  putreg8(RA_CFG_CLOCK_SOURCE, R_SYSTEM_SCKSCR);
+  //putreg8(R_SYSTEM_SCKSCR_CKSEL_HOCO, R_SYSTEM_SCKSCR); // Can't change to PLL1, fixed to use HOCO
 
   /* Wait for settling delay. */
-  //ra_sys_core_clock_update();
-  //up_udelay(RA_CFG_CLOCK_SETTLING_DELAY_US);
+  ra_sys_core_clock_update();
+  up_udelay(RA_CFG_CLOCK_SETTLING_DELAY_US);
 
   /* Continue and set clock to actual target speed. */
-  //putreg8(RA_PRV_STARTUP_SCKDIVCR2, R_SYSTEM_SCKDIVCR2);
-  //putreg32(RA_PRV_STARTUP_SCKDIVCR, R_SYSTEM_SCKDIVCR);
+  putreg8(RA_PRV_STARTUP_SCKDIVCR2, R_SYSTEM_SCKDIVCR2);
+  putreg32(RA_PRV_STARTUP_SCKDIVCR, R_SYSTEM_SCKDIVCR);
 
   /* Wait for settling delay. */
-  //ra_sys_core_clock_update();
-  //up_udelay(RA_CFG_CLOCK_SETTLING_DELAY_US);
+  ra_sys_core_clock_update();
+  up_udelay(RA_CFG_CLOCK_SETTLING_DELAY_US);
 
   /* Set the system source clock again */
-  //putreg8(RA_CFG_CLOCK_SOURCE, R_SYSTEM_SCKSCR);
+  putreg8(RA_CFG_CLOCK_SOURCE, R_SYSTEM_SCKSCR);
+  //putreg8(R_SYSTEM_SCKSCR_CKSEL_HOCO, R_SYSTEM_SCKSCR);  // Can't change to PLL1, fixed to use HOCO
 
   /* Update the CMSIS core clock variable so that it reflects the new ICLK frequency. */
-  //ra_sys_core_clock_update();
+  ra_sys_core_clock_update();
 
   /* Configure SRAM wait states if needed */
-//#ifdef R_SRAM_SRAMPRCR
-//  putreg16(RA_PRV_SRAM_UNLOCK, R_SRAM_SRAMPRCR);
-//
-//  /* Execute data memory barrier before and after setting the wait states */
-//  UP_DMB();
-//  putreg8(RA_PRV_SRAM_WAIT_CYCLES, R_SRAM_SRAMWTSC);
-//  UP_DMB();
-//
-//  putreg16(RA_PRV_SRAM_LOCK, R_SRAM_SRAMPRCR);
-//#endif
+#ifdef R_SRAM_SRAMPRCR
+  putreg16(RA_PRV_SRAM_UNLOCK, R_SRAM_SRAMPRCR);
+
+  /* Execute data memory barrier before and after setting the wait states */
+  UP_DMB();
+  putreg8(RA_PRV_SRAM_WAIT_CYCLES, R_SRAM_SRAMWTSC);
+  UP_DMB();
+
+  putreg16(RA_PRV_SRAM_LOCK, R_SRAM_SRAMPRCR);
+#endif
 }
 
 /****************************************************************************
@@ -405,9 +435,9 @@ static void ra_clock_init(void)
 
   /* Step 3: Start HOCO if used */
 #if defined(CONFIG_RA_CLOCK_HOCO) || defined(CONFIG_RA_CLOCK_PLL) || defined(CONFIG_RA_CLOCK_PLL1P)
-  putreg16(0U, R_SYSTEM_HOCOCR);  /* Enable HOCO */
+  putreg8(0U, R_SYSTEM_HOCOCR);  /* Enable HOCO */
   /* Wait for HOCO to stabilize */
-  RA_HARDWARE_REGISTER_WAIT((getreg16(R_SYSTEM_OSCSF) & R_SYSTEM_OSCSF_HOCOSF), R_SYSTEM_OSCSF_HOCOSF);
+  RA_HARDWARE_REGISTER_WAIT((getreg8(R_SYSTEM_OSCSF) & R_SYSTEM_OSCSF_HOCOSF), R_SYSTEM_OSCSF_HOCOSF);
 #endif
 
   /* Step 4: Configure and start PLL if used */

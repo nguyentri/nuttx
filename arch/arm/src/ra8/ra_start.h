@@ -224,5 +224,6 @@ void ra_option_bytes_init(void);
 void ra_trustzone_init(void);
 void ra_vector_table_init(void);
 void ra_ram_init (const uint32_t external);
+void ra_delay_us(uint32_t delay_us);
 
 #endif /* __ARCH_ARM_SRC_RA_START_H */

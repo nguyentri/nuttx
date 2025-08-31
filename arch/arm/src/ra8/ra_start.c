@@ -85,7 +85,12 @@ __attribute__((__used__)) =
  * Macro definitions
  **********************************************************************************************************************/
 
-/** ID code definitions already defined above */
+ /* Time conversion macros */
+#define RA_PRV_NS_PER_SECOND    (1000000000)
+#define RA_PRV_US_PER_SECOND    (1000000)
+#define RA_PRV_NS_PER_US        (1000)
+#define RA_PRV_LOOP_CYCLES      (4)
+#define RA_PRV_LOOPS_CALCULATE  (cycles)    (((cycles) / RA_PRV_LOOP_CYCLES) + 1U)
 
 /* Key constants for option bytes */
 #define RA_TZ_STACK_SEAL_VALUE     (0xFEF5EDA5)
@@ -601,3 +606,118 @@ void ra_ram_init (const uint32_t external)
         }
     }
 }
+
+
+/****************************************************************************
+ * Name: ra_delay_us
+ *
+ * Description:
+ *   Delay for a specified number of microseconds.
+ *
+ ****************************************************************************/
+
+void ra_delay_us(uint32_t delay_us)
+{
+    uint32_t iclk_hz;
+    uint32_t loops_required = 0;
+    uint32_t total_us       = delay_us; /** Convert the requested time to microseconds. */
+
+    iclk_hz = g_sys_core_clock;                 /** Get the system clock frequency in Hz. */
+
+
+    if (iclk_hz >= 8000000)
+    {
+        /* For larger system clock values the below calculation in the else causes inaccurate delays due to rounding errors:
+         *
+         * ns_per_cycle = RA_PRV_NS_PER_SECOND / iclk_hz
+         *
+         * For system clock values greater than the MOCO speed the following delay calculation is used instead.
+         * The value is always rounded up to ensure the delay is at least the supplied value.
+         */
+        uint32_t cycles_per_us = (iclk_hz + (RA_PRV_US_PER_SECOND * RA_PRV_LOOP_CYCLES) - 1) /
+                                 (RA_PRV_US_PER_SECOND * RA_PRV_LOOP_CYCLES);
+
+        uint64_t loops_required_u64 = ((uint64_t) total_us) * cycles_per_us;
+
+        if (loops_required_u64 > UINT32_MAX)
+        {
+            loops_required = UINT32_MAX;
+        }
+        else
+        {
+            loops_required = (uint32_t) loops_required_u64;
+        }
+    }
+    else
+    {
+        uint32_t cycles_requested;
+        uint32_t ns_per_cycle;
+        uint64_t ns_64bits;
+
+        /* Running on the Sub-clock (32768 Hz) there are 30517 ns/cycle. This means one cycle takes 31 us. One execution
+         * loop of the delay_loop takes 6 cycles which at 32768 Hz is 180 us. That does not include the overhead below prior to even getting
+         * to the delay loop. Given this, at this frequency anything less then a delay request of 122 us will not even generate a single
+         * pass through the delay loop.  For this reason small delays (<=~200 us) at this slow clock rate will not be possible and such a request
+         * will generate a minimum delay of ~200 us.*/
+        ns_per_cycle = RA_PRV_NS_PER_SECOND / iclk_hz;                 /** Get the # of nanoseconds/cycle. */
+
+        /* We want to get the time in total nanoseconds but need to be conscious of overflowing 32 bits. We also do not want to do 64 bit */
+        /* division as that pulls in a division library. */
+        ns_64bits = (uint64_t) total_us * (uint64_t) RA_PRV_NS_PER_US; // Convert to ns.
+
+        /* Have we overflowed 32 bits? */
+        if (ns_64bits <= UINT32_MAX)
+        {
+            /* No, we will not overflow. */
+            cycles_requested = ((uint32_t) ns_64bits / ns_per_cycle);
+            loops_required   = cycles_requested / RA_PRV_LOOP_CYCLES;
+        }
+        else
+        {
+            /* We did overflow. Try dividing down first. */
+            total_us  = (total_us / (ns_per_cycle * RA_PRV_LOOP_CYCLES));
+            ns_64bits = (uint64_t) total_us * (uint64_t) RA_PRV_NS_PER_US; // Convert to ns.
+
+            /* Have we overflowed 32 bits? */
+            if (ns_64bits <= UINT32_MAX)
+            {
+                /* No, we will not overflow. */
+                loops_required = (uint32_t) ns_64bits;
+            }
+            else
+            {
+                /* We still overflowed, use the max count for cycles */
+                loops_required = UINT32_MAX;
+            }
+        }
+    }
+
+    /** Only delay if the supplied parameters constitute a delay. */
+    if (loops_required > (uint32_t) 0)
+    {
+            __asm volatile (
+        #if defined(RENESAS_CORTEX_M85) && (defined(__ARMCC_VERSION) || defined(__GNUC__))
+
+                /* Align the branch target to a 64-bit boundary, a CM85 specific optimization. */
+                /* IAR does not support alignment control within inline assembly. */
+                ".balign 8\n"
+        #endif
+                "sw_delay_loop:         \n"
+        #if defined(__ICCARM__) || defined(__ARMCC_VERSION) || (defined(__llvm__) && !defined(__CLANG_TIDY__))
+                "   subs r0, #1         \n"    ///< 1 cycle
+        #elif defined(__GNUC__)
+                "   sub r0, r0, #1      \n"    ///< 1 cycle
+        #endif
+
+                "   cmp r0, #0          \n"    ///< 1 cycle
+
+        /* CM0 and CM23 have a different instruction set */
+        #if defined(__CORE_CM0PLUS_H_GENERIC) || defined(__CORE_CM23_H_GENERIC)
+                "   bne sw_delay_loop   \n"    ///< 2 cycles
+        #else
+                "   bne.n sw_delay_loop \n"    ///< 2 cycles
+        #endif
+                "   bx lr               \n");  ///< 2 cycles
+    }
+}
+

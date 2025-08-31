@@ -36,12 +36,28 @@
 
 /* Register Offsets *********************************************************/
 
+/* Legacy SCI registers */
 #define R_SCI_SMR_OFFSET          0x0000  /* Status register (32-bits) */
 #define R_SCI_BRR_OFFSET          0x0001  /* Bit Rate Register (8-bits) */
 #define R_SCI_SCR_OFFSET          0x0002  /* Serial Control Register (8-bits) */
 #define R_SCI_TDR_OFFSET          0x0003  /* Transmit Data Register (8-bits) */
 #define R_SCI_SSR_OFFSET          0x0004  /* Serial Status Register (8-bits) */
 #define R_SCI_RDR_OFFSET          0x0005  /* Receive Data Register (8-bits) */
+
+/* SCI_B (version 2) registers - used by RA8E1 */
+#define R_SCI_B_RDR_OFFSET        0x0000  /* Receive Data Register (32-bits) */
+#define R_SCI_B_RDR_BY_OFFSET     0x0000  /* Receive Data Register Byte (8-bits) */
+#define R_SCI_B_TDR_OFFSET        0x0004  /* Transmit Data Register (32-bits) */
+#define R_SCI_B_TDR_BY_OFFSET     0x0004  /* Transmit Data Register Byte (8-bits) */
+#define R_SCI_B_CCR0_OFFSET       0x0008  /* Common Control Register 0 (32-bits) */
+#define R_SCI_B_CCR1_OFFSET       0x000C  /* Common Control Register 1 (32-bits) */
+#define R_SCI_B_CCR2_OFFSET       0x0010  /* Common Control Register 2 (32-bits) */
+#define R_SCI_B_CCR3_OFFSET       0x0014  /* Common Control Register 3 (32-bits) */
+#define R_SCI_B_CCR4_OFFSET       0x0018  /* Common Control Register 4 (32-bits) */
+#define R_SCI_B_CESR_OFFSET       0x001C  /* Communication Enable Status Register (8-bits) */
+#define R_SCI_B_CSR_OFFSET        0x0048  /* Communication Status Register (32-bits) */
+#define R_SCI_B_CFCLR_OFFSET      0x0068  /* Communication Flag Clear Register (32-bits) */
+#define R_SCI_B_FFCLR_OFFSET      0x0070  /* FIFO Flag Clear Register (32-bits) */
 #define R_SCI_SCMR_OFFSET         0x0006  /* Smart Card Mode Register (8-bits) */
 #define R_SCI_SEMR_OFFSET         0x0007  /* Serial Extended Mode Register (8-bits) */
 #define R_SCI_SNFR_OFFSET         0x0008  /* Noise Filter Setting Register (8-bits) */
@@ -367,32 +383,130 @@
 #define R_SCI_SPTR_SPB2DT                (1 <<  1) /* 02: Serial port break data select bit (The output level of TxD terminal is selected when.) */
 #define R_SCI_SPTR_RXDMON                (1 <<  0) /* 01: Serial input data monitor bit (The state of the RXD terminal is shown.) */
 
+/* SCI_B (version 2) Register Bitfield Definitions */
+
+/* Communication Status Register (CSR) */
+#define R_SCI_B_CSR_RDRF                 (1 << 31) /* Bit 31: Receive Data Register Full */
+#define R_SCI_B_CSR_TEND                 (1 << 30) /* Bit 30: Transmit End Flag */
+#define R_SCI_B_CSR_TDRE                 (1 << 29) /* Bit 29: Transmit Data Register Empty */
+#define R_SCI_B_CSR_FER                  (1 << 28) /* Bit 28: Framing Error Flag */
+#define R_SCI_B_CSR_PER                  (1 << 27) /* Bit 27: Parity Error Flag */
+#define R_SCI_B_CSR_MFF                  (1 << 26) /* Bit 26: Mode Fault Flag */
+#define R_SCI_B_CSR_ORER                 (1 << 24) /* Bit 24: Overrun Error Flag */
+
+/* Communication Enable Status Register (CESR) */
+#define R_SCI_B_CESR_TIST                (1 <<  4) /* Bit 4: TE Internal Status */
+#define R_SCI_B_CESR_RIST                (1 <<  0) /* Bit 0: RE Internal Status */
+
+/* Common Control Register 0 (CCR0) */
+#define R_SCI_B_CCR0_SSE                 (1 << 24) /* Bit 24: SSn Pin Function Enable */
+#define R_SCI_B_CCR0_TEIE                (1 << 21) /* Bit 21: Transmit End Interrupt Enable */
+#define R_SCI_B_CCR0_TIE                 (1 << 20) /* Bit 20: Transmit Interrupt Enable */
+#define R_SCI_B_CCR0_RIE                 (1 << 16) /* Bit 16: Receive Interrupt Enable */
+#define R_SCI_B_CCR0_IDSEL               (1 << 10) /* Bit 10: ID frame select */
+#define R_SCI_B_CCR0_DCME                (1 <<  9) /* Bit 9: Data Compare Match Enable */
+#define R_SCI_B_CCR0_MPIE                (1 <<  8) /* Bit 8: Multi-Processor Interrupt Enable */
+#define R_SCI_B_CCR0_TE                  (1 <<  4) /* Bit 4: Transmit Enable */
+#define R_SCI_B_CCR0_RE                  (1 <<  0) /* Bit 0: Receive Enable */
+
+/* Common Control Register 1 (CCR1) */
+#define R_SCI_B_CCR1_NFEN                (1 << 28) /* Bit 28: Digital Noise Filter Function Enable */
+#define R_SCI_B_CCR1_NFCS_SHIFT          (24)      /* Bits 26-24: Noise Filter Clock Select */
+#define R_SCI_B_CCR1_NFCS_MASK           (7 << R_SCI_B_CCR1_NFCS_SHIFT)
+#define R_SCI_B_CCR1_SHARPS              (1 << 20) /* Bit 20: Half-duplex communication select */
+#define R_SCI_B_CCR1_SPLP                (1 << 16) /* Bit 16: Loopback Control */
+#define R_SCI_B_CCR1_RINV                (1 << 13) /* Bit 13: RXD invert */
+#define R_SCI_B_CCR1_TINV                (1 << 12) /* Bit 12: TXD invert */
+#define R_SCI_B_CCR1_PM                  (1 <<  9) /* Bit 9: Parity Mode */
+#define R_SCI_B_CCR1_PE                  (1 <<  8) /* Bit 8: Parity Enable */
+#define R_SCI_B_CCR1_SPB2IO              (1 <<  5) /* Bit 5: Serial port break I/O */
+#define R_SCI_B_CCR1_SPB2DT              (1 <<  4) /* Bit 4: Serial port break data select */
+#define R_SCI_B_CCR1_CTSPEN              (1 <<  1) /* Bit 1: CTS external pin Enable */
+#define R_SCI_B_CCR1_CTSE                (1 <<  0) /* Bit 0: CTS Enable */
+
+/* Common Control Register 2 (CCR2) */
+#define R_SCI_B_CCR2_MDDR_SHIFT          (24)      /* Bits 31-24: Modulation Duty Setting */
+#define R_SCI_B_CCR2_MDDR_MASK           (0xFF << R_SCI_B_CCR2_MDDR_SHIFT)
+#define R_SCI_B_CCR2_CKS_SHIFT           (20)      /* Bits 21-20: Clock Select */
+#define R_SCI_B_CCR2_CKS_MASK            (3 << R_SCI_B_CCR2_CKS_SHIFT)
+#define R_SCI_B_CCR2_BRME                (1 << 16) /* Bit 16: Bit Modulation Enable */
+#define R_SCI_B_CCR2_BRR_SHIFT           (8)       /* Bits 15-8: Bit rate setting */
+#define R_SCI_B_CCR2_BRR_MASK            (0xFF << R_SCI_B_CCR2_BRR_SHIFT)
+#define R_SCI_B_CCR2_ABCSE               (1 <<  6) /* Bit 6: Asynchronous Mode Extended Base Clock Select */
+#define R_SCI_B_CCR2_ABCS                (1 <<  5) /* Bit 5: Asynchronous Mode Base Clock Select */
+#define R_SCI_B_CCR2_BGDM                (1 <<  4) /* Bit 4: Baud Rate Generator Double-Speed Mode Select */
+#define R_SCI_B_CCR2_BCP_SHIFT           (0)       /* Bits 2-0: Base Clock Pulse */
+#define R_SCI_B_CCR2_BCP_MASK            (7 << R_SCI_B_CCR2_BCP_SHIFT)
+
+/* Common Control Register 3 (CCR3) */
+#define R_SCI_B_CCR3_BLK                 (1 << 29) /* Bit 29: Block Transfer Mode */
+#define R_SCI_B_CCR3_GM                  (1 << 28) /* Bit 28: GSM Mode */
+#define R_SCI_B_CCR3_CKE_SHIFT           (24)      /* Bits 25-24: Clock enable */
+#define R_SCI_B_CCR3_CKE_MASK            (3 << R_SCI_B_CCR3_CKE_SHIFT)
+#define R_SCI_B_CCR3_DEN                 (1 << 21) /* Bit 21: Driver enable */
+#define R_SCI_B_CCR3_FM                  (1 << 20) /* Bit 20: FIFO Mode select */
+#define R_SCI_B_CCR3_MP                  (1 << 19) /* Bit 19: Multi-Processor Mode */
+#define R_SCI_B_CCR3_MOD_SHIFT           (16)      /* Bits 18-16: Communication mode select */
+#define R_SCI_B_CCR3_MOD_MASK            (7 << R_SCI_B_CCR3_MOD_SHIFT)
+#define R_SCI_B_CCR3_RXDESEL             (1 << 15) /* Bit 15: Asynchronous Start Bit Edge Detection Select */
+#define R_SCI_B_CCR3_STP                 (1 << 14) /* Bit 14: Stop Bit Length */
+#define R_SCI_B_CCR3_SINV                (1 << 13) /* Bit 13: Transmitted/Received Data Invert */
+#define R_SCI_B_CCR3_LSBF                (1 << 12) /* Bit 12: LSB First select */
+#define R_SCI_B_CCR3_CHR_SHIFT           (8)       /* Bits 9-8: Character Length */
+#define R_SCI_B_CCR3_CHR_MASK            (3 << R_SCI_B_CCR3_CHR_SHIFT)
+#define R_SCI_B_CCR3_CHR                 (1 <<  8) /* Bit 8: Character Length (7-bit when set) */
+#define R_SCI_B_CCR3_PE                  (1 <<  5) /* Bit 5: Parity Enable */
+#define R_SCI_B_CCR3_PM                  (1 <<  4) /* Bit 4: Parity Mode (0=even, 1=odd) */
+#define R_SCI_B_CCR3_BPEN                (1 <<  7) /* Bit 7: Synchronizer bypass enable */
+#define R_SCI_B_CCR3_CPOL                (1 <<  1) /* Bit 1: Clock Polarity Select */
+#define R_SCI_B_CCR3_CPHA                (1 <<  0) /* Bit 0: Clock Phase Select */
+
+/* Communication Flag Clear Register (CFCLR) values */
+#define R_SCI_B_CFCLR_RDRFC              (1 << 31) /* Clear RDRF flag */
+#define R_SCI_B_CFCLR_TDREC              (1 << 29) /* Clear TDRE flag */
+#define R_SCI_B_CFCLR_FERC               (1 << 28) /* Clear FER flag */
+#define R_SCI_B_CFCLR_PERC               (1 << 27) /* Clear PER flag */
+#define R_SCI_B_CFCLR_MFFC               (1 << 26) /* Clear MFF flag */
+#define R_SCI_B_CFCLR_ORERC              (1 << 24) /* Clear ORER flag */
+#define R_SCI_B_CFCLR_DFERC              (1 << 18) /* Clear DFER flag */
+#define R_SCI_B_CFCLR_DPERC              (1 << 17) /* Clear DPER flag */
+#define R_SCI_B_CFCLR_DCMFC              (1 << 16) /* Clear DCMF flag */
+#define R_SCI_B_CFCLR_ERSC               (1 <<  4) /* Clear ERS flag */
+
+/* FIFO Flag Clear Register (FFCLR) values */
+#define R_SCI_B_FFCLR_DRC                (1 <<  0) /* Clear DR flag */
+
+/* SCI_B Configuration Constants */
+#define SCI_B_UART_MDDR_MIN              (128U)    /* Minimum MDDR value */
+#define SCI_B_UART_MDDR_MAX              (256UL)   /* Maximum MDDR value (disables modulation) */
+#define SCI_B_UART_BRR_115200_120MHZ     (47U)     /* BRR value for 115200 baud at 120MHz with BGDM=1 */
+
 #if defined (CONFIG_RA_SCI0_UART)
-#define SCI0_RXI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive data full */
-#define SCI0_TXI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit data empty */
-#define SCI0_TEI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit end */
-#define SCI0_ERI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive error */
+#define CONFIG_SCI0_RXI    47  /* Receive data full */
+#define CONFIG_SCI0_TXI    48  /* Transmit data empty */
+#define CONFIG_SCI0_TEI    49  /* Transmit end */
+#define CONFIG_SCI0_ERI    50  /* Receive error */
 #endif
 
 #if defined  (CONFIG_RA_SCI1_UART)
-#define SCI1_RXI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive data full */
-#define SCI1_TXI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit data empty */
-#define SCI1_TEI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit end */
-#define SCI1_ERI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive error */
+#define CONFIG_SCI1_RXI    51  /* Receive data full */
+#define CONFIG_SCI1_TXI    52  /* Transmit data empty */
+#define CONFIG_SCI1_TEI    53  /* Transmit end */
+#define CONFIG_SCI1_ERI    54  /* Receive error */
 #endif
 
 #if defined (CONFIG_RA_SCI2_UART)
-#define SCI2_RXI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive data full */
-#define SCI2_TXI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit data empty */
-#define SCI2_TEI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit end */
-#define SCI2_ERI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive error */
+#define CONFIG_SCI2_RXI    55  /* Receive data full */
+#define CONFIG_SCI2_TXI    56  /* Transmit data empty */
+#define CONFIG_SCI2_TEI    57  /* Transmit end */
+#define CONFIG_SCI2_ERI    58  /* Receive error */
 #endif
 
 #if defined (CONFIG_RA_SCI9_UART)
-#define SCI9_RXI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive data full */
-#define SCI9_TXI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit data empty */
-#define SCI9_TEI   (RA_IRQ_FIRST + __COUNTER__)  /* Transmit end */
-#define SCI9_ERI   (RA_IRQ_FIRST + __COUNTER__)  /* Receive error */
+#define CONFIG_SCI9_RXI    67  /* Receive data full */
+#define CONFIG_SCI9_TXI    68  /* Transmit data empty */
+#define CONFIG_SCI9_TEI    69  /* Transmit end */
+#define CONFIG_SCI9_ERI    70  /* Receive error */
 #endif
 
 /****************************************************************************

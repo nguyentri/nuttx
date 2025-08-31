@@ -203,15 +203,13 @@ void arm_lowputc(char ch)
 
   /* RA8E1 uses SCI_B (version 2) registers, not legacy SCI registers
    * For SCI_B:
-   * - Use CSR register for status (offset 0x0014) instead of SSR (offset 0x0004)
-   * - Use TDR_BY register for byte transmission (offset 0x0006) instead of TDR (offset 0x0003)
+   * - Use CSR register for status instead of SSR
+   * - Use TDR_BY register for byte transmission instead of TDR
    * - TDRE flag is at bit position 29 in CSR, not bit 7 in SSR
    */
 
-  /* Wait for Transmit Data Register Empty (TDRE) flag in CSR register
-   * CSR offset: 0x0014, TDRE bit: 29 (0x20000000)
-   */
-  while ((getreg32(RA_CONSOLE_BASE + 0x0014) & 0x20000000) == 0)
+  /* Wait for Transmit Data Register Empty (TDRE) flag in CSR register */
+  while ((getreg32(RA_CONSOLE_BASE + R_SCI_B_CSR_OFFSET) & R_SCI_B_CSR_TDRE) == 0)
     {
     }
 
@@ -219,17 +217,13 @@ void arm_lowputc(char ch)
   flags = spin_lock_irqsave(&g_ra_lowputc_lock);
 
   /* Double-check TDRE is still set */
-  if ((getreg32(RA_CONSOLE_BASE + 0x0014) & 0x20000000) != 0)
+  if ((getreg32(RA_CONSOLE_BASE + R_SCI_B_CSR_OFFSET) & R_SCI_B_CSR_TDRE) != 0)
     {
-      /* Send the character to TDR_BY register (byte access)
-       * TDR_BY offset: 0x0006 for SCI_B
-       */
-      putreg8((uint32_t)ch, RA_CONSOLE_BASE + 0x0006);
+      /* Send the character to TDR_BY register (byte access) */
+      putreg8((uint32_t)ch, RA_CONSOLE_BASE + R_SCI_B_TDR_BY_OFFSET);
 
-      /* Clear TDRE flag by writing to CFCLR register
-       * CFCLR offset: 0x0034, TDREC bit: 29 (0x20000000)
-       */
-      putreg32(0x20000000, RA_CONSOLE_BASE + 0x0034);
+      /* Clear TDRE flag by writing to CFCLR register */
+      putreg32(R_SCI_B_CFCLR_TDREC, RA_CONSOLE_BASE + R_SCI_B_CFCLR_OFFSET);
     }
 
   spin_unlock_irqrestore(&g_ra_lowputc_lock, flags);
@@ -324,49 +318,59 @@ void ra_lowsetup(void)
 
   /* 2. Initialize registers as per FSP sequence */
   /* First set CCR0 with IDSEL (FSP does this first) */
-  regval = (1 << 12);  /* IDSEL=1 for ID frame select */
-  putreg32(regval, RA_CONSOLE_BASE + 0x0000); /* CCR0 */
+  regval = R_SCI_B_CCR0_IDSEL;  /* IDSEL=1 for ID frame select */
+  putreg32(regval, RA_CONSOLE_BASE + R_SCI_B_CCR0_OFFSET);
 
   /* 3. Set the UART configuration (FSP: r_sci_b_uart_config_set) */
 
   /* Configure CCR2 for baud rate (based on FSP: brr=47, bgdm=1, cks=0)
    * For 115200 baud at 120MHz PCLKA with double-speed mode:
-   * CCR2 = (BGDM=1 << 24) | (CKS=0 << 20) | (BRR=47 << 8) | (MDDR=256)
+   * CCR2 = (MDDR=256 << 24) | (CKS=0 << 20) | (BRR=47 << 8) | (BGDM=1 << 4)
+   * Note: Use 32-bit constant (256UL) to avoid shift overflow warning
    */
-  regval = (1 << 24) | (0 << 20) | (47 << 8) | 256;
-  putreg32(regval, RA_CONSOLE_BASE + 0x0010); /* CCR2 */
+  regval = (SCI_B_UART_MDDR_MAX << R_SCI_B_CCR2_MDDR_SHIFT) |
+           (0 << R_SCI_B_CCR2_CKS_SHIFT) |
+           (SCI_B_UART_BRR_115200_120MHZ << R_SCI_B_CCR2_BRR_SHIFT) |
+           R_SCI_B_CCR2_BGDM;
+  putreg32(regval, RA_CONSOLE_BASE + R_SCI_B_CCR2_OFFSET);
 
   /* Configure CCR3 for data format (8-bit, 1 stop, async mode)
-   * CCR3 = LSBF | CHAR(8-bit) | STP(1 stop) | MODE(async)
+   * CCR3 = LSBF | CHR(8-bit=0) | STP(1 stop=0) | MOD(async=0)
    */
-  regval = (1 << 7) | (0 << 8) | (0 << 6) | (0 << 4); /* LSBF=1, 8-bit, 1 stop, async */
-  putreg32(regval, RA_CONSOLE_BASE + 0x000C); /* CCR3 */
+  regval = R_SCI_B_CCR3_LSBF |
+           (0 << R_SCI_B_CCR3_CHR_SHIFT) |
+           (0 & R_SCI_B_CCR3_STP) |
+           (0 << R_SCI_B_CCR3_MOD_SHIFT); /* LSBF=1, 8-bit, 1 stop, async */
+  putreg32(regval, RA_CONSOLE_BASE + R_SCI_B_CCR3_OFFSET);
 
   /* Configure CCR1 for parity and flow control
-   * CCR1 = SPB2(3) for proper TXD pin level when TE=0
+   * CCR1 = SPB2DT(1) for proper TXD pin level when TE=0
    */
-  regval = (3 << 4); /* SPB2=3, no parity, no flow control */
-  putreg32(regval, RA_CONSOLE_BASE + 0x0008); /* CCR1 */
+  regval = R_SCI_B_CCR1_SPB2DT; /* SPB2DT=1, no parity, no flow control */
+  putreg32(regval, RA_CONSOLE_BASE + R_SCI_B_CCR1_OFFSET);
 
   /* Clear CCR4 (additional features) */
-  putreg32(0, RA_CONSOLE_BASE + 0x0004); /* CCR4 */
+  putreg32(0, RA_CONSOLE_BASE + R_SCI_B_CCR4_OFFSET);
 
   /* 4. Clear all status flags in CFCLR (FSP does this) */
-  putreg32(0x9D070010, RA_CONSOLE_BASE + 0x0034); /* CFCLR: Clear all flags */
+  putreg32(R_SCI_B_CFCLR_RDRFC | R_SCI_B_CFCLR_TDREC | R_SCI_B_CFCLR_FERC |
+           R_SCI_B_CFCLR_PERC | R_SCI_B_CFCLR_MFFC | R_SCI_B_CFCLR_ORERC |
+           R_SCI_B_CFCLR_DFERC | R_SCI_B_CFCLR_DPERC | R_SCI_B_CFCLR_DCMFC |
+           R_SCI_B_CFCLR_ERSC, RA_CONSOLE_BASE + R_SCI_B_CFCLR_OFFSET);
 
   /* 5. Clear FIFO flags if FIFO is present (FSP does this) */
-  putreg32(0x00000001, RA_CONSOLE_BASE + 0x0038); /* FFCLR: Clear FIFO flags */
+  putreg32(R_SCI_B_FFCLR_DRC, RA_CONSOLE_BASE + R_SCI_B_FFCLR_OFFSET);
 
   /* 6. Enable transmitter and receiver in CCR0 (FSP sequence)
    * CCR0 = IDSEL | RE | TE
    */
-  regval = (1 << 12) | (1 << 2) | (1 << 5); /* IDSEL=1, RE=1, TE=1 */
-  putreg32(regval, RA_CONSOLE_BASE + 0x0000); /* CCR0 */
+  regval = R_SCI_B_CCR0_IDSEL | R_SCI_B_CCR0_RE | R_SCI_B_CCR0_TE;
+  putreg32(regval, RA_CONSOLE_BASE + R_SCI_B_CCR0_OFFSET);
 
   /* 7. Wait for receiver internal state = 1 (FSP: CESR.RIST=1)
-   * CESR offset: 0x0018, RIST bit: 0 (not bit 1!)
+   * CESR.RIST bit: 0
    */
-  while ((getreg32(RA_CONSOLE_BASE + 0x0018) & (1 << 0)) == 0)
+  while ((getreg8(RA_CONSOLE_BASE + R_SCI_B_CESR_OFFSET) & R_SCI_B_CESR_RIST) == 0)
     {
       /* Wait for receiver internal state = 1 (RIST bit) */
     }

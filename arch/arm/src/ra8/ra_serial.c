@@ -290,10 +290,10 @@ static struct up_dev_s  g_uart0priv =
 {
   .scibase    = R_SCI0_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI0,
-  .rxirq        = SCI0_RXI,
-  .txirq        = SCI0_TXI,
-  .teirq        = SCI0_TEI,
-  .erirq        = SCI0_ERI,
+  .rxirq        = CONFIG_SCI0_RXI,
+  .txirq        = CONFIG_SCI0_TXI,
+  .teirq        = CONFIG_SCI0_TEI,
+  .erirq        = CONFIG_SCI0_ERI,
   .baud         = CONFIG_SCI0_BAUD,
   .parity       = CONFIG_SCI0_PARITY,
   .bits         = CONFIG_SCI0_BITS,
@@ -321,10 +321,10 @@ static struct up_dev_s  g_uart1priv =
 {
   .scibase    = R_SCI1_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI1,
-  .rxirq        = SCI1_RXI,
-  .txirq        = SCI1_TXI,
-  .teirq        = SCI1_TEI,
-  .erirq        = SCI1_ERI,
+  .rxirq        = CONFIG_SCI1_RXI,
+  .txirq        = CONFIG_SCI1_TXI,
+  .teirq        = CONFIG_SCI1_TEI,
+  .erirq        = CONFIG_SCI1_ERI,
   .baud         = CONFIG_SCI1_BAUD,
   .parity       = CONFIG_SCI1_PARITY,
   .bits         = CONFIG_SCI1_BITS,
@@ -352,10 +352,10 @@ static struct up_dev_s  g_uart2priv =
 {
   .scibase    = R_SCI2_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI2,
-  .rxirq        = SCI2_RXI,
-  .txirq        = SCI2_TXI,
-  .teirq        = SCI2_TEI,
-  .erirq        = SCI2_ERI,
+  .rxirq        = CONFIG_SCI2_RXI,
+  .txirq        = CONFIG_SCI2_TXI,
+  .teirq        = CONFIG_SCI2_TEI,
+  .erirq        = CONFIG_SCI2_ERI,
   .baud         = CONFIG_SCI2_BAUD,
   .parity       = CONFIG_SCI2_PARITY,
   .bits         = CONFIG_SCI2_BITS,
@@ -383,10 +383,10 @@ static struct up_dev_s  g_uart3priv =
 {
   .scibase    = R_SCI3_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI3,
-  .rxirq        = SCI3_RXI,
-  .txirq        = SCI3_TXI,
-  .teirq        = SCI3_TEI,
-  .erirq        = SCI3_ERI,
+  .rxirq        = CONFIG_SCI3_RXI,
+  .txirq        = CONFIG_SCI3_TXI,
+  .teirq        = CONFIG_SCI3_TEI,
+  .erirq        = CONFIG_SCI3_ERI,
   .baud         = CONFIG_SCI3_BAUD,
   .parity       = CONFIG_SCI3_PARITY,
   .bits         = CONFIG_SCI3_BITS,
@@ -414,10 +414,10 @@ static struct up_dev_s  g_uart4priv =
 {
   .scibase    = R_SCI4_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI4,
-  .rxirq        = SCI4_RXI,
-  .txirq        = SCI4_TXI,
-  .teirq        = SCI4_TEI,
-  .erirq        = SCI4_ERI,
+  .rxirq        = CONFIG_SCI4_RXI,
+  .txirq        = CONFIG_SCI4_TXI,
+  .teirq        = CONFIG_SCI4_TEI,
+  .erirq        = CONFIG_SCI4_ERI,
   .baud         = CONFIG_SCI4_BAUD,
   .parity       = CONFIG_SCI4_PARITY,
   .bits         = CONFIG_SCI4_BITS,
@@ -445,10 +445,10 @@ static struct up_dev_s  g_uart9priv =
 {
   .scibase    = R_SCI9_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI9,
-  .rxirq        = SCI9_RXI,
-  .txirq        = SCI9_TXI,
-  .teirq        = SCI9_TEI,
-  .erirq        = SCI9_ERI,
+  .rxirq        = CONFIG_SCI9_RXI,
+  .txirq        = CONFIG_SCI9_TXI,
+  .teirq        = CONFIG_SCI9_TEI,
+  .erirq        = CONFIG_SCI9_ERI,
   .baud         = CONFIG_SCI9_BAUD,
   .parity       = CONFIG_SCI9_PARITY,
   .bits         = CONFIG_SCI9_BITS,
@@ -480,9 +480,22 @@ static uart_dev_t  g_uart9port =
  * Name: up_serialin
  ****************************************************************************/
 
-static inline uint8_t up_serialin(struct up_dev_s *priv, int offset)
+static inline uint32_t up_serialin(struct up_dev_s *priv, int offset)
 {
+#ifdef CONFIG_ARCH_CHIP_R7FA8E1AFDCFB
+  /* RA8E1 uses SCI_B with 32-bit registers */
+  if (offset >= R_SCI_B_CCR0_OFFSET)
+    {
+      return getreg32(priv->scibase + offset);
+    }
+  else
+    {
+      return getreg8(priv->scibase + offset);
+    }
+#else
+  /* Legacy SCI with 8-bit registers */
   return getreg8(priv->scibase + offset);
+#endif
 }
 
 /****************************************************************************
@@ -490,9 +503,22 @@ static inline uint8_t up_serialin(struct up_dev_s *priv, int offset)
  ****************************************************************************/
 
 static inline void up_serialout(struct up_dev_s *priv, int offset,
-                                   uint8_t value)
+                                   uint32_t value)
 {
-  putreg8(value, priv->scibase + offset);
+#ifdef CONFIG_ARCH_CHIP_R7FA8E1AFDCFB
+  /* RA8E1 uses SCI_B with 32-bit registers */
+  if (offset >= R_SCI_B_CCR0_OFFSET)
+    {
+      putreg32(value, priv->scibase + offset);
+    }
+  else
+    {
+      putreg8((uint8_t)value, priv->scibase + offset);
+    }
+#else
+  /* Legacy SCI with 8-bit registers */
+  putreg8((uint8_t)value, priv->scibase + offset);
+#endif
 }
 
 /****************************************************************************
@@ -502,23 +528,36 @@ static inline void up_serialout(struct up_dev_s *priv, int offset,
 static void up_disableallints(struct up_dev_s *priv, uint32_t *ie)
 {
   irqstate_t flags;
-  uint8_t   regval = 0;
 
   /* The following must be atomic */
 
   flags = enter_critical_section();
+
+#ifdef CONFIG_ARCH_CHIP_R7FA8E1AFDCFB
+  /* RA8E1 uses SCI_B with 32-bit registers */
   if (ie)
     {
       /* Return the current interrupt mask */
+      *ie = up_serialin(priv, R_SCI_B_CCR0_OFFSET);
+    }
 
+  /* Disable all interrupts */
+  uint32_t regval = up_serialin(priv, R_SCI_B_CCR0_OFFSET) &
+    ~(R_SCI_B_CCR0_TIE | R_SCI_B_CCR0_RIE | R_SCI_B_CCR0_TEIE);
+  up_serialout(priv, R_SCI_B_CCR0_OFFSET, regval);
+#else
+  /* Legacy SCI with 8-bit registers */
+  if (ie)
+    {
+      /* Return the current interrupt mask */
       *ie = up_serialin(priv, R_SCI_SCR_OFFSET);
     }
 
   /* Disable all interrupts */
-
-  regval = up_serialin(priv, R_SCI_SCR_OFFSET) &
+  uint8_t regval = up_serialin(priv, R_SCI_SCR_OFFSET) &
     ~(R_SCI_SCR_TIE | R_SCI_SCR_RIE);
   up_serialout(priv, R_SCI_SCR_OFFSET, regval);
+#endif
 
   leave_critical_section(flags);
 }
@@ -534,6 +573,65 @@ static void up_disableallints(struct up_dev_s *priv, uint32_t *ie)
 
 static void up_sci_config(struct up_dev_s *priv)
 {
+#ifdef CONFIG_ARCH_CHIP_R7FA8E1AFDCFB
+  /* RA8E1 uses SCI_B (version 2) registers */
+  uint32_t regval;
+
+  /* Disable SCI_B first */
+  regval = 0;
+  up_serialout(priv, R_SCI_B_CCR0_OFFSET, regval);
+
+  /* Configure CCR1 for basic UART operation */
+  regval = R_SCI_B_CCR1_CTSE   |  /* CTS enable (but no flow control) */
+           R_SCI_B_CCR1_CTSPEN |  /* CTS pullup enable */
+           0;                     /* Default async mode */
+  up_serialout(priv, R_SCI_B_CCR1_OFFSET, regval);
+
+  /* Configure CCR2 for baud rate generation */
+  /* FSP uses: ABCSE=0, ABCS=0, BGDM=1, CKS=0, BRR=47, MDDR=256, BRME=0 */
+  regval = R_SCI_B_CCR2_BGDM |       /* Baud rate generator double-speed mode */
+           (0 << R_SCI_B_CCR2_CKS_SHIFT) |  /* CKS = 0 (PCLKA) */
+           (47 << R_SCI_B_CCR2_BRR_SHIFT) |  /* BRR = 47 */
+           (256UL << R_SCI_B_CCR2_MDDR_SHIFT); /* MDDR = 256 */
+  up_serialout(priv, R_SCI_B_CCR2_OFFSET, regval);
+
+  /* Configure CCR3 for character format */
+  regval = 0; /* 8 bits, no parity, 1 stop bit (default) */
+  if (priv->bits == 7)
+    {
+      regval |= R_SCI_B_CCR3_CHR;
+    }
+
+  if (priv->parity == 1)  /* Odd parity */
+    {
+      regval |= R_SCI_B_CCR3_PE | R_SCI_B_CCR3_PM;
+    }
+  else if (priv->parity == 2)  /* Even parity */
+    {
+      regval |= R_SCI_B_CCR3_PE;
+    }
+
+  if (priv->stopbits2)
+    {
+      regval |= R_SCI_B_CCR3_STP;
+    }
+
+  up_serialout(priv, R_SCI_B_CCR3_OFFSET, regval);
+
+  /* Configure CCR4 - no special features needed */
+  regval = 0;
+  up_serialout(priv, R_SCI_B_CCR4_OFFSET, regval);
+
+  /* Clear any pending status flags */
+  up_serialout(priv, R_SCI_B_CFCLR_OFFSET, 0xFFFFFFFF);
+  up_serialout(priv, R_SCI_B_FFCLR_OFFSET, 0xFFFFFFFF);
+
+  /* Enable transmit and receive */
+  regval = R_SCI_B_CCR0_TE | R_SCI_B_CCR0_RE;
+  up_serialout(priv, R_SCI_B_CCR0_OFFSET, regval);
+
+#else
+  /* Legacy SCI register configuration */
   uint8_t   div_baud[4] = {
     12, 16, 32, 64
   };
@@ -660,6 +758,7 @@ static void up_sci_config(struct up_dev_s *priv)
 
   regval = (R_SCI_SCR_TE | R_SCI_SCR_RE | R_SCI_SCR_TIE | R_SCI_SCR_RIE);
   up_serialout(priv, R_SCI_SCR_OFFSET, regval);
+#endif
 }
 
 static int up_setup(struct uart_dev_s *dev)
@@ -707,12 +806,18 @@ static void up_shutdown(struct uart_dev_s *dev)
 {
   struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
 
-  /* Reset SCI control */
+  /* Disable all interrupts */
+  up_disableallints(priv, NULL);
 
+#ifdef CONFIG_ARCH_CHIP_R7FA8E1AFDCFB
+  /* Reset SCI_B control */
+  up_serialout(priv, R_SCI_B_CCR0_OFFSET, 0);
+#else
+  /* Reset SCI control */
   up_serialout(priv, R_SCI_SCR_OFFSET, 0);
+#endif
 
   /* Stop SCI  */
-
   putreg16((R_SYSTEM_PRCR_PRKEY_VALUE | R_SYSTEM_PRCR_PRC1), R_SYSTEM_PRCR);
   modifyreg32(R_MSTP_MSTPCRB, priv->mstp, 1);
   putreg16(R_SYSTEM_PRCR_PRKEY_VALUE, R_SYSTEM_PRCR);
@@ -827,18 +932,27 @@ static int up_erinterrupt(int irq, void *context, void *arg)
 {
   struct uart_dev_s *dev = (struct uart_dev_s *)arg;
   struct up_dev_s   *priv;
-  uint8_t regval = 0;
 
   DEBUGASSERT(dev != NULL && dev->priv != NULL);
   priv = (struct up_dev_s *)dev->priv;
 
-  /* Save for error reporting */
+  ra_icu_clear_irq(irq);
 
+#ifdef CONFIG_ARCH_CHIP_R7FA8E1AFDCFB
+  /* Save for error reporting (SCI_B error bits) */
+  priv->sr = up_serialin(priv, R_SCI_B_CSR_OFFSET) &
+             (R_SCI_B_CSR_PER | R_SCI_B_CSR_FER | R_SCI_B_CSR_ORER);
+
+  /* Clear error flags */
+  up_serialout(priv, R_SCI_B_CFCLR_OFFSET,
+               (R_SCI_B_CFCLR_PERC | R_SCI_B_CFCLR_FERC | R_SCI_B_CFCLR_ORERC));
+#else
+  /* Save for error reporting (legacy SCI error bits) */
   priv->sr = up_serialin(priv, R_SCI_SSR_OFFSET) & SCI_UART_ERR_BITS;
 
-  regval = up_serialin(priv, R_SCI_SSR_OFFSET) & ~(SCI_UART_ERR_BITS);
-
+  uint8_t regval = up_serialin(priv, R_SCI_SSR_OFFSET) & ~(SCI_UART_ERR_BITS);
   up_serialout(priv, R_SCI_SSR_OFFSET, regval);
+#endif
 
   return OK;
 }
@@ -873,13 +987,15 @@ static int up_receive(struct uart_dev_s *dev, unsigned int *status)
   struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
 
   /* Return the error information in the saved status */
-
   *status   = priv->sr;
   priv->sr  = 0;
 
   /* Then return the actual received byte */
-
+#ifdef CONFIG_ARCH_CHIP_R7FA8E1AFDCFB
+  return (int)(up_serialin(priv, R_SCI_B_RDR_BY_OFFSET) & 0xff);
+#else
   return (int)(up_serialin(priv, R_SCI_RDR_OFFSET) & 0xff);
+#endif
 }
 
 /****************************************************************************
@@ -893,8 +1009,6 @@ static int up_receive(struct uart_dev_s *dev, unsigned int *status)
 static void up_rxint(struct uart_dev_s *dev, bool enable)
 {
   struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
-  uint8_t regval;
-
   irqstate_t flags;
 
   flags = enter_critical_section();
@@ -902,20 +1016,29 @@ static void up_rxint(struct uart_dev_s *dev, bool enable)
     {
 #ifndef CONFIG_SUPPRESS_SERIAL_INTS
       /* Enable the RX interrupt */
-
-      regval  = up_serialin(priv, R_SCI_SCR_OFFSET);
-      regval |= (R_SCI_SCR_RIE);
+#ifdef CONFIG_ARCH_CHIP_R7FA8E1AFDCFB
+      uint32_t regval = up_serialin(priv, R_SCI_B_CCR0_OFFSET);
+      regval |= R_SCI_B_CCR0_RIE;
+      up_serialout(priv, R_SCI_B_CCR0_OFFSET, regval);
+#else
+      uint8_t regval = up_serialin(priv, R_SCI_SCR_OFFSET);
+      regval |= R_SCI_SCR_RIE;
       up_serialout(priv, R_SCI_SCR_OFFSET, regval);
-
+#endif
 #endif
     }
   else
     {
       /* Disable the RX interrupt */
-
-      regval  = up_serialin(priv, R_SCI_SCR_OFFSET);
-      regval &= ~(R_SCI_SCR_RIE);
+#ifdef CONFIG_ARCH_CHIP_R7FA8E1AFDCFB
+      uint32_t regval = up_serialin(priv, R_SCI_B_CCR0_OFFSET);
+      regval &= ~R_SCI_B_CCR0_RIE;
+      up_serialout(priv, R_SCI_B_CCR0_OFFSET, regval);
+#else
+      uint8_t regval = up_serialin(priv, R_SCI_SCR_OFFSET);
+      regval &= ~R_SCI_SCR_RIE;
       up_serialout(priv, R_SCI_SCR_OFFSET, regval);
+#endif
     }
 
   leave_critical_section(flags);
@@ -933,9 +1056,11 @@ static bool up_rxavailable(struct uart_dev_s *dev)
 {
   struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
 
-  return (up_serialin(priv,
-                         R_SCI_SSR_OFFSET) & R_SCI_SSR_RDRF) ==
-         R_SCI_SSR_RDRF;
+#ifdef CONFIG_ARCH_CHIP_R7FA8E1AFDCFB
+  return (up_serialin(priv, R_SCI_B_CSR_OFFSET) & R_SCI_B_CSR_RDRF) != 0;
+#else
+  return (up_serialin(priv, R_SCI_SSR_OFFSET) & R_SCI_SSR_RDRF) == R_SCI_SSR_RDRF;
+#endif
 }
 
 /****************************************************************************
@@ -950,7 +1075,11 @@ static void up_send(struct uart_dev_s *dev, int ch)
 {
   struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
 
+#ifdef CONFIG_ARCH_CHIP_R7FA8E1AFDCFB
+  up_serialout(priv, R_SCI_B_TDR_BY_OFFSET, (uint8_t)ch);
+#else
   up_serialout(priv, R_SCI_TDR_OFFSET, (uint8_t)ch);
+#endif
 }
 
 /****************************************************************************
@@ -964,8 +1093,6 @@ static void up_send(struct uart_dev_s *dev, int ch)
 static void up_txint(struct uart_dev_s *dev, bool enable)
 {
   struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
-  uint8_t regval;
-
   irqstate_t flags;
 
   flags = enter_critical_section();
@@ -973,26 +1100,34 @@ static void up_txint(struct uart_dev_s *dev, bool enable)
     {
 #ifndef CONFIG_SUPPRESS_SERIAL_INTS
       /* Enable the TX interrupt */
-
-      regval  = up_serialin(priv, R_SCI_SCR_OFFSET);
-      regval |= (R_SCI_SCR_TIE);
+#ifdef CONFIG_ARCH_CHIP_R7FA8E1AFDCFB
+      uint32_t regval = up_serialin(priv, R_SCI_B_CCR0_OFFSET);
+      regval |= R_SCI_B_CCR0_TIE;
+      up_serialout(priv, R_SCI_B_CCR0_OFFSET, regval);
+#else
+      uint8_t regval = up_serialin(priv, R_SCI_SCR_OFFSET);
+      regval |= R_SCI_SCR_TIE;
       up_serialout(priv, R_SCI_SCR_OFFSET, regval);
+#endif
 
       /* Fake a TX interrupt here by just calling uart_xmitchars() with
        * interrupts disabled (note this may recurse).
        */
-
        uart_xmitchars(dev);
-
 #endif
     }
   else
     {
       /* Disable the TX interrupt */
-
-      regval  = up_serialin(priv, R_SCI_SCR_OFFSET);
-      regval &= ~(R_SCI_SCR_TIE);
+#ifdef CONFIG_ARCH_CHIP_R7FA8E1AFDCFB
+      uint32_t regval = up_serialin(priv, R_SCI_B_CCR0_OFFSET);
+      regval &= ~R_SCI_B_CCR0_TIE;
+      up_serialout(priv, R_SCI_B_CCR0_OFFSET, regval);
+#else
+      uint8_t regval = up_serialin(priv, R_SCI_SCR_OFFSET);
+      regval &= ~R_SCI_SCR_TIE;
       up_serialout(priv, R_SCI_SCR_OFFSET, regval);
+#endif
     }
 
   leave_critical_section(flags);
@@ -1008,12 +1143,13 @@ static void up_txint(struct uart_dev_s *dev, bool enable)
 
 static bool up_txready(struct uart_dev_s *dev)
 {
-  struct up_dev_s   *priv   = (struct up_dev_s *)dev->priv;
-  bool              ret     =
-    ((up_serialin(priv,
-                     R_SCI_SSR_OFFSET) & R_SCI_SSR_TDRE) == R_SCI_SSR_TDRE);
+  struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
 
-  return ret;
+#ifdef CONFIG_ARCH_CHIP_R7FA8E1AFDCFB
+  return (up_serialin(priv, R_SCI_B_CSR_OFFSET) & R_SCI_B_CSR_TDRE) != 0;
+#else
+  return (up_serialin(priv, R_SCI_SSR_OFFSET) & R_SCI_SSR_TDRE) == R_SCI_SSR_TDRE;
+#endif
 }
 
 /****************************************************************************
@@ -1026,12 +1162,13 @@ static bool up_txready(struct uart_dev_s *dev)
 
 static bool up_txempty(struct uart_dev_s *dev)
 {
-  struct up_dev_s   *priv   = (struct up_dev_s *)dev->priv;
-  bool              ret     =
-    ((up_serialin(priv,
-                     R_SCI_SSR_OFFSET) & R_SCI_SSR_TEND) == R_SCI_SSR_TEND);
+  struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
 
-  return ret;
+#ifdef CONFIG_ARCH_CHIP_R7FA8E1AFDCFB
+  return (up_serialin(priv, R_SCI_B_CSR_OFFSET) & R_SCI_B_CSR_TEND) != 0;
+#else
+  return (up_serialin(priv, R_SCI_SSR_OFFSET) & R_SCI_SSR_TEND) == R_SCI_SSR_TEND;
+#endif
 }
 
 /****************************************************************************

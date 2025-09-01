@@ -508,7 +508,7 @@
 
 /* Peripheral Clock Sources and Dividers */
 #ifndef CONFIG_RA_SCICLK_SOURCE
-#  define CONFIG_RA_SCICLK_SOURCE     RA_CLOCKS_SOURCE_CLOCK_PLL1P /* SCI clock source */
+#  define CONFIG_RA_SCICLK_SOURCE     RA_CLOCKS_SOURCE_CLOCK_HOCO /* SCI clock source */
 #endif
 
 #ifndef CONFIG_RA_SCICLK_DIV

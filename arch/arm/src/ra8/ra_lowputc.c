@@ -257,10 +257,12 @@ void up_putc(int ch)
 
 void ra_lowsetup(void)
 {
-#ifdef HAVE_CONSOLE
-  uint32_t regval;
-#endif
+  /* Only GPIO configuration and module power-up
+   * Full SCI_B configuration is done later in arm_earlyserialinit()
+   * This avoids duplication between lowputc and serial driver initialization
+   */
 
+  /* Configure GPIO pins for console UART only */
 #if defined(CONFIG_SCI0_SERIAL_CONSOLE)
   ra_configgpio(GPIO_SCI0_RX);
   ra_configgpio(GPIO_SCI0_TX);
@@ -284,95 +286,32 @@ void ra_lowsetup(void)
 #endif
 
 #if defined(HAVE_CONSOLE)
-  /* RA8E1 SCI_B initialization sequence based on FSP reference
-   * Follow the exact sequence from R_SCI_B_UART_Open() in FSP
-   */
-
-  /* 1. Enable module stop control for the SCI channel (FSP: R_BSP_MODULE_START)
-   * For SCI2: MSTPCRB bit (31-2) = bit 29
-   * Formula: BSP_MSTP_BIT_FSP_IP_SCI(channel) = (1U << (31U - channel))
+  /* Enable module stop control for the console SCI channel only
+   * This is the minimal setup required for early debug output
+   * Full SCI_B register configuration will be done in arm_earlyserialinit()
    */
   putreg16((R_SYSTEM_PRCR_PRKEY_VALUE | R_SYSTEM_PRCR_PRC1), R_SYSTEM_PRCR);
 
-  /* Clear the module stop bit for the SCI channel */
+  /* Clear the module stop bit for the console SCI channel */
 #if defined(CONFIG_SCI0_SERIAL_CONSOLE)
-  modifyreg32(R_MSTP_MSTPCRB, R_MSTP_MSTPCRB_SCI0, 0);  /* Clear SCI0 module stop bit */
+  modifyreg32(R_MSTP_MSTPCRB, R_MSTP_MSTPCRB_SCI0, 0);
 #elif defined(CONFIG_SCI1_SERIAL_CONSOLE)
-  modifyreg32(R_MSTP_MSTPCRB, R_MSTP_MSTPCRB_SCI1, 0);  /* Clear SCI1 module stop bit */
+  modifyreg32(R_MSTP_MSTPCRB, R_MSTP_MSTPCRB_SCI1, 0);
 #elif defined(CONFIG_SCI2_SERIAL_CONSOLE)
-  modifyreg32(R_MSTP_MSTPCRB, R_MSTP_MSTPCRB_SCI2, 0);  /* Clear SCI2 module stop bit */
+  modifyreg32(R_MSTP_MSTPCRB, R_MSTP_MSTPCRB_SCI2, 0);
 #elif defined(CONFIG_SCI9_SERIAL_CONSOLE)
-  modifyreg32(R_MSTP_MSTPCRB, R_MSTP_MSTPCRB_SCI9, 0);  /* Clear SCI9 module stop bit */
+  modifyreg32(R_MSTP_MSTPCRB, R_MSTP_MSTPCRB_SCI9, 0);
 #endif
 
-  /* Read back to ensure write completed and add delay (FSP: FSP_REGISTER_READ) */
+  /* Read back to ensure write completed and add delay */
   (void)getreg32(R_MSTP_MSTPCRB);
 
-  /* Add a small delay to ensure the module is powered up before register access */
+  /* Add a small delay to ensure the module is powered up */
   for (volatile int i = 0; i < 1000; i++)
     {
       /* Wait for module power-up */
     }
 
   putreg16(R_SYSTEM_PRCR_PRKEY_VALUE, R_SYSTEM_PRCR);
-
-  /* 2. Initialize registers as per FSP sequence */
-  /* First set CCR0 with IDSEL (FSP does this first) */
-  regval = R_SCI_B_CCR0_IDSEL;  /* IDSEL=1 for ID frame select */
-  putreg32(regval, RA_CONSOLE_BASE + R_SCI_B_CCR0_OFFSET);
-
-  /* 3. Set the UART configuration (FSP: r_sci_b_uart_config_set) */
-
-  /* Configure CCR2 for baud rate (based on FSP: brr=47, bgdm=1, cks=0)
-   * For 115200 baud at 120MHz PCLKA with double-speed mode:
-   * CCR2 = (MDDR=256 << 24) | (CKS=0 << 20) | (BRR=47 << 8) | (BGDM=1 << 4)
-   * Note: Use 32-bit constant (256UL) to avoid shift overflow warning
-   */
-  regval = (SCI_B_UART_MDDR_MAX << R_SCI_B_CCR2_MDDR_SHIFT) |
-           (0 << R_SCI_B_CCR2_CKS_SHIFT) |
-           (SCI_B_UART_BRR_115200_120MHZ << R_SCI_B_CCR2_BRR_SHIFT) |
-           R_SCI_B_CCR2_BGDM;
-  putreg32(regval, RA_CONSOLE_BASE + R_SCI_B_CCR2_OFFSET);
-
-  /* Configure CCR3 for data format (8-bit, 1 stop, async mode)
-   * CCR3 = LSBF | CHR(8-bit=0) | STP(1 stop=0) | MOD(async=0)
-   */
-  regval = R_SCI_B_CCR3_LSBF |
-           (0 << R_SCI_B_CCR3_CHR_SHIFT) |
-           (0 & R_SCI_B_CCR3_STP) |
-           (0 << R_SCI_B_CCR3_MOD_SHIFT); /* LSBF=1, 8-bit, 1 stop, async */
-  putreg32(regval, RA_CONSOLE_BASE + R_SCI_B_CCR3_OFFSET);
-
-  /* Configure CCR1 for parity and flow control
-   * CCR1 = SPB2DT(1) for proper TXD pin level when TE=0
-   */
-  regval = R_SCI_B_CCR1_SPB2DT; /* SPB2DT=1, no parity, no flow control */
-  putreg32(regval, RA_CONSOLE_BASE + R_SCI_B_CCR1_OFFSET);
-
-  /* Clear CCR4 (additional features) */
-  putreg32(0, RA_CONSOLE_BASE + R_SCI_B_CCR4_OFFSET);
-
-  /* 4. Clear all status flags in CFCLR (FSP does this) */
-  putreg32(R_SCI_B_CFCLR_RDRFC | R_SCI_B_CFCLR_TDREC | R_SCI_B_CFCLR_FERC |
-           R_SCI_B_CFCLR_PERC | R_SCI_B_CFCLR_MFFC | R_SCI_B_CFCLR_ORERC |
-           R_SCI_B_CFCLR_DFERC | R_SCI_B_CFCLR_DPERC | R_SCI_B_CFCLR_DCMFC |
-           R_SCI_B_CFCLR_ERSC, RA_CONSOLE_BASE + R_SCI_B_CFCLR_OFFSET);
-
-  /* 5. Clear FIFO flags if FIFO is present (FSP does this) */
-  putreg32(R_SCI_B_FFCLR_DRC, RA_CONSOLE_BASE + R_SCI_B_FFCLR_OFFSET);
-
-  /* 6. Enable transmitter and receiver in CCR0 (FSP sequence)
-   * CCR0 = IDSEL | RE | TE
-   */
-  regval = R_SCI_B_CCR0_IDSEL | R_SCI_B_CCR0_RE | R_SCI_B_CCR0_TE;
-  putreg32(regval, RA_CONSOLE_BASE + R_SCI_B_CCR0_OFFSET);
-
-  /* 7. Wait for receiver internal state = 1 (FSP: CESR.RIST=1)
-   * CESR.RIST bit: 0
-   */
-  while ((getreg8(RA_CONSOLE_BASE + R_SCI_B_CESR_OFFSET) & R_SCI_B_CESR_RIST) == 0)
-    {
-      /* Wait for receiver internal state = 1 (RIST bit) */
-    }
 #endif
 }

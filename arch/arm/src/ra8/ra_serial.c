@@ -556,25 +556,35 @@ static void up_sci_config(struct up_dev_s *priv)
   regval = 0;
   up_serialout(priv, R_SCI_B_CCR0_OFFSET, regval);
 
-  /* Configure CCR1 for basic UART operation */
-  regval = R_SCI_B_CCR1_CTSE   |  /* CTS enable (but no flow control) */
-           R_SCI_B_CCR1_CTSPEN |  /* CTS pullup enable */
-           0;                     /* Default async mode */
+  /* Configure CCR1 for basic UART operation
+   * From working XML: SPB2DT=1, SPB2IO=1 = 0x00000030
+   */
+  regval = R_SCI_B_CCR1_SPB2DT |     /* Serial port break data */
+           R_SCI_B_CCR1_SPB2IO |     /* Serial port break I/O */
+           0;                        /* No CTS flow control for basic UART */
   up_serialout(priv, R_SCI_B_CCR1_OFFSET, regval);
 
-  /* Configure CCR2 for baud rate generation */
-  /* FSP uses: ABCSE=0, ABCS=0, BGDM=1, CKS=0, BRR=47, MDDR=256, BRME=0 */
+  /* Configure CCR2 for baud rate generation
+   * From working XML: MDDR=128 (0x80), BRR=47, BGDM=1, CKS=0 = 0x80002F10
+   */
   regval = R_SCI_B_CCR2_BGDM |       /* Baud rate generator double-speed mode */
            (0 << R_SCI_B_CCR2_CKS_SHIFT) |  /* CKS = 0 (PCLKA) */
            (47 << R_SCI_B_CCR2_BRR_SHIFT) |  /* BRR = 47 */
-           (256UL << R_SCI_B_CCR2_MDDR_SHIFT); /* MDDR = 256 */
+           (128UL << R_SCI_B_CCR2_MDDR_SHIFT); /* MDDR = 128 (from XML) */
   up_serialout(priv, R_SCI_B_CCR2_OFFSET, regval);
 
-  /* Configure CCR3 for character format */
-  regval = 0; /* 8 bits, no parity, 1 stop bit (default) */
+  /* Configure CCR3 for character format
+   * From working XML: CHR=2 (8-bit), LSBF=1, RXDESEL=1 = 0x00009200
+   */
+  regval = R_SCI_B_CCR3_LSBF | R_SCI_B_CCR3_RXDESEL; /* Base configuration from XML */
+
   if (priv->bits == 7)
     {
-      regval |= R_SCI_B_CCR3_CHR;
+      regval |= (1 << R_SCI_B_CCR3_CHR_SHIFT); /* CHR=1 for 7-bit */
+    }
+  else
+    {
+      regval |= (2 << R_SCI_B_CCR3_CHR_SHIFT); /* CHR=2 for 8-bit (from XML) */
     }
 
   if (priv->parity == 1)  /* Odd parity */
@@ -601,8 +611,10 @@ static void up_sci_config(struct up_dev_s *priv)
   up_serialout(priv, R_SCI_B_CFCLR_OFFSET, 0xFFFFFFFF);
   up_serialout(priv, R_SCI_B_FFCLR_OFFSET, 0xFFFFFFFF);
 
-  /* Enable transmit and receive */
-  regval = R_SCI_B_CCR0_TE | R_SCI_B_CCR0_RE;
+  /* Enable transmit and receive
+   * Match XML pattern: IDSEL=1, RE=1, TE=1 (interrupts controlled separately)
+   */
+  regval = R_SCI_B_CCR0_IDSEL | R_SCI_B_CCR0_TE | R_SCI_B_CCR0_RE;
   up_serialout(priv, R_SCI_B_CCR0_OFFSET, regval);
 }
 
@@ -1033,23 +1045,28 @@ void arm_earlyserialinit(void)
   putreg32(regval, console_base + R_SCI_B_CCR0_OFFSET);
 
   /* 2. Configure CCR2 for baud rate (115200 @ 120MHz PCLKA)
-   * FSP uses: BRR=47, BGDM=1, CKS=0, MDDR=256
+   * From working XML: MDDR=128 (0x80), BRR=47, BGDM=1, CKS=0 = 0x80002F10
    */
-  regval = (SCI_B_UART_MDDR_MAX << R_SCI_B_CCR2_MDDR_SHIFT) |
+  regval = (128UL << R_SCI_B_CCR2_MDDR_SHIFT) |
            (0 << R_SCI_B_CCR2_CKS_SHIFT) |
-           (SCI_B_UART_BRR_115200_120MHZ << R_SCI_B_CCR2_BRR_SHIFT) |
+           (47 << R_SCI_B_CCR2_BRR_SHIFT) |
            R_SCI_B_CCR2_BGDM;
   putreg32(regval, console_base + R_SCI_B_CCR2_OFFSET);
 
-  /* 3. Configure CCR3 for data format (8-bit, 1 stop, async) */
+  /* 3. Configure CCR3 for data format (8-bit, 1 stop, async)
+   * From working XML: CHR=2 (8-bit), LSBF=1, RXDESEL=1 = 0x00009200
+   */
   regval = R_SCI_B_CCR3_LSBF |
-           (0 << R_SCI_B_CCR3_CHR_SHIFT) |
+           R_SCI_B_CCR3_RXDESEL |
+           (2 << R_SCI_B_CCR3_CHR_SHIFT) |
            (0 & R_SCI_B_CCR3_STP) |
            (0 << R_SCI_B_CCR3_MOD_SHIFT);
   putreg32(regval, console_base + R_SCI_B_CCR3_OFFSET);
 
-  /* 4. Configure CCR1 for proper TXD pin level */
-  regval = R_SCI_B_CCR1_SPB2DT;
+  /* 4. Configure CCR1 for proper TXD pin level
+   * From working XML: SPB2DT=1, SPB2IO=1 = 0x00000030
+   */
+  regval = R_SCI_B_CCR1_SPB2DT | R_SCI_B_CCR1_SPB2IO;
   putreg32(regval, console_base + R_SCI_B_CCR1_OFFSET);
 
   /* 5. Clear CCR4 */

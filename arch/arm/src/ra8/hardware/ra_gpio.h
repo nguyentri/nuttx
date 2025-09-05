@@ -173,6 +173,65 @@
 #define R_PMISC_PWPR_B0WI                 (1 <<  7) /* 80: PFSWE Bit Write Disable */
 #define R_PMISC_PWPR_PFSWE                (1 <<  6) /* 40: PFS Register Write Enable */
 
+/* PFS - Pin Function Select Registers */
+
+#define R_PFS_PSEL_PORT_OFFSET            0x40    /* Offset between ports */
+#define R_PFS_PSEL_PIN_OFFSET             0x04    /* Offset between pins */
+
+/* PFS Register Bit Definitions (avoid conflicts with ra8e1_pinmap.h) */
+
+#define RA_PFS_PSEL_SHIFT                 (24)    /* PSEL field shift */
+#define RA_PFS_PMR                        (1 << 16) /* Peripheral Mode Register */
+#define RA_PFS_ASEL                       (1 << 15) /* Analog Select */
+#define RA_PFS_ISEL                       (1 << 14) /* Interrupt Input Select */
+#define RA_PFS_EOR                        (1 << 13) /* Event on Rising */
+#define RA_PFS_EOF                        (1 << 12) /* Event on Falling */
+#define RA_PFS_DSCR1                      (1 << 11) /* Drive Strength Control 1 */
+#define RA_PFS_DSCR                       (1 << 10) /* Drive Strength Control 0 */
+#define RA_PFS_NCODR                      (1 <<  6) /* N-Channel Open Drain */
+#define RA_PFS_PCR                        (1 <<  4) /* Pull-up Control */
+#define RA_PFS_PDR                        (1 <<  2) /* Port Direction */
+#define RA_PFS_PIDR                       (1 <<  1) /* Port Input Data */
+#define RA_PFS_PODR                       (1 <<  0) /* Port Output Data */
+
+/* GPIO Configuration Options (matching Renesas FSP style) */
+
+#define RA_GPIO_CFG_INPUT                 (0x00000000) /* Input (default) */
+#define RA_GPIO_CFG_OUTPUT                (0x00000004) /* Output direction */
+#define RA_GPIO_CFG_OUTPUT_LOW            (0x00000000) /* Output low */
+#define RA_GPIO_CFG_OUTPUT_HIGH           (0x00000001) /* Output high */
+#define RA_GPIO_CFG_PULLUP_ENABLE         (0x00000010) /* Enable pull-up */
+#define RA_GPIO_CFG_NMOS_ENABLE           (0x00000040) /* N-channel open drain */
+#define RA_GPIO_CFG_PMOS_ENABLE           (0x00000080) /* P-channel open drain */
+#define RA_GPIO_CFG_DRIVE_MID             (0x00000400) /* Medium drive strength */
+#define RA_GPIO_CFG_DRIVE_HIGH            (0x00000C00) /* High drive strength */
+#define RA_GPIO_CFG_EVENT_RISING_EDGE     (0x00001000) /* Rising edge trigger */
+#define RA_GPIO_CFG_EVENT_FALLING_EDGE    (0x00002000) /* Falling edge trigger */
+#define RA_GPIO_CFG_EVENT_BOTH_EDGES      (0x00003000) /* Both edge trigger */
+#define RA_GPIO_CFG_IRQ_ENABLE            (0x00004000) /* Enable IRQ */
+#define RA_GPIO_CFG_ANALOG_ENABLE         (0x00008000) /* Analog mode */
+#define RA_GPIO_CFG_PERIPHERAL_PIN        (0x00010000) /* Peripheral mode */
+
+/* Common GPIO Configuration Combinations */
+
+#define RA_GPIO_INPUT                     (RA_GPIO_CFG_INPUT)
+#define RA_GPIO_INPUT_PULLUP              (RA_GPIO_CFG_INPUT | RA_GPIO_CFG_PULLUP_ENABLE)
+#define RA_GPIO_OUTPUT                    (RA_GPIO_CFG_OUTPUT)
+#define RA_GPIO_OUTPUT_LOW                (RA_GPIO_CFG_OUTPUT | RA_GPIO_CFG_OUTPUT_LOW)
+#define RA_GPIO_OUTPUT_HIGH               (RA_GPIO_CFG_OUTPUT | RA_GPIO_CFG_OUTPUT_HIGH)
+#define RA_GPIO_OUTPUT_OPENDRAIN          (RA_GPIO_CFG_OUTPUT | RA_GPIO_CFG_NMOS_ENABLE)
+
+/* Peripheral Selection Values (PSEL field) */
+
+#define RA_GPIO_PSEL_IO                   (0x00) /* GPIO mode */
+#define RA_GPIO_PSEL_AGT                  (0x01) /* AGT peripheral */
+#define RA_GPIO_PSEL_GPT0                 (0x02) /* GPT0 peripheral */
+#define RA_GPIO_PSEL_GPT1                 (0x03) /* GPT1 peripheral */
+#define RA_GPIO_PSEL_SCI0_2_4_6_8         (0x04) /* SCI0/2/4/6/8 peripheral */
+#define RA_GPIO_PSEL_SCI1_3_5_7_9         (0x05) /* SCI1/3/5/7/9 peripheral */
+#define RA_GPIO_PSEL_SPI                  (0x06) /* SPI peripheral */
+#define RA_GPIO_PSEL_IIC                  (0x07) /* IIC peripheral */
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/

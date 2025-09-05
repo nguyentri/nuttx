@@ -92,6 +92,34 @@ void ra_gpiowrite(gpio_pinset_t pinset, bool value);
 
 bool ra_gpioread(gpio_pinset_t pinset);
 
+/****************************************************************************
+ * Name: ra_gpio_set_pullup
+ *
+ * Description:
+ *   Enable/disable pull-up resistor on GPIO pin
+ *
+ * Input Parameters:
+ *   pinset - GPIO pin configuration
+ *   enable - Enable pull-up (true=enable, false=disable)
+ *
+ ****************************************************************************/
+
+void ra_gpio_set_pullup(gpio_pinset_t pinset, bool enable);
+
+/****************************************************************************
+ * Name: ra_gpio_set_drive_strength
+ *
+ * Description:
+ *   Set GPIO pin drive strength
+ *
+ * Input Parameters:
+ *   pinset   - GPIO pin configuration
+ *   strength - Drive strength (0=low, 1=mid, 2=high)
+ *
+ ****************************************************************************/
+
+void ra_gpio_set_drive_strength(gpio_pinset_t pinset, uint8_t strength);
+
 #undef EXTERN
 #if defined(__cplusplus)
 }

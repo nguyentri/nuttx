@@ -90,7 +90,7 @@ struct ra8_adc_priv_s
   sem_t sem_excl;                     /* Mutual exclusion semaphore */
   uint32_t chanlist;                  /* Configured channel list */
   uint8_t nchannels;                  /* Number of configured channels */
-  
+
 #ifdef CONFIG_RA_ADC_DTC
   /* DTC related fields */
   bool dtc_enable;                    /* DTC transfer enabled */
@@ -518,7 +518,7 @@ static int ra8_adc_interrupt(int irq, FAR void *context, FAR void *arg)
               if (priv->chanlist & (1 << i))
                 {
                   data = ra8_adc_getreg(priv, RA_ADC_ADDR_OFFSET(i)) & 0xFFFF;
-                  
+
                   /* Call receive callback for each channel */
 
                   if (priv->cb && priv->cb->au_receive)
@@ -821,7 +821,7 @@ FAR struct adc_dev_s *ra8_adc_initialize(int intf, uint32_t chanlist,
       if (chanlist & ADC_CHANNEL_MASK(channels[i].channel))
         {
           ra_gpio_config(channels[i].pinmux);
-          ainfo("ADC%d: Configured pin for channel %d\n", 
+          ainfo("ADC%d: Configured pin for channel %d\n",
                 intf, channels[i].channel);
         }
     }

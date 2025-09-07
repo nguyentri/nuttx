@@ -340,6 +340,9 @@ const ra_init_info_t g_init_info =
 
 #endif /* CONFIG_RA_LINKER_C */
 
+/* Register protection counters (FSP-compatible) */
+static volatile uint16_t g_register_protect_counters[4] = {0};
+
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -429,6 +432,9 @@ void __start(void)
   /* Phase 3: Memory Initialization */
   /* 5. Initialize RAM Sections (BSS, data, TCM) */
   ra_ram_init(0);
+
+  /* Initialize GPIO security attribution */
+  ra_gpio_init_security_attribution();
 
   /* Phase 4: Low-level Hardware Setup */
   /* 6. Configure the uart so that we can get debug output as soon as possible */
@@ -721,3 +727,106 @@ void ra_delay_us(uint32_t delay_us)
     }
 }
 
+
+/****************************************************************************
+ * Name: ra_register_protect_enable
+ *
+ * Description:
+ *   Enable register protection (FSP-compatible implementation)
+ *
+ * Input Parameters:
+ *   regs_to_protect - Registers which have write protection enabled
+ *
+ ****************************************************************************/
+
+void ra_register_protect_enable(ra_reg_protect_t regs_to_protect)
+{
+  irqstate_t flags;
+  uint16_t prcr_masks[] = {0x0001, 0x0002, 0x0008, 0x0010};
+
+  flags = enter_critical_section();
+
+  /* Is it safe to disable write access? */
+  if (g_register_protect_counters[regs_to_protect] != 0)
+    {
+      g_register_protect_counters[regs_to_protect]--;
+    }
+
+  /* If counter reaches zero, enable protection */
+  if (g_register_protect_counters[regs_to_protect] == 0)
+    {
+      uint16_t prcr_value = getreg16(R_SYSTEM_PRCR);
+      prcr_value = (prcr_value | R_SYSTEM_PRCR_PRKEY) &
+                   (~prcr_masks[regs_to_protect]);
+      putreg16(prcr_value, R_SYSTEM_PRCR);
+    }
+
+  leave_critical_section(flags);
+}
+
+/****************************************************************************
+ * Name: ra_register_protect_disable
+ *
+ * Description:
+ *   Disable register protection (FSP-compatible implementation)
+ *
+ * Input Parameters:
+ *   regs_to_unprotect - Registers which have write protection disabled
+ *
+ ****************************************************************************/
+
+void ra_register_protect_disable(ra_reg_protect_t regs_to_unprotect)
+{
+  irqstate_t flags;
+  uint16_t prcr_masks[] = {0x0001, 0x0002, 0x0008, 0x0010};
+
+  flags = enter_critical_section();
+
+  /* If this is first entry then disable protection */
+  if (g_register_protect_counters[regs_to_unprotect] == 0)
+    {
+      uint16_t prcr_value = getreg16(R_SYSTEM_PRCR);
+      prcr_value = (prcr_value | R_SYSTEM_PRCR_PRKEY) |
+                   prcr_masks[regs_to_unprotect];
+      putreg16(prcr_value, R_SYSTEM_PRCR);
+    }
+
+  /* Increment the protect counter */
+  g_register_protect_counters[regs_to_unprotect]++;
+
+  leave_critical_section(flags);
+}
+
+
+/****************************************************************************
+ * Name: ra_gpio_init_security_attribution
+ *
+ * Description:
+ *   Initialize PMSAR and PSCU registers to their default values.
+ *   Sets all port pins to secure mode (0) as per FSP implementation.
+ *   Must be called before configuring any port pins.
+ *
+ ****************************************************************************/
+
+void ra_gpio_init_security_attribution(void)
+{
+  uint32_t i;
+
+  /* Disable register protection for SAR (Security Attribution Registers) */
+  ra_register_protect_disable(RA_REG_PROTECT_SAR);
+
+  /* Set all PMSAR registers to 0 (secure mode for all pins) */
+  for (i = 0; i < R_PMSAR_NUM; i++)
+    {
+      putreg16(0U, R_PMSAR(i));
+    }
+
+  /* Set all PSCU registers to 0 (secure mode) */
+  putreg32(0U, R_PSCU_PSARB);
+  putreg32(0U, R_PSCU_PSARC);
+  putreg32(0U, R_PSCU_PSARD);
+  putreg32(0U, R_PSCU_PSARE);
+
+  /* Re-enable register protection for SAR */
+  ra_register_protect_enable(RA_REG_PROTECT_SAR);
+}

@@ -93,6 +93,26 @@ void ra_gpiowrite(gpio_pinset_t pinset, bool value);
 bool ra_gpioread(gpio_pinset_t pinset);
 
 /****************************************************************************
+ * Name: ra_pin_access_enable
+ *
+ * Description:
+ *   Enable access to PFS registers (FSP-compatible)
+ *
+ ****************************************************************************/
+
+void ra_pin_access_enable(void);
+
+/****************************************************************************
+ * Name: ra_pin_access_disable
+ *
+ * Description:
+ *   Disable access to PFS registers (FSP-compatible)
+ *
+ ****************************************************************************/
+
+void ra_pin_access_disable(void);
+
+/****************************************************************************
  * Name: ra_gpio_set_pullup
  *
  * Description:

@@ -261,7 +261,7 @@ static int ra_i2c_slave_setaddress(struct i2c_slave_s *dev, int addr)
 
   /* Set slave address in SARL0/SARU0 registers */
   ra_i2c_slave_putreg(priv, RA_I2C_SARL0_OFFSET, (addr << 1) & 0xFE);
-  
+
   regval = ra_i2c_slave_getreg(priv, RA_I2C_SARU0_OFFSET);
   regval &= ~(I2C_SARU_SVA_MASK | I2C_SARU_FS);
   regval |= ((addr >> 7) & 0x03) << I2C_SARU_SVA_SHIFT;  /* Upper 2 bits */
@@ -413,7 +413,7 @@ static int ra_i2c_slave_init(struct ra_i2c_slave_priv_s *priv)
   ra_i2c_slave_putreg(priv, RA_I2C_ICMR3_OFFSET, I2C_ICMR3_NF_MASK); /* Enable noise filter */
 
   /* ICFER: Configure function enables */
-  ra_i2c_slave_putreg(priv, RA_I2C_ICFER_OFFSET, 
+  ra_i2c_slave_putreg(priv, RA_I2C_ICFER_OFFSET,
                       I2C_ICFER_TMOE |    /* Enable timeout */
                       I2C_ICFER_SALE |    /* Enable slave arbitration-lost detection */
                       I2C_ICFER_NFE |     /* Enable digital noise filter */
@@ -605,7 +605,7 @@ static int ra_i2c_slave_isr_eri(int irq, void *context, void *arg)
   priv->status = sr2;
 
   /* Clear error flags */
-  ra_i2c_slave_modifyreg(priv, RA_I2C_ICSR2_OFFSET, 
+  ra_i2c_slave_modifyreg(priv, RA_I2C_ICSR2_OFFSET,
                         I2C_ICSR2_AL | I2C_ICSR2_TMOF | I2C_ICSR2_NACKF, 0);
 
   /* Call callback if registered */
@@ -700,7 +700,7 @@ static int ra_i2c_slave_isr_address(int irq, void *context, void *arg)
   sr1 = ra_i2c_slave_getreg(priv, RA_I2C_ICSR1_OFFSET);
 
   /* Clear address match flags */
-  ra_i2c_slave_modifyreg(priv, RA_I2C_ICSR1_OFFSET, 
+  ra_i2c_slave_modifyreg(priv, RA_I2C_ICSR1_OFFSET,
                         I2C_ICSR1_AAS0 | I2C_ICSR1_AAS1 | I2C_ICSR1_AAS2, 0);
 
   /* Call callback if registered */
@@ -724,7 +724,7 @@ static int ra_i2c_slave_isr_address(int irq, void *context, void *arg)
  * Name: ra_i2c_slave_initialize
  *
  * Description:
- *   Initialize the selected I2C port in slave mode. And return a unique 
+ *   Initialize the selected I2C port in slave mode. And return a unique
  *   instance of struct i2c_slave_s.
  *
  * Input Parameters:

@@ -215,6 +215,23 @@
 #  endif
 #endif
 
+
+/* SYSTEM Control Register Bits */
+#define R_SYSTEM_PRCR_PRKEY               (0xA500)      /* Protection Key */
+#define R_SYSTEM_PRCR_PRC0                (1 << 0)      /* Protect bit 0 */
+#define R_SYSTEM_PRCR_PRC1                (1 << 1)      /* Protect bit 1 */
+#define R_SYSTEM_PRCR_PRC3                (1 << 3)      /* Protect bit 3 */
+#define R_SYSTEM_PRCR_PRC4                (1 << 4)      /* Protect bit 4 */
+
+/* Register Protection Types */
+typedef enum
+{
+    RA_REG_PROTECT_CGC = 0,            /* PRC0: Clock generation circuit */
+    RA_REG_PROTECT_OM_LPC_BATT,        /* PRC1: Operating mode, LPC, battery backup */
+    RA_REG_PROTECT_LVD,                /* PRC3: LVD */
+    RA_REG_PROTECT_SAR                 /* PRC4: SAR registers */
+} ra_reg_protect_t;
+
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
@@ -225,5 +242,39 @@ void ra_trustzone_init(void);
 void ra_vector_table_init(void);
 void ra_ram_init (const uint32_t external);
 void ra_delay_us(uint32_t delay_us);
+
+/****************************************************************************
+ * Name: ra_register_protect_enable
+ *
+ * Description:
+ *   Enable register protection (FSP-compatible)
+ *
+ ****************************************************************************/
+
+void ra_register_protect_enable(ra_reg_protect_t regs_to_protect);
+
+/****************************************************************************
+ * Name: ra_register_protect_disable
+ *
+ * Description:
+ *   Disable register protection (FSP-compatible)
+ *
+ ****************************************************************************/
+
+void ra_register_protect_disable(ra_reg_protect_t regs_to_unprotect);
+
+
+/****************************************************************************
+ * Name: ra_gpio_init_security_attribution
+ *
+ * Description:
+ *   Initialize PMSAR and PSCU registers to their default values.
+ *   Sets all port pins to secure mode (0) as per FSP implementation.
+ *   Must be called before configuring any port pins.
+ *
+ ****************************************************************************/
+
+void ra_gpio_init_security_attribution(void);
+
 
 #endif /* __ARCH_ARM_SRC_RA_START_H */

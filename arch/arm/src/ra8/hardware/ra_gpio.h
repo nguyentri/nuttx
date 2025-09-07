@@ -18,6 +18,21 @@
  *
  ****************************************************************************/
 
+/* Usage Example:
+ *
+ * // Configure P1_05 as output pin
+ * gpio_pinset_t led_pin = RA_GPIO_OUTPUT_PIN(1, 5);
+ * ra_gpio_config(led_pin);
+ *
+ * // Configure P0_03 as input with pull-up
+ * gpio_pinset_t button_pin = RA_GPIO_INPUT_PULLUP_PIN(0, 3);
+ * ra_gpio_config(button_pin);
+ *
+ * // Control GPIO pins
+ * ra_gpio_write(led_pin, true);     // Turn on LED
+ * bool button_state = ra_gpio_read(button_pin);  // Read button
+ */
+
 #ifndef __ARCH_ARM_SRC_RA_HARDWARE_RA_GPIO_H
 #define __ARCH_ARM_SRC_RA_HARDWARE_RA_GPIO_H
 
@@ -29,6 +44,7 @@
 
 #include "chip.h"
 #include "hardware/ra_memorymap.h"
+#include "hardware/ra_system.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -166,17 +182,10 @@
 #define R_PORT_EOSR_EOSR_SHIFT                (0) /* 01: Pmn Event Output Set */
 #define R_PORT_EOSR_EOSR_MASK                 (0xffff)
 
-/* PMISC - Miscellaneous Port Control Register */
-
-#define R_PMISC_PWPR_OFFSET               0x0003
-#define R_PMISC_PWPR                      (R_PMISC_BASE + R_PMISC_PWPR_OFFSET)
-#define R_PMISC_PWPR_B0WI                 (1 <<  7) /* 80: PFSWE Bit Write Disable */
-#define R_PMISC_PWPR_PFSWE                (1 <<  6) /* 40: PFS Register Write Enable */
-
-/* PFS - Pin Function Select Registers */
-
-#define R_PFS_PSEL_PORT_OFFSET            0x40    /* Offset between ports */
-#define R_PFS_PSEL_PIN_OFFSET             0x04    /* Offset between pins */
+#define RA_PRV_PFS_PSEL_OFFSET            (24)
+#define RA_PRV_8BIT_MASK                  (0xFF)
+#define RA_PFS_PDR_OUTPUT                 (4U)
+#define RA_PRV_PIN_WRITE_MASK             (0xFFFE3FFE)
 
 /* PFS Register Bit Definitions (avoid conflicts with ra8e1_pinmap.h) */
 
@@ -191,6 +200,8 @@
 #define RA_PFS_NCODR                      (1 <<  6) /* N-Channel Open Drain */
 #define RA_PFS_PCR                        (1 <<  4) /* Pull-up Control */
 #define RA_PFS_PDR                        (1 <<  2) /* Port Direction */
+
+/* GPIO Configuration Bit Fields */
 #define RA_PFS_PIDR                       (1 <<  1) /* Port Input Data */
 #define RA_PFS_PODR                       (1 <<  0) /* Port Output Data */
 
@@ -198,6 +209,36 @@
 
 #define RA_GPIO_CFG_INPUT                 (0x00000000) /* Input (default) */
 #define RA_GPIO_CFG_OUTPUT                (0x00000004) /* Output direction */
+
+#define RA_GPIO_CFG_PULLUP                (0x00000010) /* Enable pull-up resistor */
+#define RA_GPIO_CFG_OPENDRAIN             (0x00000040) /* Open-drain output */
+#define RA_GPIO_CFG_DRIVE_LOW             (0x00000000) /* Low drive strength */
+#define RA_GPIO_CFG_DRIVE_MID             (0x00000400) /* Mid drive strength */
+#define RA_GPIO_CFG_DRIVE_HIGH            (0x00000C00) /* High drive strength */
+
+/* GPIO Pin Configuration Macro */
+
+#define RA_GPIO_PIN_CFG(port, pin, cfg)   \
+  {                                       \
+    .port = (port),                       \
+    .pin = (pin),                         \
+    .cfg = (cfg)                          \
+  }
+
+/* Common GPIO Pin Configurations */
+
+#define RA_GPIO_INPUT_PIN(port, pin)      \
+  RA_GPIO_PIN_CFG(port, pin, RA_GPIO_CFG_INPUT)
+
+#define RA_GPIO_OUTPUT_PIN(port, pin)     \
+  RA_GPIO_PIN_CFG(port, pin, RA_GPIO_CFG_OUTPUT)
+
+#define RA_GPIO_INPUT_PULLUP_PIN(port, pin) \
+  RA_GPIO_PIN_CFG(port, pin, RA_GPIO_CFG_INPUT | RA_GPIO_CFG_PULLUP)
+
+#define RA_GPIO_OUTPUT_OPENDRAIN_PIN(port, pin) \
+  RA_GPIO_PIN_CFG(port, pin, RA_GPIO_CFG_OUTPUT | RA_GPIO_CFG_OPENDRAIN)
+
 #define RA_GPIO_CFG_OUTPUT_LOW            (0x00000000) /* Output low */
 #define RA_GPIO_CFG_OUTPUT_HIGH           (0x00000001) /* Output high */
 #define RA_GPIO_CFG_PULLUP_ENABLE         (0x00000010) /* Enable pull-up */

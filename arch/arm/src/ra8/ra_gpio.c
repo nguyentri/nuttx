@@ -24,6 +24,7 @@
 
 #include <nuttx/config.h>
 
+#include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <errno.h>
@@ -35,15 +36,15 @@
 
 #include "arm_internal.h"
 #include "chip.h"
+#include "ra_start.h"
 #include "ra_gpio.h"
 #include "hardware/ra_gpio.h"
-#include "hardware/ra_memorymap.h"
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
-/* PFS protection counter for safe register access */
+/* PFS protection counter for safe register access (FSP-compatible) */
 static volatile uint32_t g_pfs_protect_counter = 0;
 
 /****************************************************************************
@@ -51,67 +52,88 @@ static volatile uint32_t g_pfs_protect_counter = 0;
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ra_gpio_pfs_enable
+ * Name: ra_pin_access_enable
  *
  * Description:
- *   Enable access to PFS registers with protection counter
+ *   Enable access to PFS registers (FSP-compatible implementation)
+ *   Uses reference counter to protect against re-entrancy
  *
  ****************************************************************************/
 
-static void ra_gpio_pfs_enable(void)
+void ra_pin_access_enable(void)
 {
   irqstate_t flags;
 
   flags = enter_critical_section();
 
-  /* If this is the first entry, enable PFS writing */
+  /* If this is first entry then allow writing of PFS */
   if (g_pfs_protect_counter == 0)
     {
-      /* Clear BOWI bit - enable writing to PFSWE bit */
-      putreg8(0, R_PMISC_PWPR);
+      /* Clear BOWI bit - writing to PFSWE bit enabled */
+      putreg8(0, R_PMISC_PWPRS);
 
-      /* Set PFSWE bit - enable writing to PFS registers */
-      putreg8(R_PMISC_PWPR_PFSWE, R_PMISC_PWPR);
+      /* Set PFSWE bit - writing to PFS register enabled */
+      putreg8(R_PMISC_PWPRS_PFSWE, R_PMISC_PWPRS);
     }
 
-  /* Increment protect counter */
+  /* Increment the protect counter */
   g_pfs_protect_counter++;
 
   leave_critical_section(flags);
 }
 
 /****************************************************************************
- * Name: ra_gpio_pfs_disable
+ * Name: ra_pin_access_disable
  *
  * Description:
- *   Disable access to PFS registers with protection counter
+ *   Disable access to PFS registers (FSP-compatible implementation)
+ *   Uses reference counter to protect against re-entrancy
  *
  ****************************************************************************/
 
-static void ra_gpio_pfs_disable(void)
+void ra_pin_access_disable(void)
 {
   irqstate_t flags;
 
   flags = enter_critical_section();
 
-  /* Is it safe to disable PFS register access? */
-  if (g_pfs_protect_counter > 0)
+  /* Is it safe to disable PFS register? */
+  if (g_pfs_protect_counter != 0)
     {
-      /* Decrement the protect counter */
       g_pfs_protect_counter--;
     }
 
   /* If counter reaches zero, disable PFS writing */
   if (g_pfs_protect_counter == 0)
     {
-      /* Clear PFSWE bit - disable writing to PFS registers */
-      putreg8(0, R_PMISC_PWPR);
+      /* Clear PFSWE bit - writing to PFS register disabled */
+      putreg8(0, R_PMISC_PWPRS);
 
-      /* Set BOWI bit - disable writing to PFSWE bit */
-      putreg8(R_PMISC_PWPR_B0WI, R_PMISC_PWPR);
+      /* Set BOWI bit - writing to PFSWE bit disabled */
+      putreg8(R_PMISC_PWPRS_B0WI, R_PMISC_PWPRS);
     }
 
   leave_critical_section(flags);
+}
+
+/****************************************************************************
+ * Name: ra_gpio_validate_pin
+ *
+ * Description:
+ *   Validate port and pin numbers
+ *
+ * Input Parameters:
+ *   port - Port number (0-14)
+ *   pin  - Pin number (0-15)
+ *
+ * Returned Value:
+ *   true if valid, false otherwise
+ *
+ ****************************************************************************/
+
+static bool ra_gpio_validate_pin(uint8_t port, uint8_t pin)
+{
+  return (port <= 14 && pin <= 15);
 }
 
 /****************************************************************************
@@ -131,15 +153,21 @@ static void ra_gpio_pfs_write(uint8_t port, uint8_t pin, uint32_t value)
 {
   uint32_t pfs_addr;
 
+  /* Validate port and pin parameters */
+  if (!ra_gpio_validate_pin(port, pin))
+    {
+      return;
+    }
+
   /* Calculate PFS register address */
   pfs_addr = R_PFS_BASE + (port * R_PFS_PSEL_PORT_OFFSET) +
              (pin * R_PFS_PSEL_PIN_OFFSET);
 
   /* For peripheral functions, clear PMR first */
-  if ((value & R_PFS_PMR) != 0)
+  if ((value & RA_PFS_PMR) != 0)
     {
       /* Clear PMR bit first, keeping other settings */
-      putreg32(value & ~R_PFS_PMR, pfs_addr);
+      putreg32(value & ~RA_PFS_PMR, pfs_addr);
     }
 
   /* Write the complete configuration */
@@ -162,8 +190,16 @@ static void ra_gpio_pfs_write(uint8_t port, uint8_t pin, uint32_t value)
 
 static uint32_t ra_gpio_get_pfs_config(gpio_pinset_t cfgset)
 {
-  /* Simply return the cfg field from the structure */
-  return cfgset.cfg;
+  /* Return the cfg field from the structure with validation */
+  uint32_t pfs_value = cfgset.cfg;
+
+  /* Ensure PMR bit is cleared for GPIO mode to avoid conflicts */
+  if ((pfs_value & (0xFF << RA_PFS_PSEL_SHIFT)) == 0)
+    {
+      pfs_value &= ~RA_PFS_PMR;
+    }
+
+  return pfs_value;
 }
 
 /****************************************************************************
@@ -195,7 +231,7 @@ int ra_gpio_config(gpio_pinset_t cfgset)
   pin = cfgset.pin;
 
   /* Validate port and pin numbers */
-  if (port > 14 || pin > 15)
+  if (!ra_gpio_validate_pin(port, pin))
     {
       return -EINVAL;
     }
@@ -203,10 +239,10 @@ int ra_gpio_config(gpio_pinset_t cfgset)
   /* Convert to PFS configuration */
   pfs_value = ra_gpio_get_pfs_config(cfgset);
 
-  /* Configure the pin with PFS protection */
-  ra_gpio_pfs_enable();
+  /* Configure the pin with FSP-style protection */
+  ra_pin_access_enable();
   ra_gpio_pfs_write(port, pin, pfs_value);
-  ra_gpio_pfs_disable();
+  ra_pin_access_disable();
 
   return OK;
 }
@@ -233,7 +269,7 @@ void ra_gpio_write(gpio_pinset_t pinset, bool value)
   pin = pinset.pin;
 
   /* Validate port and pin numbers */
-  if (port > 14 || pin > 15)
+  if (!ra_gpio_validate_pin(port, pin))
     {
       return;
     }
@@ -274,7 +310,7 @@ bool ra_gpio_read(gpio_pinset_t pinset)
   pin = pinset.pin;
 
   /* Validate port and pin numbers */
-  if (port > 14 || pin > 15)
+  if (!ra_gpio_validate_pin(port, pin))
     {
       return false;
     }
@@ -317,8 +353,8 @@ void ra_gpio_set_direction(gpio_pinset_t pinset, bool direction)
   pfs_addr = R_PFS_BASE + (port * R_PFS_PSEL_PORT_OFFSET) +
              (pin * R_PFS_PSEL_PIN_OFFSET);
 
-  /* Modify direction bit with PFS protection */
-  ra_gpio_pfs_enable();
+  /* Modify direction bit with FSP-style protection */
+  ra_pin_access_enable();
 
   pfs_value = getreg32(pfs_addr);
   if (direction)
@@ -331,7 +367,7 @@ void ra_gpio_set_direction(gpio_pinset_t pinset, bool direction)
     }
   putreg32(pfs_value, pfs_addr);
 
-  ra_gpio_pfs_disable();
+  ra_pin_access_disable();
 }
 
 /****************************************************************************
@@ -367,8 +403,8 @@ void ra_gpio_set_pullup(gpio_pinset_t pinset, bool enable)
   pfs_addr = R_PFS_BASE + (port * R_PFS_PSEL_PORT_OFFSET) +
              (pin * R_PFS_PSEL_PIN_OFFSET);
 
-  /* Modify pull-up bit with PFS protection */
-  ra_gpio_pfs_enable();
+  /* Modify pull-up bit with FSP-style protection */
+  ra_pin_access_enable();
 
   pfs_value = getreg32(pfs_addr);
   if (enable)
@@ -381,7 +417,7 @@ void ra_gpio_set_pullup(gpio_pinset_t pinset, bool enable)
     }
   putreg32(pfs_value, pfs_addr);
 
-  ra_gpio_pfs_disable();
+  ra_pin_access_disable();
 }
 
 /****************************************************************************
@@ -417,8 +453,8 @@ void ra_gpio_set_drive_strength(gpio_pinset_t pinset, uint8_t strength)
   pfs_addr = R_PFS_BASE + (port * R_PFS_PSEL_PORT_OFFSET) +
              (pin * R_PFS_PSEL_PIN_OFFSET);
 
-  /* Modify drive strength bits with PFS protection */
-  ra_gpio_pfs_enable();
+  /* Modify drive strength bits with FSP-style protection */
+  ra_pin_access_enable();
 
   pfs_value = getreg32(pfs_addr);
 
@@ -442,7 +478,7 @@ void ra_gpio_set_drive_strength(gpio_pinset_t pinset, uint8_t strength)
 
   putreg32(pfs_value, pfs_addr);
 
-  ra_gpio_pfs_disable();
+  ra_pin_access_disable();
 }
 
 /****************************************************************************

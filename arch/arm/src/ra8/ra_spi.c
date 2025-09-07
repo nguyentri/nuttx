@@ -103,22 +103,22 @@ struct ra_spi_priv_s
 {
   /* Externally visible part of the SPI interface */
   struct spi_dev_s         spidev;
-  
+
   /* Port configuration */
   const struct ra_spi_config_s *config;
-  
+
   int                      refs;       /* Reference count */
   mutex_t                  lock;       /* Held while chip is selected for mutual exclusion */
   uint32_t                 frequency;  /* Requested clock frequency */
   uint32_t                 actual;     /* Actual clock frequency */
   uint8_t                  mode;       /* Mode 0,1,2,3 */
   uint8_t                  nbits;      /* Width of word in bits (8 or 16) */
-  
+
   /* DMA channels */
   bool                     use_dma;
   int                      dma_tx;     /* TX DMA channel */
   int                      dma_rx;     /* RX DMA channel */
-  
+
   /* Transfer state */
   sem_t                    waitsem;    /* Wait for transfer completion */
   const void              *txbuffer;   /* Source data */
@@ -126,7 +126,7 @@ struct ra_spi_priv_s
   size_t                   ntxwords;   /* Number of words to transfer */
   size_t                   nrxwords;   /* Number of words to receive */
   bool                     error;      /* Transfer error flag */
-  
+
 #ifdef CONFIG_PM
   struct pm_callback_s     pmcb;       /* PM callbacks */
 #endif
@@ -201,7 +201,7 @@ static const struct ra_spi_config_s ra_spi0_config =
   .irq_tei     = R_ICU_VECT(EVENT_SPI0_TEI),
   .irq_eri     = R_ICU_VECT(EVENT_SPI0_ERI),
   .mstpcrb_bit = R_MSTP_MSTPCRB_SPI0,
-  
+
   /* Pin configuration for FPB-RA8E1 */
   .sck_pin     = PIN_SPI0_SCK,     /* P611 */
   .miso_pin    = PIN_SPI0_MISO,    /* P610 */
@@ -235,7 +235,7 @@ static const struct ra_spi_config_s ra_spi1_config =
   .irq_tei     = R_ICU_VECT(EVENT_SPI1_TEI),
   .irq_eri     = R_ICU_VECT(EVENT_SPI1_ERI),
   .mstpcrb_bit = R_MSTP_MSTPCRB_SPI1,
-  
+
   /* Pin configuration */
   .sck_pin     = PIN_SPI1_SCK,
   .miso_pin    = PIN_SPI1_MISO,
@@ -352,7 +352,7 @@ static void ra_spi_writeword(struct ra_spi_priv_s *priv, uint16_t word)
 {
   /* Wait until the transmit buffer is empty */
   while ((ra_spi_getreg8(priv, RA_SPI_SPSR_OFFSET) & RA_SPI_SPSR_SPTEF) == 0);
-  
+
   /* Write the data */
   if (ra_spi_9to16bitmode(priv))
     {
@@ -376,7 +376,7 @@ static uint16_t ra_spi_readword(struct ra_spi_priv_s *priv)
 {
   /* Wait until receive buffer is full */
   while ((ra_spi_getreg8(priv, RA_SPI_SPSR_OFFSET) & RA_SPI_SPSR_SPRF) == 0);
-  
+
   /* Read the data */
   if (ra_spi_9to16bitmode(priv))
     {
@@ -413,7 +413,7 @@ static int ra_spi_dma_setup(struct ra_spi_priv_s *priv)
 {
   /* TODO: Implement DMA setup */
   spiinfo("DMA setup for SPI%d\n", priv->config->bus);
-  
+
   priv->use_dma = false;  /* Disable DMA for now */
   return OK;
 }
@@ -458,12 +458,12 @@ static int ra_spi_rxi_interrupt(int irq, void *context, void *arg)
 {
   struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)arg;
   uint16_t data;
-  
+
   DEBUGASSERT(priv != NULL);
-  
+
   /* Read received data */
   data = ra_spi_readword(priv);
-  
+
   if (priv->rxbuffer)
     {
       if (ra_spi_9to16bitmode(priv))
@@ -475,12 +475,12 @@ static int ra_spi_rxi_interrupt(int irq, void *context, void *arg)
           *((uint8_t *)priv->rxbuffer)++ = (uint8_t)data;
         }
     }
-  
+
   if (priv->nrxwords > 0)
     {
       priv->nrxwords--;
     }
-  
+
   /* Check if transfer is complete */
   if (priv->nrxwords == 0)
     {
@@ -488,11 +488,11 @@ static int ra_spi_rxi_interrupt(int irq, void *context, void *arg)
       uint8_t spcr = ra_spi_getreg8(priv, RA_SPI_SPCR_OFFSET);
       spcr &= ~RA_SPI_SPCR_SPRIE;
       ra_spi_putreg8(priv, RA_SPI_SPCR_OFFSET, spcr);
-      
+
       /* Wake up waiting thread */
       nxsem_post(&priv->waitsem);
     }
-  
+
   return OK;
 }
 
@@ -508,9 +508,9 @@ static int ra_spi_txi_interrupt(int irq, void *context, void *arg)
 {
   struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)arg;
   uint16_t data = 0xffff;
-  
+
   DEBUGASSERT(priv != NULL);
-  
+
   /* Get next word to transmit */
   if (priv->txbuffer && priv->ntxwords > 0)
     {
@@ -528,10 +528,10 @@ static int ra_spi_txi_interrupt(int irq, void *context, void *arg)
     {
       priv->ntxwords = 0;
     }
-  
+
   /* Write data */
   ra_spi_writeword(priv, data);
-  
+
   /* Check if transmission is complete */
   if (priv->ntxwords == 0)
     {
@@ -540,7 +540,7 @@ static int ra_spi_txi_interrupt(int irq, void *context, void *arg)
       spcr &= ~RA_SPI_SPCR_SPTIE;
       ra_spi_putreg8(priv, RA_SPI_SPCR_OFFSET, spcr);
     }
-  
+
   return OK;
 }
 
@@ -555,11 +555,11 @@ static int ra_spi_txi_interrupt(int irq, void *context, void *arg)
 static int ra_spi_tei_interrupt(int irq, void *context, void *arg)
 {
   struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)arg;
-  
+
   DEBUGASSERT(priv != NULL);
-  
+
   spiinfo("SPI%d transfer end interrupt\n", priv->config->bus);
-  
+
   return OK;
 }
 
@@ -575,37 +575,37 @@ static int ra_spi_eri_interrupt(int irq, void *context, void *arg)
 {
   struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)arg;
   uint8_t spsr;
-  
+
   DEBUGASSERT(priv != NULL);
-  
+
   spsr = ra_spi_getreg8(priv, RA_SPI_SPSR_OFFSET);
-  
+
   spierr("SPI%d error interrupt: SPSR=%02x\n", priv->config->bus, spsr);
-  
+
   if (spsr & RA_SPI_SPSR_OVRF)
     {
       spierr("SPI%d overrun error\n", priv->config->bus);
     }
-  
+
   if (spsr & RA_SPI_SPSR_MODF)
     {
       spierr("SPI%d mode fault error\n", priv->config->bus);
     }
-  
+
   if (spsr & RA_SPI_SPSR_PERF)
     {
       spierr("SPI%d parity error\n", priv->config->bus);
     }
-  
+
   if (spsr & RA_SPI_SPSR_UDRF)
     {
       spierr("SPI%d underrun error\n", priv->config->bus);
     }
-  
+
   /* Set error flag and wake up waiting thread */
   priv->error = true;
   nxsem_post(&priv->waitsem);
-  
+
   return OK;
 }
 
@@ -634,7 +634,7 @@ static int ra_spi_lock(struct spi_dev_s *dev, bool lock)
 {
   struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)dev;
   int ret;
-  
+
   if (lock)
     {
       ret = nxmutex_lock(&priv->lock);
@@ -643,7 +643,7 @@ static int ra_spi_lock(struct spi_dev_s *dev, bool lock)
     {
       ret = nxmutex_unlock(&priv->lock);
     }
-  
+
   return ret;
 }
 
@@ -669,64 +669,64 @@ static uint32_t ra_spi_setfrequency(struct spi_dev_s *dev, uint32_t frequency)
   uint32_t divisor;
   uint8_t spbr;
   uint8_t brdv = 0;
-  
+
   spiinfo("SPI%d frequency %d\n", priv->config->bus, frequency);
-  
+
   if (priv->frequency == frequency)
     {
       /* We are already at this frequency. Return the actual. */
       return priv->actual;
     }
-  
+
   /* Limit to maximum frequency */
   if (frequency > RA_SPI_MAX_FREQUENCY)
     {
       frequency = RA_SPI_MAX_FREQUENCY;
     }
-  
+
   /* Calculate the best divisor */
   /* The SPI bit rate is calculated as:
    * Bit rate = PCKB / (2 * (SPBR + 1) * 2^BRDV)
    */
-   
+
   divisor = (src_clk + frequency - 1) / frequency;
-  
+
   /* Find best BRDV and SPBR combination */
   for (brdv = 0; brdv < 4; brdv++)
     {
       uint32_t div_factor = 2 << brdv;  /* 2^(brdv+1) */
       uint32_t spbr_calc = (divisor + div_factor - 1) / (2 * div_factor) - 1;
-      
+
       if (spbr_calc <= 255)
         {
           spbr = (uint8_t)spbr_calc;
           break;
         }
     }
-  
+
   if (brdv >= 4)
     {
       /* Use maximum divisor */
       brdv = 3;
       spbr = 255;
     }
-  
+
   /* Calculate actual frequency */
   priv->actual = src_clk / (2 * (spbr + 1) * (2 << brdv));
   priv->frequency = frequency;
-  
-  spiinfo("SPI%d SPBR=%d BRDV=%d actual=%d\n", 
+
+  spiinfo("SPI%d SPBR=%d BRDV=%d actual=%d\n",
           priv->config->bus, spbr, brdv, priv->actual);
-  
+
   /* Set the bit rate register */
   ra_spi_putreg8(priv, RA_SPI_SPBR_OFFSET, spbr);
-  
+
   /* Update SPCMD0 with new BRDV */
   uint16_t spcmd0 = ra_spi_getreg16(priv, RA_SPI_SPCMD0_OFFSET);
   spcmd0 &= ~RA_SPI_SPCMD_BRDV_MASK;
   spcmd0 |= (brdv << RA_SPI_SPCMD_BRDV_SHIFT);
   ra_spi_putreg16(priv, RA_SPI_SPCMD0_OFFSET, spcmd0);
-  
+
   return priv->actual;
 }
 
@@ -749,41 +749,41 @@ static void ra_spi_setmode(struct spi_dev_s *dev, enum spi_mode_e mode)
 {
   struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)dev;
   uint16_t spcmd0;
-  
+
   spiinfo("SPI%d mode %d\n", priv->config->bus, mode);
-  
+
   if (priv->mode == mode)
     {
       /* We are already in this mode. */
       return;
     }
-  
+
   spcmd0 = ra_spi_getreg16(priv, RA_SPI_SPCMD0_OFFSET);
   spcmd0 &= ~(RA_SPI_SPCMD_CPOL | RA_SPI_SPCMD_CPHA);
-  
+
   switch (mode)
     {
       case SPIDEV_MODE0: /* CPOL=0; CPHA=0 */
         break;
-      
+
       case SPIDEV_MODE1: /* CPOL=0; CPHA=1 */
         spcmd0 |= RA_SPI_SPCMD_CPHA;
         break;
-      
+
       case SPIDEV_MODE2: /* CPOL=1; CPHA=0 */
         spcmd0 |= RA_SPI_SPCMD_CPOL;
         break;
-      
+
       case SPIDEV_MODE3: /* CPOL=1; CPHA=1 */
         spcmd0 |= (RA_SPI_SPCMD_CPOL | RA_SPI_SPCMD_CPHA);
         break;
-      
+
       default:
         spierr("SPI%d bad mode %d\n", priv->config->bus, mode);
         DEBUGASSERT(false);
         return;
     }
-  
+
   ra_spi_putreg16(priv, RA_SPI_SPCMD0_OFFSET, spcmd0);
   priv->mode = mode;
 }
@@ -808,15 +808,15 @@ static void ra_spi_setbits(struct spi_dev_s *dev, int nbits)
   struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)dev;
   uint16_t spcmd0;
   uint16_t spb_bits;
-  
+
   spiinfo("SPI%d nbits %d\n", priv->config->bus, nbits);
-  
+
   if (priv->nbits == nbits)
     {
       /* We are already at this bit width */
       return;
     }
-  
+
   /* Convert nbits to SPB field value */
   switch (nbits)
     {
@@ -842,12 +842,12 @@ static void ra_spi_setbits(struct spi_dev_s *dev, int nbits)
         spierr("SPI%d bad nbits %d\n", priv->config->bus, nbits);
         return;
     }
-  
+
   spcmd0 = ra_spi_getreg16(priv, RA_SPI_SPCMD0_OFFSET);
   spcmd0 &= ~RA_SPI_SPCMD_SPB_MASK;
   spcmd0 |= spb_bits;
   ra_spi_putreg16(priv, RA_SPI_SPCMD0_OFFSET, spcmd0);
-  
+
   priv->nbits = nbits;
 }
 
@@ -871,9 +871,9 @@ static void ra_spi_setbits(struct spi_dev_s *dev, int nbits)
 static int ra_spi_hwfeatures(struct spi_dev_s *dev, spi_hwfeatures_t features)
 {
   struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)dev;
-  
+
   spiinfo("SPI%d features %08x\n", priv->config->bus, features);
-  
+
   /* Other H/W features are not supported */
   return ((features & ~HWFEAT_FORCE_CS) == 0) ? OK : -ENOSYS;
 }
@@ -899,18 +899,18 @@ static uint32_t ra_spi_send(struct spi_dev_s *dev, uint32_t wd)
 {
   struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)dev;
   uint16_t ret;
-  
+
   DEBUGASSERT(priv != NULL);
-  
+
   /* Write the word to transmit */
   ra_spi_writeword(priv, (uint16_t)wd);
-  
+
   /* Read the received word */
   ret = ra_spi_readword(priv);
-  
-  spiinfo("SPI%d sent %08x received %04x\n", 
+
+  spiinfo("SPI%d sent %08x received %04x\n",
           priv->config->bus, wd, ret);
-  
+
   return (uint32_t)ret;
 }
 
@@ -941,59 +941,59 @@ static void ra_spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
   struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)dev;
   irqstate_t flags;
   uint8_t spcr;
-  
+
   DEBUGASSERT(priv != NULL);
-  
+
   spiinfo("SPI%d txbuffer=%p rxbuffer=%p nwords=%zu\n",
           priv->config->bus, txbuffer, rxbuffer, nwords);
-  
+
   if (nwords == 0)
     {
       return;
     }
-  
+
   /* Setup the transfer */
   priv->txbuffer = txbuffer;
   priv->rxbuffer = rxbuffer;
   priv->ntxwords = nwords;
   priv->nrxwords = nwords;
   priv->error = false;
-  
+
   /* Use DMA if enabled and transfer size is large enough */
   if (priv->use_dma && nwords >= 4)
     {
       ra_spi_dma_start(priv);
-      
+
       /* Wait for DMA completion */
       nxsem_wait_uninterruptible(&priv->waitsem);
-      
+
       ra_spi_dma_stop(priv);
     }
   else
     {
       /* Use interrupt-driven transfer */
       flags = enter_critical_section();
-      
+
       /* Enable interrupts */
       spcr = ra_spi_getreg8(priv, RA_SPI_SPCR_OFFSET);
       spcr |= (RA_SPI_SPCR_SPRIE | RA_SPI_SPCR_SPTIE | RA_SPI_SPCR_SPEIE);
       ra_spi_putreg8(priv, RA_SPI_SPCR_OFFSET, spcr);
-      
+
       leave_critical_section(flags);
-      
+
       /* Wait for transfer completion */
       nxsem_wait_uninterruptible(&priv->waitsem);
-      
+
       /* Disable interrupts */
       flags = enter_critical_section();
-      
+
       spcr = ra_spi_getreg8(priv, RA_SPI_SPCR_OFFSET);
       spcr &= ~(RA_SPI_SPCR_SPRIE | RA_SPI_SPCR_SPTIE | RA_SPI_SPCR_SPEIE);
       ra_spi_putreg8(priv, RA_SPI_SPCR_OFFSET, spcr);
-      
+
       leave_critical_section(flags);
     }
-  
+
   if (priv->error)
     {
       spierr("SPI%d transfer error\n", priv->config->bus);
@@ -1074,12 +1074,12 @@ static void ra_spi_recvblock(struct spi_dev_s *dev, void *rxbuffer,
 static int ra_spi_trigger(struct spi_dev_s *dev)
 {
   struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)dev;
-  
+
   if (!priv->use_dma)
     {
       return -ENOSYS;
     }
-  
+
   /* TODO: Implement trigger */
   return -ENOSYS;
 }
@@ -1104,68 +1104,68 @@ static void ra_spi_bus_initialize(struct ra_spi_priv_s *priv)
 {
   uint8_t regval;
   uint16_t regval16;
-  
+
   /* Configure GPIO pins for SPI */
   ra_gpio_config(priv->config->sck_pin);
   ra_gpio_config(priv->config->miso_pin);
   ra_gpio_config(priv->config->mosi_pin);
   ra_gpio_config(priv->config->cs0_pin);
   ra_gpio_config(priv->config->cs1_pin);
-  
+
   /* Enable SPI module */
   regval = getreg32(R_MSTP_MSTPCRB);
   regval &= ~priv->config->mstpcrb_bit;
   putreg32(regval, R_MSTP_MSTPCRB);
-  
+
   /* Disable SPI function */
   ra_spi_putreg8(priv, RA_SPI_SPCR_OFFSET, 0);
-  
+
   /* Configure as master mode */
   regval = RA_SPI_SPCR_MSTR | RA_SPI_SPCR_MODFEN;
   ra_spi_putreg8(priv, RA_SPI_SPCR_OFFSET, regval);
-  
+
   /* Set SSL polarity (active low) */
   ra_spi_putreg8(priv, RA_SPI_SSLP_OFFSET, 0x00);
-  
+
   /* Configure pin control register */
   ra_spi_putreg8(priv, RA_SPI_SPPCR_OFFSET, 0);
-  
+
   /* Set sequence length to 1 (using SPCMD0 only) */
   ra_spi_putreg8(priv, RA_SPI_SPSCR_OFFSET, 0);
-  
+
   /* Configure data control register for 32-bit access */
   ra_spi_putreg8(priv, RA_SPI_SPDCR_OFFSET, 0);
-  
+
   /* Set clock delays to 1 RSPCK */
   ra_spi_putreg8(priv, RA_SPI_SPCKD_OFFSET, 0);
   ra_spi_putreg8(priv, RA_SPI_SSLND_OFFSET, 0);
   ra_spi_putreg8(priv, RA_SPI_SPND_OFFSET, 0);
-  
+
   /* Configure SPCR2 */
   ra_spi_putreg8(priv, RA_SPI_SPCR2_OFFSET, 0);
-  
+
   /* Configure SPCMD0 for default settings */
   regval16 = RA_SPI_SPCMD_SPB_8        |  /* 8-bit data */
              RA_SPI_SPCMD_BRDV_1       |  /* No division */
              RA_SPI_SPCMD_SSLA_0;         /* Use SSL0 */
   ra_spi_putreg16(priv, RA_SPI_SPCMD0_OFFSET, regval16);
-  
+
   /* Set default bit rate to 1MHz */
   ra_spi_setfrequency(&priv->spidev, 1000000);
-  
+
   /* Set default configuration */
   priv->mode = SPIDEV_MODE0;
   priv->nbits = 8;
   priv->frequency = 1000000;
-  
+
   /* Setup DMA if configured */
   ra_spi_dma_setup(priv);
-  
+
   /* Enable SPI function */
   regval = ra_spi_getreg8(priv, RA_SPI_SPCR_OFFSET);
   regval |= RA_SPI_SPCR_SPE;
   ra_spi_putreg8(priv, RA_SPI_SPCR_OFFSET, regval);
-  
+
   spiinfo("SPI%d initialized\n", priv->config->bus);
 }
 
@@ -1190,9 +1190,9 @@ static void ra_spi_bus_initialize(struct ra_spi_priv_s *priv)
 struct spi_dev_s *ra_spibus_initialize(int bus)
 {
   struct ra_spi_priv_s *priv = NULL;
-  
+
   spiinfo("Initializing SPI%d\n", bus);
-  
+
 #ifdef CONFIG_RA_SPI0
   if (bus == 0)
     {
@@ -1205,34 +1205,34 @@ struct spi_dev_s *ra_spibus_initialize(int bus)
       priv = &ra_spi1_priv;
     }
 #endif
-  
+
   if (priv == NULL)
     {
       spierr("SPI%d not configured\n", bus);
       return NULL;
     }
-  
+
   /* Has the SPI hardware been initialized? */
   if (priv->refs == 0)
     {
       /* Initialize hardware */
       ra_spi_bus_initialize(priv);
-      
+
       /* Attach and enable interrupts */
       irq_attach(priv->config->irq_rxi, ra_spi_rxi_interrupt, priv);
       irq_attach(priv->config->irq_txi, ra_spi_txi_interrupt, priv);
       irq_attach(priv->config->irq_tei, ra_spi_tei_interrupt, priv);
       irq_attach(priv->config->irq_eri, ra_spi_eri_interrupt, priv);
-      
+
       up_enable_irq(priv->config->irq_rxi);
       up_enable_irq(priv->config->irq_txi);
       up_enable_irq(priv->config->irq_tei);
       up_enable_irq(priv->config->irq_eri);
     }
-  
+
   /* Increment reference count */
   priv->refs++;
-  
+
   return (struct spi_dev_s *)priv;
 }
 

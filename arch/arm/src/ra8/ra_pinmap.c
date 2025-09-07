@@ -56,8 +56,8 @@
 static inline void ra_pin_unlock(void)
 {
   /* Disable PFS protection */
-  putreg8(0, R_PMISC_PWPR);
-  putreg8(R_PMISC_PWPR_PFSWE, R_PMISC_PWPR);
+  putreg8(0, R_PMISC_PWPRS);
+  putreg8(R_PMISC_PWPRS_PFSWE, R_PMISC_PWPRS);
 }
 
 /****************************************************************************
@@ -71,8 +71,8 @@ static inline void ra_pin_unlock(void)
 static inline void ra_pin_lock(void)
 {
   /* Enable PFS protection */
-  putreg8(0, R_PMISC_PWPR);
-  putreg8(R_PMISC_PWPR_B0WI, R_PMISC_PWPR);
+  putreg8(0, R_PMISC_PWPRS);
+  putreg8(R_PMISC_PWPRS_B0WI, R_PMISC_PWPRS);
 }
 
 /****************************************************************************
@@ -337,7 +337,7 @@ int ra_pin_set_drive_strength(uint8_t port, uint8_t pin, uint8_t strength)
 
   regval = getreg32(regaddr);
   regval &= ~(R_PFS_DSCR | R_PFS_DSCR1);
-  
+
   if (strength & 0x01)
     {
       regval |= R_PFS_DSCR;

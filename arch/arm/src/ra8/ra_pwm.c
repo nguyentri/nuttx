@@ -63,7 +63,7 @@
 /* GPT Write Protection Key */
 #define GPT_GTWP_PRKEY                  0xA500
 
-#ifdef CONFIG_RA_GPT
+#ifdef CONFIG_RA_GPT_PWM
 /****************************************************************************
  * Private Types
  ****************************************************************************/

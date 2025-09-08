@@ -35,14 +35,12 @@
 #include <arch/irq.h>
 
 #include "nvic.h"
-#include "hardware/ra_gpt.h"
-#include "hardware/ra8e1/ra8e1_icu.h"
-#include "hardware/ra8e1/ra8e1_memorymap.h"
+#include "chip.h"
+#include "arm_internal.h"
 #include "ra_clock.h"
 #include "ra_icu.h"
 #include "ra_mstp.h"
-#include "arm_internal.h"
-#include "chip.h"
+#include "hardware/ra_gpt.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -51,12 +49,22 @@
 /*  GPT timer configuration */
 #ifdef CONFIG_RA_SYSTICK_GPT
 #  include "ra_mstp.h"
-#  define RA_TIMER_CLOCK    (RA_PCLKD_FREQUENCY)
-#  define RA_TIMER_RELOAD   ((RA_TIMER_CLOCK / CLK_TCK) - 1)
-#  define RA_GPT_CHANNEL    3  /* Use GPT3 for system timer */
-#  define RA_GPT_CHANNEL_BASE  RA_GPT3_BASE
-#  define RA_GPT_IRQ_EVENT     EVENT_GPT3_COUNTER_OVERFLOW
-#  define RA_GPT_ICU_SLOT      0  /* Use ICU slot 0 for GPT3 overflow */
+#  define RA_TIMER_CLOCK        (RA_PCLKD_FREQUENCY)
+#  define RA_TIMER_RELOAD       ((RA_TIMER_CLOCK / CLK_TCK) - 1)
+#  define RA_GPT_CHANNEL        (3)  /* Use GPT3 for system timer */
+#  define RA_GPT_CHANNEL_BASE   (RA_GPT3_BASE)
+#  define RA_GPT_GTWP           (RA_GPT_CHANNEL_BASE + RA_GPT_GTWP_OFFSET)
+#  define RA_GPT_GTSTR          (RA_GPT_CHANNEL_BASE + RA_GPT_GTSTR_OFFSET)
+#  define RA_GPT_GTSTP          (RA_GPT_CHANNEL_BASE + RA_GPT_GTSTP_OFFSET)
+#  define RA_GPT_GTCLR          (RA_GPT_CHANNEL_BASE + RA_GPT_GTCLR_OFFSET)
+#  define RA_GPT_GTCR           (RA_GPT_CHANNEL_BASE + RA_GPT_GTCR_OFFSET)
+#  define RA_GPT_GTPR           (RA_GPT_CHANNEL_BASE + RA_GPT_GTPR_OFFSET)
+#  define RA_GPT_GTINTAD        (RA_GPT_CHANNEL_BASE + RA_GPT_GTINTAD_OFFSET)
+#  define RA_GPT_GTST           (RA_GPT_CHANNEL_BASE + RA_GPT_GTST_OFFSET)
+#  define RA_GPT_GTCNT          (RA_GPT_CHANNEL_BASE + RA_GPT_GTCNT_OFFSET)
+#  if RA_TIMER_RELOAD > 0xFFFFFFFF
+#    error GPT timer reload value exceeds 32-bit range
+#  endif
 #else
 #  include "ra_clock.h"
 #  define SYSTICK_CLOCK     (RA_ICLK_FREQUENCY)
@@ -70,26 +78,6 @@
 #define SYSTICK_MAX 0x00ffffff
 #if defined(SYSTICK_RELOAD) && SYSTICK_RELOAD > SYSTICK_MAX
 #  error SYSTICK_RELOAD exceeds the range of the RELOAD register
-#endif
-
-/* FSP-based timer validation */
-#ifdef CONFIG_RA_SYSTICK_GPT
-#  if RA_TIMER_RELOAD > 0xFFFFFFFF
-#    error GPT timer reload value exceeds 32-bit range
-#  endif
-#endif
-
-/* GPT Register Addresses for specific channel */
-#ifdef CONFIG_RA_SYSTICK_GPT
-#  define RA_GPT_GTWP       (RA_GPT_CHANNEL_BASE + RA_GPT_GTWP_OFFSET)
-#  define RA_GPT_GTSTR      (RA_GPT_CHANNEL_BASE + RA_GPT_GTSTR_OFFSET)
-#  define RA_GPT_GTSTP      (RA_GPT_CHANNEL_BASE + RA_GPT_GTSTP_OFFSET)
-#  define RA_GPT_GTCLR      (RA_GPT_CHANNEL_BASE + RA_GPT_GTCLR_OFFSET)
-#  define RA_GPT_GTCR       (RA_GPT_CHANNEL_BASE + RA_GPT_GTCR_OFFSET)
-#  define RA_GPT_GTPR       (RA_GPT_CHANNEL_BASE + RA_GPT_GTPR_OFFSET)
-#  define RA_GPT_GTINTAD    (RA_GPT_CHANNEL_BASE + RA_GPT_GTINTAD_OFFSET)
-#  define RA_GPT_GTST       (RA_GPT_CHANNEL_BASE + RA_GPT_GTST_OFFSET)
-#  define RA_GPT_GTCNT      (RA_GPT_CHANNEL_BASE + RA_GPT_GTCNT_OFFSET)
 #endif
 
 /****************************************************************************
@@ -116,7 +104,7 @@ int ra_timer_arch_isr(int irq, uint32_t *regs, void *arg)
 
 #ifdef CONFIG_RA_SYSTICK_GPT
 /****************************************************************************
- * Function:  ra_timer_gpt_isr
+ * Function:  ra_systick_isr
  *
  * Description:
  *   GPT-based timer interrupt handler. Based on the working FSP GPT driver
@@ -124,7 +112,7 @@ int ra_timer_arch_isr(int irq, uint32_t *regs, void *arg)
  *
  ****************************************************************************/
 
-static int ra_timer_gpt_isr(int irq, uint32_t *regs, void *arg)
+static int ra_systick_isr(int irq, uint32_t *regs, void *arg)
 {
   uint32_t status;
 
@@ -154,19 +142,8 @@ static int ra_timer_gpt_isr(int irq, uint32_t *regs, void *arg)
 
   return 0;
 }
-#endif
-
-#ifndef CONFIG_RA_SYSTICK_GPT
-/****************************************************************************
- * Function:  ra_systick_isr
- *
- * Description:
- *   ARM Cortex-M85 SysTick interrupt handler for NuttX system timer.
- *   This function handles the SysTick exception generated when the
- *   SysTick counter reaches zero.
- *
- ****************************************************************************/
-
+#else
+/* ARM Cortex-M85 SysTick interrupt handler for NuttX system timer */
 static int ra_systick_isr(int irq, uint32_t *regs, void *arg)
 {
   /* SysTick interrupt is acknowledged automatically by reading the
@@ -194,11 +171,11 @@ static int ra_systick_isr(int irq, uint32_t *regs, void *arg)
  *
  ****************************************************************************/
 
+#ifdef CONFIG_RA_SYSTICK_GPT
 void up_timer_initialize(void)
 {
   uint32_t regval;
 
-#ifdef CONFIG_RA_SYSTICK_GPT
   /* GPT-based timer initialization using GPT3 - Following FSP best practices */
 
   /* Enable GPT3 module clock */
@@ -230,13 +207,13 @@ void up_timer_initialize(void)
   putreg32(0, RA_GPT_GTST);
 
   /* Set up ICU event linking for GPT3 overflow interrupt */
-  ra_icu_set_event(RA_GPT_ICU_SLOT, RA_GPT_IRQ_EVENT);
+  ra_icu_set_event(RA_ICU_SLOT_GPT3, RA_EL_EVENT_GPT3_COUNTER_OVERFLOW);
 
   /* Attach the GPT interrupt vector */
-  irq_attach(RA_GPT_ICU_SLOT, (xcpt_t)ra_timer_gpt_isr, NULL);
+  irq_attach(RA_ICU_SLOT_GPT3, (xcpt_t)ra_systick_isr, NULL);
 
   /* Enable GPT interrupt */
-  up_enable_irq(RA_GPT_ICU_SLOT);
+  up_enable_irq(RA_ICU_SLOT_GPT3);
 
   /* Re-enable write protection - FSP safety practice */
   regval = GPT_GTWP_PRKEY;  /* Remove WP bit but keep key */
@@ -247,9 +224,12 @@ void up_timer_initialize(void)
 
   tmrinfo("GPT3 timer configured: reload=0x%08x, clock=%u Hz, rate=%u Hz\n",
           RA_TIMER_RELOAD, RA_TIMER_CLOCK, CLK_TCK);
-
+}
 #else
-  /* Standard ARM Cortex-M85 SysTick configuration */
+/* Standard ARM Cortex-M85 SysTick configuration */
+void up_timer_initialize(void)
+{
+  uint32_t regval;
 
   /* Disable SysTick during setup */
   putreg32(0, NVIC_SYSTICK_CTRL);
@@ -282,8 +262,8 @@ void up_timer_initialize(void)
 
   tmrinfo("SysTick configured: reload=0x%08x, clock=%u Hz, rate=%u Hz\n",
           SYSTICK_RELOAD, SYSTICK_CLOCK, CLK_TCK);
-#endif
 }
+#endif
 
 /****************************************************************************
  * Function:  up_timer_gettime
@@ -603,10 +583,4 @@ int up_timer_start(const struct timespec *ts)
 
   return OK;
 }
-#endif
-
-#ifdef CONFIG_RA_SYSTICK_GPT
-#  ifndef EVENT_GPT3_COUNTER_OVERFLOW
-#    warning "EVENT_GPT3_COUNTER_OVERFLOW not defined; verify IRQ mapping for GPT3"
-#  endif
 #endif

@@ -29,11 +29,6 @@
 
 #include "chip.h"
 #include "hardware/ra_memorymap.h"
-#if defined(CONFIG_RA8E1_GROUP)
-#  include "ra8e1/ra8e1_icu.h"
-#else
-#  error "Unsupported RA memory map"
-#endif
 
 /****************************************************************************
  * Pre-processor Definitions

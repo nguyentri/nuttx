@@ -16,7 +16,7 @@ The demo provides real-time control of up to 4 ESCs via PWM signals with the fol
 
 ### PWM Channel Mapping
 - **ESC1**: PWM Channel 0 (`/dev/pwm0`) - GPT0
-- **ESC2**: PWM Channel 1 (`/dev/pwm1`) - GPT1  
+- **ESC2**: PWM Channel 1 (`/dev/pwm1`) - GPT1
 - **ESC3**: PWM Channel 2 (`/dev/pwm2`) - GPT2
 - **ESC4**: PWM Channel 3 (`/dev/pwm3`) - GPT3
 
@@ -56,7 +56,7 @@ nsh> ra8e1_pwm_demo
 - `status` - Display current ESC status
 - `stop` - Stop the demo
 
-#### ESC Control Commands  
+#### ESC Control Commands
 - `arm` - Arm all ESCs (set to minimum throttle)
 - `disarm` - Disarm all ESCs (stop PWM output)
 - `arm<N>` - Arm specific ESC (N = 1-4)
@@ -66,7 +66,7 @@ nsh> ra8e1_pwm_demo
 
 ```
 > help                 # Show menu
-> arm                  # Arm all ESCs  
+> arm                  # Arm all ESCs
 > esc1 25              # Set ESC1 to 25% throttle
 > esc2 50              # Set ESC2 to 50% throttle
 > esc3 0               # Set ESC3 to 0% throttle
@@ -119,12 +119,12 @@ ERROR: Failed to open /dev/pwm0: 2
 
 #### Permission Denied
 ```
-ERROR: Failed to open /dev/pwm0: 13  
+ERROR: Failed to open /dev/pwm0: 13
 ```
 **Solution**: Ensure demo runs with appropriate privileges
 
 #### No RTT Input
-**Solution**: 
+**Solution**:
 - Verify Segger RTT connection
 - Check RTT buffer configuration
 - Use J-Link RTT Viewer for input
@@ -143,7 +143,6 @@ Required config options:
 ```
 CONFIG_RA8E1_PWM_ESCS_DEMO=y
 CONFIG_PWM=y
-CONFIG_RA_GPT=y
 CONFIG_RA_GPT_PWM=y
 ```
 

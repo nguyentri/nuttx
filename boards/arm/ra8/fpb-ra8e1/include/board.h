@@ -35,7 +35,13 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* Clocking for FPB-RA8E1 Board ***********************************************/
+/* Interrupt slots used */
+#define RA_ICU_SLOT_GPT3    (RA_IRQ_FIRST + __COUNTER__) /* Use ICU slot 0 for GPT3 overflow */
+
+#define RA_ICU_SLOT_SCI2_RX (RA_IRQ_FIRST + __COUNTER__)  /* Receive data full */
+#define RA_ICU_SLOT_SCI2_TX (RA_IRQ_FIRST + __COUNTER__)  /* Transmit data empty */
+#define RA_ICU_SLOT_SCI2_TE (RA_IRQ_FIRST + __COUNTER__)  /* Transmit end */
+#define RA_ICU_SLOT_SCI2_ER (RA_IRQ_FIRST + __COUNTER__)  /* Receive error */
 
 /* Alternate function pin selections */
 
@@ -92,7 +98,6 @@
 #define LED_PANIC         3  /* The system has crashed     N/C   BLINK */
 #define LED_IDLE          3  /* MCU is in sleep mode       ----  Not used ---- */
 
-/* Enhanced UART+DMA Driver Configuration **********************************/
 
 /* GPIO Pin Definitions for Enhanced UART Driver ***********************/
 
@@ -108,15 +113,6 @@
 #  define GPIO_UART3_TXD    IOPORT_CFG(PORT_2, PIN_0, IOPORT_CFG_PERIPHERAL_PIN | IOPORT_PERIPHERAL_SCI1_3_5_7_9)
 #endif
 
-/* DMA Channel Assignments **********************************************/
-
-/* DMA channels for UART (if DMA is enabled) */
-#ifdef CONFIG_RA_SCI_UART_DMA_ENABLE
-#  define UART2_RX_DMA_CHANNEL    0
-#  define UART2_TX_DMA_CHANNEL    1
-#  define UART3_RX_DMA_CHANNEL    2
-#  define UART3_TX_DMA_CHANNEL    3
-#endif
 
 /* Clock Configuration **************************************************/
 
@@ -143,22 +139,6 @@
 #  define UART3_DEFAULT_STOPBITS  1
 #  define UART3_DEFAULT_INVERTED  false
 #endif
-
-/* Interrupt Priority Levels *******************************************/
-
-/* UART interrupt priorities (based on FSP reference) */
-#define UART_IRQ_PRIORITY         12  /* Medium priority */
-
-/* DMA interrupt priorities */
-#ifdef CONFIG_RA_SCI_UART_DMA_ENABLE
-#  define DMA_IRQ_PRIORITY        3   /* Lower priority than UART */
-#endif
-
-/* ID_CODE */
-#define IDCODE1   0xFFFFFFFF
-#define IDCODE2   0xFFFFFFFF
-#define IDCODE3   0xFFFFFFFF
-#define IDCODE4   0xFFFFFFFF
 
 /* User Button - SW1 on P009 using IRQ13 */
 #define GPIO_SW1         (gpio_pinset_t){ PORT0, PIN9, (GPIO_INPUT | GPIO_PULLUP | GPIO_INT_FALLING)}

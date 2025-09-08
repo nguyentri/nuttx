@@ -63,7 +63,7 @@
 int ra_dmac_initialize(void)
 {
   /* TODO: Implement DMAC initialization */
-  
+
   return 0;  /* OK */
 }
 
@@ -78,7 +78,7 @@ int ra_dmac_initialize(void)
 int ra_dmac_channel_alloc(void)
 {
   /* TODO: Implement DMAC channel allocation */
-  
+
   return -1;  /* ENOSYS */
 }
 
@@ -93,7 +93,7 @@ int ra_dmac_channel_alloc(void)
 int ra_dmac_channel_free(int channel)
 {
   /* TODO: Implement DMAC channel free */
-  
+
   (void)channel;  /* Suppress unused parameter warning */
   return 0;  /* OK */
 }
@@ -109,12 +109,12 @@ int ra_dmac_channel_free(int channel)
 int ra_dmac_start(int channel, uint32_t src, uint32_t dst, uint32_t len)
 {
   /* TODO: Implement DMAC transfer start */
-  
+
   (void)channel;  /* Suppress unused parameter warnings */
   (void)src;
   (void)dst;
   (void)len;
-  
+
   return -1;  /* ENOSYS */
 }
 
@@ -129,7 +129,7 @@ int ra_dmac_start(int channel, uint32_t src, uint32_t dst, uint32_t len)
 int ra_dmac_stop(int channel)
 {
   /* TODO: Implement DMAC transfer stop */
-  
+
   (void)channel;  /* Suppress unused parameter warning */
   return 0;  /* OK */
 }

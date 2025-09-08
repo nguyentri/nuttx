@@ -434,7 +434,7 @@ void __start(void)
   ra_ram_init(0);
 
   /* Initialize GPIO security attribution */
-  ra_gpio_init_security_attribution();
+  ra_gpio_security_init();
 
   /* Phase 4: Low-level Hardware Setup */
   /* 6. Configure the uart so that we can get debug output as soon as possible */
@@ -799,7 +799,7 @@ void ra_register_protect_disable(ra_reg_protect_t regs_to_unprotect)
 
 
 /****************************************************************************
- * Name: ra_gpio_init_security_attribution
+ * Name: ra_gpio_security_init
  *
  * Description:
  *   Initialize PMSAR and PSCU registers to their default values.
@@ -808,7 +808,7 @@ void ra_register_protect_disable(ra_reg_protect_t regs_to_unprotect)
  *
  ****************************************************************************/
 
-void ra_gpio_init_security_attribution(void)
+void ra_gpio_security_init(void)
 {
   uint32_t i;
 

@@ -37,66 +37,87 @@
 
 typedef enum
 {
+  /* MSTPCRA register modules */
+  RA_MSTP_UNNECESSARY = 0,  /* MSTPA0: Unnecessary Circuit */
+  RA_MSTP_SRAM1,            /* MSTPA1: SRAM1 */
+  RA_MSTP_STANDBY_SRAM,     /* MSTPA15: Standby SRAM */
+  RA_MSTP_DMAC_DTC,         /* MSTPA22: DMA Controller and Data Transfer Controller */
+
   /* MSTPCRB register modules */
-  RA_MSTP_SCI0 = 0,
-  RA_MSTP_SCI1,
-  RA_MSTP_SCI2,
-  RA_MSTP_SCI3,
-  RA_MSTP_SCI4,
-  RA_MSTP_SCI5,
-  RA_MSTP_SCI6,
-  RA_MSTP_SCI7,
-  RA_MSTP_SCI8,
-  RA_MSTP_SCI9,
-  RA_MSTP_SPI0,
-  RA_MSTP_SPI1,
-  RA_MSTP_USBFS,
-  RA_MSTP_IIC0,
-  RA_MSTP_IIC1,
-  RA_MSTP_IIC2,
-  RA_MSTP_CANFD,
+  RA_MSTP_SCI0,             /* MSTPB31: Serial Communication Interface 0 */
+  RA_MSTP_SCI1,             /* MSTPB30: Serial Communication Interface 1 */
+  RA_MSTP_SCI2,             /* MSTPB29: Serial Communication Interface 2 */
+  RA_MSTP_SCI3,             /* MSTPB28: Serial Communication Interface 3 */
+  RA_MSTP_SCI4,             /* MSTPB27: Serial Communication Interface 4 */
+  RA_MSTP_SCI9,             /* MSTPB22: Serial Communication Interface 9 */
+  RA_MSTP_SPI0,             /* MSTPB19: Serial Peripheral Interface 0 */
+  RA_MSTP_SPI1,             /* MSTPB18: Serial Peripheral Interface 1 */
+  RA_MSTP_SCI10,            /* MSTPB16: SCI Communication Interface 10 */
+  RA_MSTP_ETHERCAT,         /* MSTPB15: EtherCAT */
+  RA_MSTP_USBFS,            /* MSTPB11: Universal Serial Bus 2.0 FS Interface */
+  RA_MSTP_IIC0,             /* MSTPB9: I2C Bus Interface 0 */
+  RA_MSTP_IIC1,             /* MSTPB8: I2C Bus Interface 1 */
 
   /* MSTPCRC register modules */
-  RA_MSTP_SCE5,
-  RA_MSTP_TRNG,
-  RA_MSTP_JPEG,
-  RA_MSTP_EDMAC0,
-  RA_MSTP_ELC,
-  RA_MSTP_DOC,
-  RA_MSTP_SSIE0,
-  RA_MSTP_SLCDC,
-  RA_MSTP_CTSU,
-  RA_MSTP_CRC,
-  RA_MSTP_CAC,
+  RA_MSTP_SCE5,             /* MSTPC31: Renesas Secure IP */
+  RA_MSTP_CANFD0,           /* MSTPC27: Controller Area Network with Flexible Data-Rate 0 */
+  RA_MSTP_CANFD1,           /* MSTPC26: Controller Area Network with Flexible Data-Rate 1 */
+  RA_MSTP_CEU,              /* MSTPC16: Capture Engine Unit */
+  RA_MSTP_ELC,              /* MSTPC14: Event Link Controller */
+  RA_MSTP_DOC,              /* MSTPC13: Data Operation Circuit */
+  RA_MSTP_SSIE0,            /* MSTPC8: Serial Sound Interface Enhanced 0 */
+  RA_MSTP_SSIE1,            /* MSTPC7: Serial Sound Interface Enhanced 1 */
+  RA_MSTP_CRC,              /* MSTPC1: Cyclic Redundancy Check Calculator */
+  RA_MSTP_CAC,              /* MSTPC0: Clock Frequency Accuracy Measurement Circuit */
 
   /* MSTPCRD register modules */
-  RA_MSTP_OPAMP,
-  RA_MSTP_ACMPLP,
-  RA_MSTP_ACMPHS,
-  RA_MSTP_ULPT1,
-  RA_MSTP_ULPT0,
-  RA_MSTP_CEU,
-  RA_MSTP_DAC12,
-  RA_MSTP_DAC8,
-  RA_MSTP_TSN,
-  RA_MSTP_ADC1,
-  RA_MSTP_ADC0,
-  RA_MSTP_POEG,
-  RA_MSTP_GPT_1,
-  RA_MSTP_GPT_2,
-  RA_MSTP_AGT0,
-  RA_MSTP_AGT1,
+  RA_MSTP_ACMPHS0,          /* MSTPD28: High-Speed Analog Comparator 0 */
+  RA_MSTP_ACMPHS1,          /* MSTPD27: High-Speed Analog Comparator 1 */
+  RA_MSTP_TSN,              /* MSTPD22: Temperature Sensor */
+  RA_MSTP_DAC12,            /* MSTPD20: 12-bit D/A Converter */
+  RA_MSTP_ADC0,             /* MSTPD16: 12-bit A/D Converter 0 */
+  RA_MSTP_ADC1,             /* MSTPD15: 12-bit A/D Converter 1 */
+  RA_MSTP_POEG0,            /* MSTPD14: Port Output Enable for GPT Group A */
+  RA_MSTP_POEG1,            /* MSTPD13: Port Output Enable for GPT Group B */
+  RA_MSTP_POEG2,            /* MSTPD12: Port Output Enable for GPT Group C */
+  RA_MSTP_POEG3,            /* MSTPD11: Port Output Enable for GPT Group D */
+  RA_MSTP_AGT0,             /* MSTPD5: Low Power Asynchronous General Purpose Timer 0 */
+  RA_MSTP_AGT1,             /* MSTPD4: Low Power Asynchronous General Purpose Timer 1 */
+
+  /* MSTPCRE register modules */
+  RA_MSTP_GPT0,             /* MSTPE31: General PWM Timer 0 */
+  RA_MSTP_GPT1,             /* MSTPE30: General PWM Timer 1 */
+  RA_MSTP_GPT2,             /* MSTPE29: General PWM Timer 2 */
+  RA_MSTP_GPT3,             /* MSTPE28: General PWM Timer 3 */
+  RA_MSTP_GPT4,             /* MSTPE27: General PWM Timer 4 */
+  RA_MSTP_GPT5,             /* MSTPE26: General PWM Timer 5 */
+  RA_MSTP_GPT10,            /* MSTPE21: General PWM Timer 10 */
+  RA_MSTP_GPT11,            /* MSTPE20: General PWM Timer 11 */
+  RA_MSTP_GPT12,            /* MSTPE19: General PWM Timer 12 */
+  RA_MSTP_GPT13,            /* MSTPE18: General PWM Timer 13 */
+  RA_MSTP_ULPT0,            /* MSTPE9: Ultra-Low Power Timer 0 */
+  RA_MSTP_ULPT1,            /* MSTPE8: Ultra-Low Power Timer 1 */
 
   RA_MSTP_MAX_MODULE
 } ra_mstp_module_t;
+
+/* Compatibility aliases */
+#define RA_MSTP_CANFD             RA_MSTP_CANFD0
+#define RA_MSTP_SSI0              RA_MSTP_SSIE0
+#define RA_MSTP_SSI1              RA_MSTP_SSIE1
+#define RA_MSTP_ACMPHS            RA_MSTP_ACMPHS0
+#define RA_MSTP_POEG              RA_MSTP_POEG0
+#define RA_MSTP_DAC               RA_MSTP_DAC12
 
 /* MSTP status structure */
 
 typedef struct
 {
+  uint32_t mstpcra;    /* MSTPCRA register value */
   uint32_t mstpcrb;    /* MSTPCRB register value */
   uint32_t mstpcrc;    /* MSTPCRC register value */
   uint32_t mstpcrd;    /* MSTPCRD register value */
+  uint32_t mstpcre;    /* MSTPCRE register value */
 } ra_mstp_status_t;
 
 /****************************************************************************

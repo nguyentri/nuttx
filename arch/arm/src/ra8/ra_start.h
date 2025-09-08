@@ -265,7 +265,7 @@ void ra_register_protect_disable(ra_reg_protect_t regs_to_unprotect);
 
 
 /****************************************************************************
- * Name: ra_gpio_init_security_attribution
+ * Name: ra_gpio_security_init
  *
  * Description:
  *   Initialize PMSAR and PSCU registers to their default values.
@@ -274,7 +274,7 @@ void ra_register_protect_disable(ra_reg_protect_t regs_to_unprotect);
  *
  ****************************************************************************/
 
-void ra_gpio_init_security_attribution(void);
+void ra_gpio_security_init(void);
 
 
 #endif /* __ARCH_ARM_SRC_RA_START_H */

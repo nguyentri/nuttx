@@ -125,7 +125,7 @@ struct ra_i2c_priv_s
 #endif
 
   uint32_t status;        /* End of transfer SR2|SR1 status */
-  
+
   /* DTC support */
   bool     use_dtc;       /* DTC enable flag */
   uint32_t dtc_rx_handle; /* DTC RX handle */
@@ -142,7 +142,7 @@ static int ra_i2c_setaddress(struct i2c_master_s *dev, int addr, int nbits);
 static int ra_i2c_write(struct i2c_master_s *dev, const uint8_t *buffer, int buflen);
 static int ra_i2c_read(struct i2c_master_s *dev, uint8_t *buffer, int buflen);
 #ifdef CONFIG_I2C_WRITEREAD
-static int ra_i2c_writeread(struct i2c_master_s *dev, const uint8_t *wbuffer, 
+static int ra_i2c_writeread(struct i2c_master_s *dev, const uint8_t *wbuffer,
                            int wbuflen, uint8_t *rbuffer, int rbuflen);
 #endif
 #ifdef CONFIG_I2C_TRANSFER
@@ -395,21 +395,21 @@ static uint32_t ra_i2c_setfrequency(struct i2c_master_s *dev, uint32_t frequency
   /* Calculate clock source divider and bit rate registers
    * I2C frequency = PCLKB / (2^(CKS+1) * (BRH + BRL + 2))
    */
-  
+
   /* Start with CKS = 0 (PCLKB/1) */
   for (cks = 0; cks <= 7; cks++)
     {
       uint32_t divisor = 1 << (cks + 1);
       uint32_t scl_freq = pclkb_freq / divisor;
       uint32_t total_count = scl_freq / frequency;
-      
+
       if (total_count >= 4 && total_count <= 514) /* BRH + BRL + 2 can be 4 to 514 */
         {
           /* Split total count between BRH and BRL */
           uint32_t bit_rate = total_count - 2;
           brh = bit_rate / 2;
           brl = bit_rate - brh;
-          
+
           /* Ensure BRH and BRL are in valid range (0-255) */
           if (brh <= 255 && brl <= 255)
             {
@@ -874,7 +874,7 @@ static int ra_i2c_transfer(struct i2c_master_s *dev, struct i2c_msg_s *msgs, int
         {
           /* Reading - switch to receive mode after address */
           ra_i2c_modifyreg(priv, RA_I2C_ICCR2_OFFSET, I2C_ICCR2_TRS, 0);
-          
+
           /* Dummy read to start reception */
           (void)ra_i2c_getreg(priv, RA_I2C_ICDRR_OFFSET);
 
@@ -994,7 +994,7 @@ static int ra_i2c_init(struct ra_i2c_priv_s *priv)
   ra_i2c_putreg(priv, RA_I2C_ICMR3_OFFSET, I2C_ICMR3_NF_MASK); /* Enable noise filter */
 
   /* ICFER: Configure function enables */
-  ra_i2c_putreg(priv, RA_I2C_ICFER_OFFSET, 
+  ra_i2c_putreg(priv, RA_I2C_ICFER_OFFSET,
                 I2C_ICFER_TMOE |    /* Enable timeout */
                 I2C_ICFER_MALE |    /* Enable master arbitration-lost detection */
                 I2C_ICFER_NALE |    /* Enable NACK arbitration-lost detection */
@@ -1171,7 +1171,7 @@ static int ra_i2c_isr_eri(int irq, void *context, void *arg)
   priv->status = sr2;
 
   /* Clear error flags */
-  ra_i2c_modifyreg(priv, RA_I2C_ICSR2_OFFSET, 
+  ra_i2c_modifyreg(priv, RA_I2C_ICSR2_OFFSET,
                   I2C_ICSR2_AL | I2C_ICSR2_TMOF | I2C_ICSR2_NACKF, 0);
 
   /* Signal semaphore to wake up waiting thread */
@@ -1292,10 +1292,10 @@ static int ra_i2c_dtc_setup(struct ra_i2c_priv_s *priv)
 {
   /* TODO: Implement DTC setup for I2C */
   i2cinfo("DTC setup for I2C%d\n", priv->config->bus);
-  
+
   /* For now, disable DTC until full implementation */
   priv->use_dtc = false;
-  
+
   return OK;
 }
 
@@ -1313,7 +1313,7 @@ static int ra_i2c_dtc_start_rx(struct ra_i2c_priv_s *priv, uint8_t *buffer, uint
   UNUSED(priv);
   UNUSED(buffer);
   UNUSED(len);
-  
+
   return -ENOSYS;
 }
 
@@ -1331,7 +1331,7 @@ static int ra_i2c_dtc_start_tx(struct ra_i2c_priv_s *priv, const uint8_t *buffer
   UNUSED(priv);
   UNUSED(buffer);
   UNUSED(len);
-  
+
   return -ENOSYS;
 }
 

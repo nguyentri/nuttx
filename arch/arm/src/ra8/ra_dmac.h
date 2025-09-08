@@ -87,7 +87,7 @@ int ra_dmac_channel_free(int channel);
  * Input Parameters:
  *   channel - DMAC channel number
  *   src     - Source address
- *   dst     - Destination address  
+ *   dst     - Destination address
  *   len     - Transfer length
  *
  * Returned Value:

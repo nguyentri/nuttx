@@ -546,12 +546,13 @@ void ra_icu_attach_all(void)
   putreg32(EVENT_CAN0_ERROR, R_ICU_IELSR(99));        /* CAN0 Error */
   putreg32(EVENT_CAN0_FIFO_RX, R_ICU_IELSR(100));     /* CAN0 RX FIFO */
 #endif
-}
 
+  /* GPT Timer Interrupts */
 #ifdef CONFIG_RA_SYSTICK_GPT
-  /* Map GPT0 Compare A event to a fixed ICU slot if not already set */
-  /* putreg32(EVENT_GPT0_CAPTURE_COMPARE_A, R_ICU_IELSR(8)); */
+  /* Map GPT3 overflow event for system timer tick */
+  putreg32(EVENT_GPT3_COUNTER_OVERFLOW, R_ICU_IELSR(0));
 #endif
+}
 #ifdef CONFIG_RA_SCI_UART
 #  ifdef CONFIG_RA_SCI_UART_DMA_ENABLE
   /* Ensure DMAC channels 0/1 mapped for SCI2 TX/RX if needed */

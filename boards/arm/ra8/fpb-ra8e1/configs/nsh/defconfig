@@ -89,7 +89,7 @@ CONFIG_SCI2_2STOP=0
 CONFIG_RA_SCI2_UART=y
 
 # Timer configuration - use GPT for systick
-CONFIG_RA_SYSTICK_GPT=y
+# CONFIG_RA_SYSTICK_GPT=y
 
 # Memory configuration aligned with linker script
 CONFIG_PREALLOC_TIMERS=4

@@ -481,33 +481,6 @@
 #define SCI_B_UART_MDDR_MAX              (256UL)   /* Maximum MDDR value (disables modulation) */
 #define SCI_B_UART_BRR_115200_120MHZ     (47U)     /* BRR value for 115200 baud at 120MHz with BGDM=1 */
 
-#if defined (CONFIG_RA_SCI0_UART)
-#define CONFIG_SCI0_RXI    47  /* Receive data full */
-#define CONFIG_SCI0_TXI    48  /* Transmit data empty */
-#define CONFIG_SCI0_TEI    49  /* Transmit end */
-#define CONFIG_SCI0_ERI    50  /* Receive error */
-#endif
-
-#if defined  (CONFIG_RA_SCI1_UART)
-#define CONFIG_SCI1_RXI    51  /* Receive data full */
-#define CONFIG_SCI1_TXI    52  /* Transmit data empty */
-#define CONFIG_SCI1_TEI    53  /* Transmit end */
-#define CONFIG_SCI1_ERI    54  /* Receive error */
-#endif
-
-#if defined (CONFIG_RA_SCI2_UART)
-#define CONFIG_SCI2_RXI    55  /* Receive data full */
-#define CONFIG_SCI2_TXI    56  /* Transmit data empty */
-#define CONFIG_SCI2_TEI    57  /* Transmit end */
-#define CONFIG_SCI2_ERI    58  /* Receive error */
-#endif
-
-#if defined (CONFIG_RA_SCI9_UART)
-#define CONFIG_SCI9_RXI    67  /* Receive data full */
-#define CONFIG_SCI9_TXI    68  /* Transmit data empty */
-#define CONFIG_SCI9_TEI    69  /* Transmit end */
-#define CONFIG_SCI9_ERI    70  /* Receive error */
-#endif
 
 /****************************************************************************
  * Public Types

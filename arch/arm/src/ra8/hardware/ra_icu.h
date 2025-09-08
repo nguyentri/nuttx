@@ -123,11 +123,11 @@
 
 /* ICU Event Link Setting Register (32-bits) */
 
-#define R_ICU_IELSR_SIZE                  32
 #define R_ICU_IELSR_DTCE                  (1 << 24) /* 1000000: DTC Activation Enable */
 #define R_ICU_IELSR_IR                    (1 << 16) /* 10000: Interrupt Status Flag */
 #define R_ICU_IELSR_IELS_SHIFT            (0)       /* 01: ICU Event selection to NVIC Set the number for the event signal to be linked . */
 #define R_ICU_IELSR_IELS_MASK             (0xff)
+#define R_ICU_IELSR_IELS_SLOT_MASK        (0xf)
 
 /* DMAC Event Link Setting Register (32-bits) */
 

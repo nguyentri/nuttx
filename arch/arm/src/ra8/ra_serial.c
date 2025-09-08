@@ -290,10 +290,10 @@ static struct up_dev_s  g_uart0priv =
 {
   .scibase    = R_SCI0_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI0,
-  .rxirq        = CONFIG_SCI0_RXI,
-  .txirq        = CONFIG_SCI0_TXI,
-  .teirq        = CONFIG_SCI0_TEI,
-  .erirq        = CONFIG_SCI0_ERI,
+  .rxirq        = RA_IRQ_SCI0_RXI,
+  .txirq        = RA_IRQ_SCI0_TXI,
+  .teirq        = RA_IRQ_SCI0_TEI,
+  .erirq        = RA_IRQ_SCI0_ERI,
   .baud         = CONFIG_SCI0_BAUD,
   .parity       = CONFIG_SCI0_PARITY,
   .bits         = CONFIG_SCI0_BITS,
@@ -321,10 +321,10 @@ static struct up_dev_s  g_uart1priv =
 {
   .scibase    = R_SCI1_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI1,
-  .rxirq        = CONFIG_SCI1_RXI,
-  .txirq        = CONFIG_SCI1_TXI,
-  .teirq        = CONFIG_SCI1_TEI,
-  .erirq        = CONFIG_SCI1_ERI,
+  .rxirq        = RA_IRQ_SCI1_RXI,
+  .txirq        = RA_IRQ_SCI1_TXI,
+  .teirq        = RA_IRQ_SCI1_TEI,
+  .erirq        = RA_IRQ_SCI1_ERI,
   .baud         = CONFIG_SCI1_BAUD,
   .parity       = CONFIG_SCI1_PARITY,
   .bits         = CONFIG_SCI1_BITS,
@@ -352,10 +352,10 @@ static struct up_dev_s  g_uart2priv =
 {
   .scibase    = R_SCI2_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI2,
-  .rxirq        = CONFIG_SCI2_RXI,
-  .txirq        = CONFIG_SCI2_TXI,
-  .teirq        = CONFIG_SCI2_TEI,
-  .erirq        = CONFIG_SCI2_ERI,
+  .rxirq        = RA_IRQ_SCI2_RXI,
+  .txirq        = RA_IRQ_SCI2_TXI,
+  .teirq        = RA_IRQ_SCI2_TEI,
+  .erirq        = RA_IRQ_SCI2_ERI,
   .baud         = CONFIG_SCI2_BAUD,
   .parity       = CONFIG_SCI2_PARITY,
   .bits         = CONFIG_SCI2_BITS,
@@ -383,10 +383,10 @@ static struct up_dev_s  g_uart3priv =
 {
   .scibase    = R_SCI3_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI3,
-  .rxirq        = CONFIG_SCI3_RXI,
-  .txirq        = CONFIG_SCI3_TXI,
-  .teirq        = CONFIG_SCI3_TEI,
-  .erirq        = CONFIG_SCI3_ERI,
+  .rxirq        = RA_IRQ_SCI3_RXI,
+  .txirq        = RA_IRQ_SCI3_TXI,
+  .teirq        = RA_IRQ_SCI3_TEI,
+  .erirq        = RA_IRQ_SCI3_ERI,
   .baud         = CONFIG_SCI3_BAUD,
   .parity       = CONFIG_SCI3_PARITY,
   .bits         = CONFIG_SCI3_BITS,
@@ -414,10 +414,10 @@ static struct up_dev_s  g_uart4priv =
 {
   .scibase    = R_SCI4_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI4,
-  .rxirq        = CONFIG_SCI4_RXI,
-  .txirq        = CONFIG_SCI4_TXI,
-  .teirq        = CONFIG_SCI4_TEI,
-  .erirq        = CONFIG_SCI4_ERI,
+  .rxirq        = RA_IRQ_SCI4_RXI,
+  .txirq        = RA_IRQ_SCI4_TXI,
+  .teirq        = RA_IRQ_SCI4_TEI,
+  .erirq        = RA_IRQ_SCI4_ERI,
   .baud         = CONFIG_SCI4_BAUD,
   .parity       = CONFIG_SCI4_PARITY,
   .bits         = CONFIG_SCI4_BITS,
@@ -445,10 +445,10 @@ static struct up_dev_s  g_uart9priv =
 {
   .scibase    = R_SCI9_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI9,
-  .rxirq        = CONFIG_SCI9_RXI,
-  .txirq        = CONFIG_SCI9_TXI,
-  .teirq        = CONFIG_SCI9_TEI,
-  .erirq        = CONFIG_SCI9_ERI,
+  .rxirq        = RA_IRQ_SCI9_RXI,
+  .txirq        = RA_IRQ_SCI9_TXI,
+  .teirq        = RA_IRQ_SCI9_TEI,
+  .erirq        = RA_IRQ_SCI9_ERI,
   .baud         = CONFIG_SCI9_BAUD,
   .parity       = CONFIG_SCI9_PARITY,
   .bits         = CONFIG_SCI9_BITS,
@@ -628,15 +628,33 @@ static int up_setup(struct uart_dev_s *dev)
 #if defined(CONFIG_RA_SCI0_UART) && !defined(CONFIG_SCI0_SERIAL_CONSOLE)
   ra_configgpio(GPIO_SCI0_RX);
   ra_configgpio(GPIO_SCI0_TX);
+  ra_icu_set_event(RA_IRQ_SCI0_RXI, RA_EL_SCI0_RXI);
+  ra_icu_set_event(RA_IRQ_SCI0_TXI, RA_EL_SCI0_TXI);
 #elif defined(CONFIG_RA_SCI1_UART) && !defined(CONFIG_SCI1_SERIAL_CONSOLE)
   ra_configgpio(GPIO_SCI1_RX);
   ra_configgpio(GPIO_SCI1_TX);
+  ra_icu_set_event(RA_IRQ_SCI1_RXI, RA_EL_SCI1_RXI);
+  ra_icu_set_event(RA_IRQ_SCI1_TXI, RA_EL_SCI1_TXI);
 #elif defined(CONFIG_RA_SCI2_UART) && !defined(CONFIG_SCI2_SERIAL_CONSOLE)
   ra_configgpio(GPIO_SCI2_RX);
   ra_configgpio(GPIO_SCI2_TX);
+  ra_icu_set_event(RA_IRQ_SCI2_RXI, RA_EL_SCI2_RXI);
+  ra_icu_set_event(RA_IRQ_SCI2_TXI, RA_EL_SCI2_TXI);
+#elif defined(CONFIG_RA_SCI3_UART) && !defined(CONFIG_SCI3_SERIAL_CONSOLE)
+  ra_configgpio(GPIO_SCI3_RX);
+  ra_configgpio(GPIO_SCI3_TX);
+  ra_icu_set_event(RA_IRQ_SCI3_RXI, RA_EL_SCI3_RXI);
+  ra_icu_set_event(RA_IRQ_SCI3_TXI, RA_EL_SCI3_TXI);
+#elif defined(CONFIG_RA_SCI4_UART) && !defined(CONFIG_SCI4_SERIAL_CONSOLE)
+  ra_configgpio(GPIO_SCI4_RX);
+  ra_configgpio(GPIO_SCI4_TX);
+  ra_icu_set_event(RA_IRQ_SCI4_RXI, RA_EL_SCI4_RXI);
+  ra_icu_set_event(RA_IRQ_SCI4_TXI, RA_EL_SCI4_TXI);
 #elif defined(CONFIG_RA_SCI9_UART) && !defined(CONFIG_SCI9_SERIAL_CONSOLE)
   ra_configgpio(GPIO_SCI9_RX);
   ra_configgpio(GPIO_SCI9_TX);
+  ra_icu_set_event(RA_IRQ_SCI9_RXI, RA_EL_SCI9_RXI);
+  ra_icu_set_event(RA_IRQ_SCI9_TXI, RA_EL_SCI9_TXI);
 #endif
 
   /* Full initialization was already done in arm_earlyserialinit()

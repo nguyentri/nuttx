@@ -50,21 +50,21 @@ static bool g_led2_state = true; /* Active low, true = off */
  ****************************************************************************/
 
 /****************************************************************************
- * Name: button_handler
+ * Name: button_handler_isr
  ****************************************************************************/
 
-static int button_handler(int irq, void *context, void *arg)
+static int button_handler_isr(int irq, void *context, void *arg)
 {
   /* Toggle both LEDs */
   g_led1_state = !g_led1_state;
   g_led2_state = !g_led2_state;
-  
+
   ra_gpiowrite(GPIO_LED1, g_led1_state);
   ra_gpiowrite(GPIO_LED2, g_led2_state);
-  
+
   /* Clear the interrupt flag */
   ra_icu_clear_irq(irq);
-  
+
   return 0;
 }
 
@@ -75,17 +75,21 @@ static int button_handler(int irq, void *context, void *arg)
 /****************************************************************************
  * Name: board_button_initialize
  ****************************************************************************/
-
+#ifdef CONFIG_ARCH_BUTTONS
 uint32_t board_button_initialize(void)
 {
   /* Configure the button pin as an input with pullup and interrupt on falling edge */
   ra_configgpio(GPIO_SW1);
-  
+
+  /* Set up ICU event linking for board switch 1 interrupt */
+  ra_icu_set_event(RA_IRQ_BOARD_SW1, RA_EL_ICU_IRQ13);
+
   /* Attach the button interrupt handler */
-  irq_attach(SW1_IRQ, button_handler, NULL);
-  
+  irq_attach(RA_IRQ_BOARD_SW1, button_handler_isr, NULL);
+
   /* Enable the interrupt */
-  up_enable_irq(SW1_IRQ);
-  
+  up_enable_irq(RA_IRQ_BOARD_SW1);
+
   return 1;
 }
+#endif

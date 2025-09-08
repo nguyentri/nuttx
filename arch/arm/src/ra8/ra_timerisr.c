@@ -207,13 +207,13 @@ void up_timer_initialize(void)
   putreg32(0, RA_GPT_GTST);
 
   /* Set up ICU event linking for GPT3 overflow interrupt */
-  ra_icu_set_event(RA_ICU_SLOT_GPT3, RA_EL_EVENT_GPT3_COUNTER_OVERFLOW);
+  ra_icu_set_event(RA_IRQ_GPT3_OVERFLOW, RA_EL_GPT3_COUNTER_OVERFLOW);
 
   /* Attach the GPT interrupt vector */
-  irq_attach(RA_ICU_SLOT_GPT3, (xcpt_t)ra_systick_isr, NULL);
+  irq_attach(RA_IRQ_GPT3_OVERFLOW, (xcpt_t)ra_systick_isr, NULL);
 
   /* Enable GPT interrupt */
-  up_enable_irq(RA_ICU_SLOT_GPT3);
+  up_enable_irq(RA_IRQ_GPT3_OVERFLOW);
 
   /* Re-enable write protection - FSP safety practice */
   regval = GPT_GTWP_PRKEY;  /* Remove WP bit but keep key */

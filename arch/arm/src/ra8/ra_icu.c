@@ -255,12 +255,14 @@ int ra_icu_set_event(int icu_slot, int event)
   uint32_t regaddr;
   uint32_t regval;
 
-  if (icu_slot < 0 || icu_slot >= R_ICU_IELSR_SIZE)
+  uint32_t icu_slot_ielsr = icu_slot - RA_IRQ_FIRST;
+
+  if (icu_slot_ielsr < 0 || icu_slot_ielsr >= RA_IRQ_IELSR_SIZE)
     {
       return -EINVAL;
     }
 
-  regaddr = R_ICU_IELSR(icu_slot);
+  regaddr = R_ICU_IELSR(icu_slot_ielsr);
   regval = getreg32(regaddr);
 
   regval &= ~(R_ICU_IELSR_IELS_MASK << R_ICU_IELSR_IELS_SHIFT);

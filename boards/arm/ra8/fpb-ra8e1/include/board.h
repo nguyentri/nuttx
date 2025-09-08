@@ -35,13 +35,46 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* Interrupt slots used */
-#define RA_ICU_SLOT_GPT3    (RA_IRQ_FIRST + __COUNTER__) /* Use ICU slot 0 for GPT3 overflow */
+/* IRQ Configuration ************************************************************/
+#define RA_IRQ_BASE           (RA_IRQ_FIRST)
 
-#define RA_ICU_SLOT_SCI2_RX (RA_IRQ_FIRST + __COUNTER__)  /* Receive data full */
-#define RA_ICU_SLOT_SCI2_TX (RA_IRQ_FIRST + __COUNTER__)  /* Transmit data empty */
-#define RA_ICU_SLOT_SCI2_TE (RA_IRQ_FIRST + __COUNTER__)  /* Transmit end */
-#define RA_ICU_SLOT_SCI2_ER (RA_IRQ_FIRST + __COUNTER__)  /* Receive error */
+#ifdef CONFIG_ARCH_BUTTONS
+/* Use of to generate unique IRQ numbers */
+#define RA_IRQ_BOARD_SW1      (RA_IRQ_FIRST + __COUNTER__)  /* External IRQ13 */
+#endif
+
+#ifdef CONFIG_RA_SYSTICK_GPT
+/* Interrupt slots used */
+#define RA_IRQ_GPT3_OVERFLOW  (RA_IRQ_FIRST + __COUNTER__) /* Use ICU slot 0 for GPT3 overflow */
+#endif
+
+#if defined (CONFIG_RA_SCI0_UART)
+#define RA_IRQ_SCI0_RXI       (RA_IRQ_FIRST + __COUNTER__) /* Receive data full */
+#define RA_IRQ_SCI0_TXI       (RA_IRQ_FIRST + __COUNTER__) /* Transmit data empty */
+#define RA_IRQ_SCI0_TEI       (RA_IRQ_FIRST + __COUNTER__) /* Transmit end */
+#define RA_IRQ_SCI0_ERI       (RA_IRQ_FIRST + __COUNTER__) /* Receive error */
+#endif
+
+#if defined  (CONFIG_RA_SCI1_UART)
+#define RA_IRQ_SCI1_RXI       (RA_IRQ_FIRST + __COUNTER__) /* Receive data full */
+#define RA_IRQ_SCI1_TXI       (RA_IRQ_FIRST + __COUNTER__) /* Transmit data empty */
+#define RA_IRQ_SCI1_TEI       (RA_IRQ_FIRST + __COUNTER__) /* Transmit end */
+#define RA_IRQ_SCI1_ERI       (RA_IRQ_FIRST + __COUNTER__) /* Receive error */
+#endif
+
+#if defined (CONFIG_RA_SCI2_UART)
+#define RA_IRQ_SCI2_RXI       (RA_IRQ_FIRST + __COUNTER__) /* Receive data full */
+#define RA_IRQ_SCI2_TXI       (RA_IRQ_FIRST + __COUNTER__) /* Transmit data empty */
+#define RA_IRQ_SCI2_TEI       (RA_IRQ_FIRST + __COUNTER__) /* Transmit end */
+#define RA_IRQ_SCI2_ERI       (RA_IRQ_FIRST + __COUNTER__) /* Receive error */
+#endif
+
+#if defined (CONFIG_RA_SCI9_UART)
+#define RA_IRQ_SCI9_RXI       (RA_IRQ_FIRST + __COUNTER__) /* Receive data full */
+#define RA_IRQ_SCI9_TXI       (RA_IRQ_FIRST + __COUNTER__) /* Transmit data empty */
+#define RA_IRQ_SCI9_TEI       (RA_IRQ_FIRST + __COUNTER__) /* Transmit end */
+#define RA_IRQ_SCI9_ERI       (RA_IRQ_FIRST + __COUNTER__) /* Receive error */
+#endif
 
 /* Alternate function pin selections */
 
@@ -65,39 +98,8 @@
 #define GPIO_LED1     (gpio_pinset_t){ PORT4, PIN4, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}  /* P404 (Green LED1) */
 #define GPIO_LED2     (gpio_pinset_t){ PORT4, PIN8, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}  /* P408 (Green LED2) */
 
-#define LED_DRIVER_PATH "/dev/userleds"
-
-/* LED index values for use with board_userled() */
-
-#define BOARD_LED1         0
-#define BOARD_LED2         1
-#define BOARD_NLEDS        2
-
-/* LED bits for use with board_userled_all() */
-
-#define BOARD_LED1_BIT     (1 << BOARD_LED1)
-#define BOARD_LED2_BIT     (1 << BOARD_LED2)
-
-/* These LEDs are not used by the board port unless CONFIG_ARCH_LEDS is
- * defined. In that case, the usage by the board port is defined in
- * include/board.h and src/ra8e1_auto_leds.c. The LEDs are used to encode
- * OS-related events as follows:
- *
- *  SYMBOL                MEANING                         LED STATE
- *                                                      LED1   LED2
- *  -----------------------  --------------------------  ----  ----
- */
-
-#define LED_STARTED       0  /* NuttX has been started     OFF   OFF  */
-#define LED_HEAPALLOCATE  0  /* Heap has been allocated    OFF   OFF  */
-#define LED_IRQSENABLED   0  /* Interrupts enabled         OFF   OFF  */
-#define LED_STACKCREATED  1  /* Idle stack created         ON    OFF  */
-#define LED_INIRQ         2  /* In an interrupt            N/C   ON   */
-#define LED_SIGNAL        2  /* In a signal handler        N/C   ON   */
-#define LED_ASSERTION     2  /* An assertion failed        N/C   ON   */
-#define LED_PANIC         3  /* The system has crashed     N/C   BLINK */
-#define LED_IDLE          3  /* MCU is in sleep mode       ----  Not used ---- */
-
+/* User Button - SW1 on P009 using IRQ13 */
+#define GPIO_SW1         (gpio_pinset_t){ PORT0, PIN9, (GPIO_INPUT | GPIO_PULLUP | GPIO_INT_FALLING)}
 
 /* GPIO Pin Definitions for Enhanced UART Driver ***********************/
 
@@ -113,6 +115,33 @@
 #  define GPIO_UART3_TXD    IOPORT_CFG(PORT_2, PIN_0, IOPORT_CFG_PERIPHERAL_PIN | IOPORT_PERIPHERAL_SCI1_3_5_7_9)
 #endif
 
+/* Board LED Definitions */
+#define BOARD_LED1         0
+#define BOARD_LED2         1
+#define BOARD_NLEDS        2
+
+/* These LEDs are not used by the board port unless CONFIG_ARCH_LEDS is
+ * defined. In that case, the usage by the board port is defined in
+ * include/board.h and src/ra8e1_auto_leds.c. The LEDs are used to encode
+ * OS-related events as follows:
+ *
+ *  SYMBOL                MEANING                         LED STATE
+ *                                                      LED1   LED2
+ *  -----------------------  --------------------------  ----  ----
+ */
+#define LED_STARTED       0  /* NuttX has been started     OFF   OFF  */
+#define LED_HEAPALLOCATE  0  /* Heap has been allocated    OFF   OFF  */
+#define LED_IRQSENABLED   0  /* Interrupts enabled         OFF   OFF  */
+#define LED_STACKCREATED  1  /* Idle stack created         ON    OFF  */
+#define LED_INIRQ         2  /* In an interrupt            N/C   ON   */
+#define LED_SIGNAL        2  /* In a signal handler        N/C   ON   */
+#define LED_ASSERTION     2  /* An assertion failed        N/C   ON   */
+#define LED_PANIC         3  /* The system has crashed     N/C   BLINK */
+#define LED_IDLE          3  /* MCU is in sleep mode       ----  Not used ---- */
+
+/* LED bits for use with board_userled_all() */
+#define BOARD_LED1_BIT     (1 << BOARD_LED1)
+#define BOARD_LED2_BIT     (1 << BOARD_LED2)
 
 /* Clock Configuration **************************************************/
 
@@ -139,10 +168,6 @@
 #  define UART3_DEFAULT_STOPBITS  1
 #  define UART3_DEFAULT_INVERTED  false
 #endif
-
-/* User Button - SW1 on P009 using IRQ13 */
-#define GPIO_SW1         (gpio_pinset_t){ PORT0, PIN9, (GPIO_INPUT | GPIO_PULLUP | GPIO_INT_FALLING)}
-#define SW1_IRQ           RA_IRQ_FIRST + 13  /* External IRQ13 */
 
 /****************************************************************************
  * Public Function Prototypes

@@ -68,13 +68,13 @@
  * Demo Logging Guidelines
  ****************************************************************************/
 
-/* 
+/*
  * Usage guidelines for demo logging:
  *
- * 1. demoinfo() - Use for general demo status, progress updates, and 
+ * 1. demoinfo() - Use for general demo status, progress updates, and
  *    informational messages. These may be filtered based on debug level.
  *
- * 2. demoerr() - Use for errors, failures, and critical issues that 
+ * 2. demoerr() - Use for errors, failures, and critical issues that
  *    prevent demo operation.
  *
  * 3. demowarn() - Use for warnings and non-critical issues.

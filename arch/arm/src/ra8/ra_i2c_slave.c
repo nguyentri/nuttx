@@ -140,7 +140,7 @@ static const struct i2c_slave_ops_s ra_i2c_slave_ops =
 #ifdef CONFIG_RA_I2C0_SLAVE
 static const struct ra_i2c_config_s ra_i2c0_slave_config =
 {
-  .base         = RA_I2C0_BASE,
+  .base         = R_IIC0_BASE,
   .clk_freq     = BOARD_PCLKB_FREQUENCY,
   .bus          = 0,
   .irq_rxi      = 0x35,  /* EVENT_IIC0_RXI */
@@ -170,7 +170,7 @@ static struct ra_i2c_slave_priv_s ra_i2c0_slave_priv =
 #ifdef CONFIG_RA_I2C1_SLAVE
 static const struct ra_i2c_config_s ra_i2c1_slave_config =
 {
-  .base         = RA_I2C1_BASE,
+  .base         = R_IIC1_BASE,
   .clk_freq     = BOARD_PCLKB_FREQUENCY,
   .bus          = 1,
   .irq_rxi      = 0x3A,  /* EVENT_IIC1_RXI */

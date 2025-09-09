@@ -382,8 +382,7 @@ static void ra_prv_clock_set_hard_reset(void)
 #endif
 
   /* Set the system source clock */
-  //putreg8(RA_CFG_CLOCK_SOURCE, R_SYSTEM_SCKSCR);
-  putreg8(R_SYSTEM_SCKSCR_CKSEL_HOCO, R_SYSTEM_SCKSCR); // Can't change to PLL1, fixed to use HOCO
+  putreg8(RA_CFG_CLOCK_SOURCE, R_SYSTEM_SCKSCR);
 
   /* Wait for settling delay. */
   ra_sys_core_clock_update();
@@ -398,8 +397,7 @@ static void ra_prv_clock_set_hard_reset(void)
   up_udelay(RA_CFG_CLOCK_SETTLING_DELAY_US);
 
   /* Set the system source clock again */
-  //putreg8(RA_CFG_CLOCK_SOURCE, R_SYSTEM_SCKSCR);
-  putreg8(R_SYSTEM_SCKSCR_CKSEL_HOCO, R_SYSTEM_SCKSCR);  // Can't change to PLL1, fixed to use HOCO
+  putreg8(RA_CFG_CLOCK_SOURCE, R_SYSTEM_SCKSCR);
 
   /* Update the CMSIS core clock variable so that it reflects the new ICLK frequency. */
   ra_sys_core_clock_update();

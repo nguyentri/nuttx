@@ -57,9 +57,10 @@
 
 /* I2C Register Addresses ***************************************************/
 
-#define RA_I2C0_BASE             0x4025E000
-#define RA_I2C1_BASE             0x4025E100
-#define RA_I2C2_BASE             0x4025E200
+/* Helper macro to get base address for I2C channel */
+#define RA_I2C_BASE(n)           ((n) == 0 ? R_IIC0_BASE : \
+                                  (n) == 1 ? R_IIC1_BASE : \
+                                  R_IIC2_BASE)
 
 #define RA_I2C_ICCR1(n)          (RA_I2C_BASE(n) + RA_I2C_ICCR1_OFFSET)
 #define RA_I2C_ICCR2(n)          (RA_I2C_BASE(n) + RA_I2C_ICCR2_OFFSET)
@@ -82,10 +83,6 @@
 #define RA_I2C_ICDRT(n)          (RA_I2C_BASE(n) + RA_I2C_ICDRT_OFFSET)
 #define RA_I2C_ICDRR(n)          (RA_I2C_BASE(n) + RA_I2C_ICDRR_OFFSET)
 
-/* Helper macro to get base address for I2C channel */
-#define RA_I2C_BASE(n)           ((n) == 0 ? RA_I2C0_BASE : \
-                                  (n) == 1 ? RA_I2C1_BASE : \
-                                  RA_I2C2_BASE)
 
 /* I2C Bus Control Register 1 (ICCR1) **************************************/
 

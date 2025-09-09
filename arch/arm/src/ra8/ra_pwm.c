@@ -144,7 +144,7 @@ static const struct ra_gpt_config_s g_gpt_configs[] =
 {
 #ifdef CONFIG_RA_GPT0_PWM
   {
-    .base       = RA_GPT0_BASE,
+    .base       = R_GPT0_BASE,
     .pclkd_freq = CONFIG_RA_PCLKD_FREQUENCY,
     .channel    = 0,
     .irq        = RA_IRQ_FIRST + 48,  /* GPT0 overflow IRQ */
@@ -154,7 +154,7 @@ static const struct ra_gpt_config_s g_gpt_configs[] =
 #endif
 #ifdef CONFIG_RA_GPT1_PWM
   {
-    .base       = RA_GPT1_BASE,
+    .base       = R_GPT1_BASE,
     .pclkd_freq = CONFIG_RA_PCLKD_FREQUENCY,
     .channel    = 1,
     .irq        = RA_IRQ_FIRST + 49,  /* GPT1 overflow IRQ */
@@ -164,7 +164,7 @@ static const struct ra_gpt_config_s g_gpt_configs[] =
 #endif
 #ifdef CONFIG_RA_GPT2_PWM
   {
-    .base       = RA_GPT2_BASE,
+    .base       = R_GPT2_BASE,
     .pclkd_freq = CONFIG_RA_PCLKD_FREQUENCY,
     .channel    = 2,
     .irq        = RA_IRQ_FIRST + 50,  /* GPT2 overflow IRQ */
@@ -174,7 +174,7 @@ static const struct ra_gpt_config_s g_gpt_configs[] =
 #endif
 #ifdef CONFIG_RA_GPT3_PWM
   {
-    .base       = RA_GPT3_BASE,
+    .base       = R_GPT3_BASE,
     .pclkd_freq = CONFIG_RA_PCLKD_FREQUENCY,
     .channel    = 3,
     .irq        = RA_IRQ_FIRST + 51,  /* GPT3 overflow IRQ */
@@ -184,7 +184,7 @@ static const struct ra_gpt_config_s g_gpt_configs[] =
 #endif
 #ifdef CONFIG_RA_GPT4_PWM
   {
-    .base       = RA_GPT4_BASE,
+    .base       = R_GPT4_BASE,
     .pclkd_freq = CONFIG_RA_PCLKD_FREQUENCY,
     .channel    = 4,
     .irq        = RA_IRQ_FIRST + 52,  /* GPT4 overflow IRQ */

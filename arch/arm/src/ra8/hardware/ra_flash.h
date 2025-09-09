@@ -35,15 +35,15 @@
 
 /* Register Offsets *********************************************************/
 
-#define R_FCACHE_FCACHEE_OFFSET           0x0100 /* Flash Cache Enable Register (16-Bits) */
-#define R_FCACHE_FCACHEIV_OFFSET          0x0104 /* Flash Cache Invalidate Register (16-Bits) */
-#define R_FCACHE_FLWT_OFFSET              0x011c /* Flash Cache FLWT (8-Bits) */
+#define R_FCACHE_FCACHEE_OFFSET           0x0000 /* Flash Cache Enable Register (16-Bits) */
+#define R_FCACHE_FCACHEIV_OFFSET          0x0004 /* Flash Cache Invalidate Register (16-Bits) */
+#define R_FCACHE_FLWT_OFFSET              0x001C /* Flash Cache FLWT (8-Bits) */
 
 /* Register Addresses *******************************************************/
 
-# define R_FCACHE_FCACHEE                  (R_FCACHE_BASE + R_FCACHE_FCACHEE_OFFSET)
-# define R_FCACHE_FCACHEIV                 (R_FCACHE_BASE + R_FCACHE_FCACHEIV_OFFSET)
-# define R_FCACHE_FLWT                     (R_FCACHE_BASE + R_FCACHE_FLWT_OFFSET)
+# define R_FCACHE_FCACHEE                 (R_FCACHE_BASE + R_FCACHE_FCACHEE_OFFSET)
+# define R_FCACHE_FCACHEIV                (R_FCACHE_BASE + R_FCACHE_FCACHEIV_OFFSET)
+# define R_FCACHE_FLWT                    (R_FCACHE_BASE + R_FCACHE_FLWT_OFFSET)
 
 /* Register Bitfield Definitions ********************************************/
 

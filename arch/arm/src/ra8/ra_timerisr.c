@@ -49,10 +49,7 @@
 /*  GPT timer configuration */
 #ifdef CONFIG_RA_SYSTICK_GPT
 #  include "ra_mstp.h"
-#  define RA_TIMER_CLOCK        (RA_PCLKD_FREQUENCY)
-#  define RA_TIMER_RELOAD       ((RA_TIMER_CLOCK / CLK_TCK) - 1)
-#  define RA_GPT_CHANNEL        (3)  /* Use GPT3 for system timer */
-#  define RA_GPT_CHANNEL_BASE   (RA_GPT3_BASE)
+#  define RA_GPT_CHANNEL_BASE   (R_GPT3_BASE)
 #  define RA_GPT_GTWP           (RA_GPT_CHANNEL_BASE + RA_GPT_GTWP_OFFSET)
 #  define RA_GPT_GTSTR          (RA_GPT_CHANNEL_BASE + RA_GPT_GTSTR_OFFSET)
 #  define RA_GPT_GTSTP          (RA_GPT_CHANNEL_BASE + RA_GPT_GTSTP_OFFSET)
@@ -62,6 +59,9 @@
 #  define RA_GPT_GTINTAD        (RA_GPT_CHANNEL_BASE + RA_GPT_GTINTAD_OFFSET)
 #  define RA_GPT_GTST           (RA_GPT_CHANNEL_BASE + RA_GPT_GTST_OFFSET)
 #  define RA_GPT_GTCNT          (RA_GPT_CHANNEL_BASE + RA_GPT_GTCNT_OFFSET)
+#  define RA_TIMER_CLOCK        (RA_PCLKD_FREQUENCY)
+#  define RA_TIMER_RELOAD       ((RA_TIMER_CLOCK / CLK_TCK) - 1)
+#  define RA_GPT_CHANNEL        (3)  /* Use GPT3 for system timer */
 #  if RA_TIMER_RELOAD > 0xFFFFFFFF
 #    error GPT timer reload value exceeds 32-bit range
 #  endif

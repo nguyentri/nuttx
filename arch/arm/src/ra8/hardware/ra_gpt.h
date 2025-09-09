@@ -32,24 +32,6 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* GPT Base Addresses ***************************************************/
-
-#define RA_GPT_BASE            0x40322000
-#define RA_GPT0_BASE           0x40322000
-#define RA_GPT1_BASE           0x40322100
-#define RA_GPT2_BASE           0x40322200
-#define RA_GPT3_BASE           0x40322300
-#define RA_GPT4_BASE           0x40322400
-#define RA_GPT5_BASE           0x40322500
-#define RA_GPT6_BASE           0x40322600
-#define RA_GPT7_BASE           0x40322700
-#define RA_GPT8_BASE           0x40322800
-#define RA_GPT9_BASE           0x40322900
-#define RA_GPT10_BASE          0x40322a00
-#define RA_GPT11_BASE          0x40322b00
-#define RA_GPT12_BASE          0x40322c00
-#define RA_GPT13_BASE          0x40322d00
-
 /* GPT Register Offsets *************************************************/
 
 #define RA_GPT_GTWP_OFFSET     0x0000  /* General PWM Timer Write-Protection Register */

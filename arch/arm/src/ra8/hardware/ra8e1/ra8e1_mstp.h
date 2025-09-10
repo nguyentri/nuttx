@@ -44,11 +44,11 @@
 
 /* Register Addresses *******************************************************/
 
-#  define R_MSTP_MSTPCRA               (R_MSTP_BASE   + R_MSTP_MSTPCRA_OFFSET)
-#  define R_MSTP_MSTPCRB               (R_MSTP_BASE   + R_MSTP_MSTPCRB_OFFSET)
-#  define R_MSTP_MSTPCRC               (R_MSTP_BASE   + R_MSTP_MSTPCRC_OFFSET)
-#  define R_MSTP_MSTPCRD               (R_MSTP_BASE   + R_MSTP_MSTPCRD_OFFSET)
-#  define R_MSTP_MSTPCRE               (R_MSTP_BASE   + R_MSTP_MSTPCRE_OFFSET)
+#define R_MSTP_MSTPCRA                 (R_MSTP_BASE   + R_MSTP_MSTPCRA_OFFSET)
+#define R_MSTP_MSTPCRB                 (R_MSTP_BASE   + R_MSTP_MSTPCRB_OFFSET)
+#define R_MSTP_MSTPCRC                 (R_MSTP_BASE   + R_MSTP_MSTPCRC_OFFSET)
+#define R_MSTP_MSTPCRD                 (R_MSTP_BASE   + R_MSTP_MSTPCRD_OFFSET)
+#define R_MSTP_MSTPCRE                 (R_MSTP_BASE   + R_MSTP_MSTPCRE_OFFSET)
 
 /* Register Bitfield Definitions ********************************************/
 

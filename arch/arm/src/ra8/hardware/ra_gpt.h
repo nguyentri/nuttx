@@ -182,6 +182,11 @@
 #define GPT_GTINTAD_GTINTV              (1 << 6)  /* Overflow Interrupt Enable */
 #define GPT_GTINTAD_GTINTU              (1 << 7)  /* Underflow Interrupt Enable */
 
+/* GTUDDTYC - General PWM Timer Count Direction and Duty Setting Register */
+
+#define GPT_GTUDDTYC_UD                 (1 << 0)  /* Count Direction: 0=Count down, 1=Count up */
+#define GPT_GTUDDTYC_UDF                (1 << 1)  /* Forcible Count Direction Setting Flag */
+
 /* GTST - General PWM Timer Status Register */
 
 #define GPT_GTST_TCFA                   (1 << 0)  /* Input Capture/Compare Match Flag A */

@@ -40,40 +40,40 @@
 
 #ifdef CONFIG_ARCH_BUTTONS
 /* Use of to generate unique IRQ numbers */
-#define RA_IRQ_BOARD_SW1      (RA_IRQ_FIRST + __COUNTER__)  /* External IRQ13 */
+#define RA_IRQ_BOARD_SW1      (RA_IRQ_FIRST + 0)  /* External IRQ13 */
 #endif
 
 #ifdef CONFIG_RA_SYSTICK_GPT
 /* Interrupt slots used */
-#define RA_IRQ_SYSTICK_GPT  (RA_IRQ_FIRST + __COUNTER__) /* Use ICU slot 0 for GPT3 overflow */
+#define RA_IRQ_SYSTICK_GPT    (RA_IRQ_FIRST + 1) /* Use ICU slot 0 for GPT3 overflow */
 #endif
 
 #if defined (CONFIG_RA_SCI0_UART)
-#define RA_IRQ_SCI0_RXI       (RA_IRQ_FIRST + __COUNTER__) /* Receive data full */
-#define RA_IRQ_SCI0_TXI       (RA_IRQ_FIRST + __COUNTER__) /* Transmit data empty */
-#define RA_IRQ_SCI0_TEI       (RA_IRQ_FIRST + __COUNTER__) /* Transmit end */
-#define RA_IRQ_SCI0_ERI       (RA_IRQ_FIRST + __COUNTER__) /* Receive error */
+#define RA_IRQ_SCI0_RXI       (RA_IRQ_FIRST + 2) /* Receive data full */
+#define RA_IRQ_SCI0_TXI       (RA_IRQ_FIRST + 3) /* Transmit data empty */
+#define RA_IRQ_SCI0_TEI       (RA_IRQ_FIRST + 4) /* Transmit end */
+#define RA_IRQ_SCI0_ERI       (RA_IRQ_FIRST + 5) /* Receive error */
 #endif
 
 #if defined  (CONFIG_RA_SCI1_UART)
-#define RA_IRQ_SCI1_RXI       (RA_IRQ_FIRST + __COUNTER__) /* Receive data full */
-#define RA_IRQ_SCI1_TXI       (RA_IRQ_FIRST + __COUNTER__) /* Transmit data empty */
-#define RA_IRQ_SCI1_TEI       (RA_IRQ_FIRST + __COUNTER__) /* Transmit end */
-#define RA_IRQ_SCI1_ERI       (RA_IRQ_FIRST + __COUNTER__) /* Receive error */
+#define RA_IRQ_SCI1_RXI       (RA_IRQ_FIRST + 6) /* Receive data full */
+#define RA_IRQ_SCI1_TXI       (RA_IRQ_FIRST + 7) /* Transmit data empty */
+#define RA_IRQ_SCI1_TEI       (RA_IRQ_FIRST + 8) /* Transmit end */
+#define RA_IRQ_SCI1_ERI       (RA_IRQ_FIRST + 9) /* Receive error */
 #endif
 
 #if defined (CONFIG_RA_SCI2_UART)
-#define RA_IRQ_SCI2_RXI       (RA_IRQ_FIRST + __COUNTER__) /* Receive data full */
-#define RA_IRQ_SCI2_TXI       (RA_IRQ_FIRST + __COUNTER__) /* Transmit data empty */
-#define RA_IRQ_SCI2_TEI       (RA_IRQ_FIRST + __COUNTER__) /* Transmit end */
-#define RA_IRQ_SCI2_ERI       (RA_IRQ_FIRST + __COUNTER__) /* Receive error */
+#define RA_IRQ_SCI2_RXI       (RA_IRQ_FIRST + 10) /* Receive data full */
+#define RA_IRQ_SCI2_TXI       (RA_IRQ_FIRST + 11) /* Transmit data empty */
+#define RA_IRQ_SCI2_TEI       (RA_IRQ_FIRST + 12) /* Transmit end */
+#define RA_IRQ_SCI2_ERI       (RA_IRQ_FIRST + 13) /* Receive error */
 #endif
 
 #if defined (CONFIG_RA_SCI9_UART)
-#define RA_IRQ_SCI9_RXI       (RA_IRQ_FIRST + __COUNTER__) /* Receive data full */
-#define RA_IRQ_SCI9_TXI       (RA_IRQ_FIRST + __COUNTER__) /* Transmit data empty */
-#define RA_IRQ_SCI9_TEI       (RA_IRQ_FIRST + __COUNTER__) /* Transmit end */
-#define RA_IRQ_SCI9_ERI       (RA_IRQ_FIRST + __COUNTER__) /* Receive error */
+#define RA_IRQ_SCI9_RXI       (RA_IRQ_FIRST + 14) /* Receive data full */
+#define RA_IRQ_SCI9_TXI       (RA_IRQ_FIRST + 15) /* Transmit data empty */
+#define RA_IRQ_SCI9_TEI       (RA_IRQ_FIRST + 16) /* Transmit end */
+#define RA_IRQ_SCI9_ERI       (RA_IRQ_FIRST + 17) /* Receive error */
 #endif
 
 /* Alternate function pin selections */

@@ -102,7 +102,7 @@
  #define R_GPT_POEG1_BASE    0x40212100UL
  #define R_GPT_POEG2_BASE    0x40212200UL
  #define R_GPT_POEG3_BASE    0x40212300UL
- #define R_ICU_BASE          0x40006000UL
+ #define R_ICU_BASE          0x4000C000UL
  #define R_IIC0_BASE         0x4025E000UL
  #define R_IIC1_BASE         0x4025E100UL
  #define R_IIC2_BASE         0x4025E200UL

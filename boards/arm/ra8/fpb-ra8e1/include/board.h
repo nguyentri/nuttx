@@ -45,7 +45,7 @@
 
 #ifdef CONFIG_RA_SYSTICK_GPT
 /* Interrupt slots used */
-#define RA_IRQ_GPT3_OVERFLOW  (RA_IRQ_FIRST + __COUNTER__) /* Use ICU slot 0 for GPT3 overflow */
+#define RA_IRQ_SYSTICK_GPT  (RA_IRQ_FIRST + __COUNTER__) /* Use ICU slot 0 for GPT3 overflow */
 #endif
 
 #if defined (CONFIG_RA_SCI0_UART)

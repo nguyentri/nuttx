@@ -27,10 +27,25 @@
 
 #include <nuttx/config.h>
 #include <stdint.h>
+#include "hardware/ra_memorymap.h"
+
+#ifndef __ASSEMBLY__
+#include "arm_internal.h"  /* For putreg32/getreg32 */
+#endif
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
+/* GPT Channel Base Address Calculator *************************************/
+
+#define RA_GPT_CH_STRIDE              0x100u
+
+#define RA_GPT_BASE(ch)               (R_GPT0_BASE + ((uint32_t)(ch) * RA_GPT_CH_STRIDE))
+
+/* Channel classification */
+#define RA_GPT_IS_32BIT(ch)           ((unsigned)(ch) <= 5u)
+#define RA_GPT_IS_16BIT(ch)           ((unsigned)(ch) >= 10u && (unsigned)(ch) <= 13u)
 
 /* GPT Register Offsets *************************************************/
 
@@ -80,6 +95,29 @@
 #define RA_GPT_GTUD_OFFSET     0x00b0  /* General PWM Timer Count Direction Register */
 #define RA_GPT_GTIER_OFFSET    0x00b4  /* General PWM Timer Interrupt Enable Register */
 
+/* Register Address Calculation Macros *********************************/
+
+#define RA_GPT_REG(ch, off)           (RA_GPT_BASE(ch) + (off))
+
+/* Named register address helpers */
+#define RA_GPT_GTWP(ch)               RA_GPT_REG(ch, RA_GPT_GTWP_OFFSET)
+#define RA_GPT_GTSTR(ch)              RA_GPT_REG(ch, RA_GPT_GTSTR_OFFSET)
+#define RA_GPT_GTSTP(ch)              RA_GPT_REG(ch, RA_GPT_GTSTP_OFFSET)
+#define RA_GPT_GTCLR(ch)              RA_GPT_REG(ch, RA_GPT_GTCLR_OFFSET)
+#define RA_GPT_GTCR(ch)               RA_GPT_REG(ch, RA_GPT_GTCR_OFFSET)
+#define RA_GPT_GTCNT(ch)              RA_GPT_REG(ch, RA_GPT_GTCNT_OFFSET)
+#define RA_GPT_GTPR(ch)               RA_GPT_REG(ch, RA_GPT_GTPR_OFFSET)
+#define RA_GPT_GTPBR(ch)              RA_GPT_REG(ch, RA_GPT_GTPBR_OFFSET)
+#define RA_GPT_GTST_REG(ch)           RA_GPT_REG(ch, RA_GPT_GTST_OFFSET)
+#define RA_GPT_GTINTAD(ch)            RA_GPT_REG(ch, RA_GPT_GTINTAD_OFFSET)
+#define RA_GPT_GTIOR(ch)              RA_GPT_REG(ch, RA_GPT_GTIOR_OFFSET)
+#define RA_GPT_GTCCRA(ch)             RA_GPT_REG(ch, RA_GPT_GTCCRA_OFFSET)
+#define RA_GPT_GTCCRB(ch)             RA_GPT_REG(ch, RA_GPT_GTCCRB_OFFSET)
+#define RA_GPT_GTCCRC(ch)             RA_GPT_REG(ch, RA_GPT_GTCCRC_OFFSET)
+#define RA_GPT_GTCCRE(ch)             RA_GPT_REG(ch, RA_GPT_GTCCRE_OFFSET)
+#define RA_GPT_GTUDDTYC(ch)           RA_GPT_REG(ch, RA_GPT_GTUDDTYC_OFFSET)
+#define RA_GPT_GTBER(ch)              RA_GPT_REG(ch, RA_GPT_GTBER_OFFSET)
+
 /* GPT Register Definitions *********************************************/
 
 /* GTWP - General PWM Timer Write-Protection Register */
@@ -96,6 +134,10 @@
 /* Timer initialization compatibility definitions */
 #define RA_GPT_GTWP_WP_KEY              0xa5      /* Write protection key */
 #define RA_GPT_GTWP_WP_SHIFT            8         /* Write protection shift */
+
+/* Write protection control macros */
+#define RA_GPT_WP_DISABLE(ch)         putreg32(GPT_GTWP_PRKEY | GPT_GTWP_WP, RA_GPT_GTWP(ch))
+#define RA_GPT_WP_ENABLE(ch)          putreg32(GPT_GTWP_PRKEY, RA_GPT_GTWP(ch))
 
 /* GTCR - General PWM Timer Control Register */
 

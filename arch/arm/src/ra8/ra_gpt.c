@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/ra8/ra_pwm.c
+ * arch/arm/src/ra8/ra_gpt.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -33,6 +33,7 @@
 
 #include <nuttx/arch.h>
 #include <nuttx/timers/pwm.h>
+#include <nuttx/timers/timer.h>
 #include <nuttx/clock.h>
 #include <nuttx/timers/arch_timer.h>
 #include <nuttx/irq.h>
@@ -42,6 +43,7 @@
 #include "arm_internal.h"
 #include "nvic.h"
 #include "hardware/ra_gpt.h"
+#include "ra_gpt.h"
 #include "ra_mstp.h"
 #include "ra_clock.h"
 #include "ra_gpio.h"
@@ -56,12 +58,19 @@
 #  define CONFIG_RA_PCLKD_FREQUENCY    120000000
 #endif
 
-/* Maximum PWM frequency to prevent integer overflow */
-
-#define MAX_PWM_FREQ                    1000000
-
 /* GPT Write Protection Key */
 #define GPT_GTWP_PRKEY                  0xA500
+
+/* Buffer enable mask for PWM mode */
+#define GPT_GTBER_PWM_ENABLE            (GPT_GTBER_CCRA | GPT_GTBER_CCRB | GPT_GTBER_PR)
+
+/* Prescaler values */
+#define GPT_PRESCALER_1                 1
+#define GPT_PRESCALER_4                 4
+#define GPT_PRESCALER_16                16
+#define GPT_PRESCALER_64                64
+#define GPT_PRESCALER_256               256
+#define GPT_PRESCALER_1024              1024
 
 #ifdef CONFIG_RA_GPT_PWM
 /****************************************************************************
@@ -69,7 +78,6 @@
  ****************************************************************************/
 
 /* GPT channel configuration structure */
-
 struct ra_gpt_config_s
 {
   uint32_t base;                   /* GPT peripheral base address */
@@ -80,21 +88,57 @@ struct ra_gpt_config_s
   uint32_t pin_b;                  /* GTIOCB pin configuration */
 };
 
-/* This structure represents the state of one GPT timer */
-
+/* GPT device state structure */
 struct ra_gpt_s
 {
   const struct pwm_ops_s *ops;     /* PWM operations */
+  const struct timer_ops_s *timer_ops; /* Timer operations */
   const struct ra_gpt_config_s *config; /* GPT configuration */
-  uint32_t frequency;             /* Current PWM frequency */
-  uint32_t period;                /* PWM period in timer counts */
+  uint32_t frequency;             /* Current frequency */
+  uint32_t period;                /* Period in timer counts */
   uint32_t prescaler;             /* Current prescaler setting */
-  bool started;                   /* True: PWM started */
-  bool pwm_mode;                  /* True: PWM mode, False: Timer mode */
+  uint8_t mode;                   /* GPT mode (PWM/Timer) */
+  bool started;                   /* True: Started */
+  timer_callback_t callback;      /* Timer callback function */
+  void *arg;                      /* Timer callback argument */
 #ifdef CONFIG_PWM_MULTICHAN
   uint8_t  nchannels;             /* Number of channels */
 #endif
 };
+
+/****************************************************************************
+ * Private Function Prototypes
+ ****************************************************************************/
+
+/* Register access helpers */
+static inline uint32_t gpt_getreg(struct ra_gpt_s *priv, int offset);
+static inline void gpt_putreg(struct ra_gpt_s *priv, int offset, uint32_t value);
+
+/* Low-level GPT operations */
+static int gpt_configure(struct ra_gpt_s *priv);
+static uint32_t gpt_calculate_prescaler(uint32_t frequency, uint32_t pclkd);
+static void gpt_disable_write_protection(int channel);
+static void gpt_enable_write_protection(int channel);
+static void gpt_dumpregs(struct ra_gpt_s *priv, const char *msg);
+
+/* PWM driver methods */
+static int gpt_pwm_setup(struct pwm_lowerhalf_s *dev);
+static int gpt_pwm_shutdown(struct pwm_lowerhalf_s *dev);
+static int gpt_pwm_start(struct pwm_lowerhalf_s *dev, const struct pwm_info_s *info);
+static int gpt_pwm_stop(struct pwm_lowerhalf_s *dev);
+static int gpt_pwm_ioctl(struct pwm_lowerhalf_s *dev, int cmd, unsigned long arg);
+
+/* Timer driver methods */
+static int gpt_timer_start(struct timer_lowerhalf_s *lower);
+static int gpt_timer_stop(struct timer_lowerhalf_s *lower);
+static int gpt_timer_getstatus(struct timer_lowerhalf_s *lower, struct timer_status_s *status);
+static int gpt_timer_settimeout(struct timer_lowerhalf_s *lower, uint32_t timeout);
+static void gpt_timer_setcallback(struct timer_lowerhalf_s *lower,
+                                 tccb_t callback, void *arg);
+static int gpt_timer_ioctl(struct timer_lowerhalf_s *lower, int cmd, unsigned long arg);
+
+/* Interrupt handling */
+static int gpt_interrupt_handler(int irq, void *context, void *arg);
 
 /****************************************************************************
  * Static Function Prototypes
@@ -668,7 +712,7 @@ static int gpt_ioctl(struct pwm_lowerhalf_s *dev, int cmd,
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ra_pwm_initialize
+ * Name: ra_gpt_initialize
  *
  * Description:
  *   Initialize one GPT timer for use with the upper_level PWM driver.
@@ -682,7 +726,7 @@ static int gpt_ioctl(struct pwm_lowerhalf_s *dev, int cmd,
  *
  ****************************************************************************/
 
-struct pwm_lowerhalf_s *ra_pwm_initialize(int channel)
+struct pwm_lowerhalf_s *ra_gpt_initialize(int channel)
 {
   struct ra_gpt_s *lower;
   int i;
@@ -719,27 +763,6 @@ struct pwm_lowerhalf_s *ra_pwm_initialize(int channel)
     }
 
   return (struct pwm_lowerhalf_s *)lower;
-}
-
-/****************************************************************************
- * Name: ra_gpt_timer_initialize (Legacy function for timer mode)
- *
- * Description:
- *   Initialize one timer for use with the upper_level PWM driver.
- *
- * Input Parameters:
- *   channel - A number identifying the timer channel.
- *
- * Returned Value:
- *   On success, a pointer to the RA8 lower half PWM driver is returned.
- *   NULL is returned on any failure.
- *
- ****************************************************************************/
-
-struct pwm_lowerhalf_s *ra_gpt_initialize(int channel)
-{
-  /* For backward compatibility, redirect to PWM initialize */
-  return ra_pwm_initialize(channel);
 }
 
 #endif /* CONFIG_RA_GPT */

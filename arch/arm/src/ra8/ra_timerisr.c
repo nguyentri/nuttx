@@ -49,22 +49,24 @@
 /*  GPT timer configuration */
 #ifdef CONFIG_RA_SYSTICK_GPT
 #  include "ra_mstp.h"
-#  define RA_GPT_CHANNEL_BASE   (R_GPT3_BASE)
-#  define RA_GPT_GTWP           (RA_GPT_CHANNEL_BASE + RA_GPT_GTWP_OFFSET)
-#  define RA_GPT_GTSTR          (RA_GPT_CHANNEL_BASE + RA_GPT_GTSTR_OFFSET)
-#  define RA_GPT_GTSTP          (RA_GPT_CHANNEL_BASE + RA_GPT_GTSTP_OFFSET)
-#  define RA_GPT_GTCLR          (RA_GPT_CHANNEL_BASE + RA_GPT_GTCLR_OFFSET)
-#  define RA_GPT_GTCR           (RA_GPT_CHANNEL_BASE + RA_GPT_GTCR_OFFSET)
-#  define RA_GPT_GTPR           (RA_GPT_CHANNEL_BASE + RA_GPT_GTPR_OFFSET)
-#  define RA_GPT_GTINTAD        (RA_GPT_CHANNEL_BASE + RA_GPT_GTINTAD_OFFSET)
-#  define RA_GPT_GTST           (RA_GPT_CHANNEL_BASE + RA_GPT_GTST_OFFSET)
-#  define RA_GPT_GTCNT          (RA_GPT_CHANNEL_BASE + RA_GPT_GTCNT_OFFSET)
-#  define RA_TIMER_CLOCK        (RA_PCLKD_FREQUENCY)
-#  define RA_TIMER_RELOAD       ((RA_TIMER_CLOCK / CLK_TCK) - 1)
-#  define RA_GPT_CHANNEL        (3)  /* Use GPT3 for system timer */
-#  if RA_TIMER_RELOAD > 0xFFFFFFFF
-#    error GPT timer reload value exceeds 32-bit range
-#  endif
+#define RA_GPT_CHANNEL        (0)  /* Use GPT0 for system timer */
+#define RA_MSTP_GPT(n)           (RA_MSTP_GPT##n)
+#define RA_EL_GPT(n)          (RA_EL_GPT##n##COUNTER_OVERFLOW) /* Event link for GPTn overflow */
+/* Use the new channel-based register macros */
+#define RA_GPT_SYSTICK_GTWP           RA_GPT_GTWP(RA_GPT_CHANNEL)
+#define RA_GPT_SYSTICK_GTSTR          RA_GPT_GTSTR(RA_GPT_CHANNEL)
+#define RA_GPT_SYSTICK_GTSTP          RA_GPT_GTSTP(RA_GPT_CHANNEL)
+#define RA_GPT_SYSTICK_GTCLR          RA_GPT_GTCLR(RA_GPT_CHANNEL)
+#define RA_GPT_SYSTICK_GTCR           RA_GPT_GTCR(RA_GPT_CHANNEL)
+#define RA_GPT_SYSTICK_GTPR           RA_GPT_GTPR(RA_GPT_CHANNEL)
+#define RA_GPT_SYSTICK_GTINTAD        RA_GPT_GTINTAD(RA_GPT_CHANNEL)
+#define RA_GPT_SYSTICK_GTST           RA_GPT_GTST_REG(RA_GPT_CHANNEL)
+#define RA_GPT_SYSTICK_GTCNT          RA_GPT_GTCNT(RA_GPT_CHANNEL)
+#define RA_TIMER_CLOCK                (RA_PCLKD_FREQUENCY)
+#define SYSTICK_RELOAD                ((RA_TIMER_CLOCK / CLK_TCK) - 1)
+#if SYSTICK_RELOAD > 0xFFFFFFFF
+#  error GPT timer reload value exceeds 32-bit range
+#endif
 #else
 #  include "ra_clock.h"
 #  define SYSTICK_CLOCK     (RA_ICLK_FREQUENCY)
@@ -117,13 +119,13 @@ static int ra_systick_isr(int irq, uint32_t *regs, void *arg)
   uint32_t status;
 
   /* Read and clear GPT overflow status flag - Following FSP best practices */
-  status = getreg32(RA_GPT_GTST);
+  status = getreg32(RA_GPT_SYSTICK_GTST);
 
   /* Check if overflow interrupt occurred */
   if (status & GPT_GTST_TCFPO)
     {
       /* Clear overflow flag by writing 0 to it - FSP compatible approach */
-      putreg32(status & ~GPT_GTST_TCFPO, RA_GPT_GTST);
+      putreg32(status & ~GPT_GTST_TCFPO, RA_GPT_SYSTICK_GTST);
 
       /* Process timer interrupt */
       nxsched_process_timer();
@@ -137,7 +139,7 @@ static int ra_systick_isr(int irq, uint32_t *regs, void *arg)
                 GPT_GTST_TCFPU))
     {
       /* Clear all other potential flags */
-      putreg32(0, RA_GPT_GTST);
+      putreg32(0, RA_GPT_SYSTICK_GTST);
     }
 
   return 0;
@@ -176,54 +178,52 @@ void up_timer_initialize(void)
 {
   uint32_t regval;
 
-  /* GPT-based timer initialization using GPT3 - Following FSP best practices */
+  /* Enable GPT module clock */
+  ra_mstp_start(RA_MSTP_GPT(RA_GPT_CHANNEL));
 
-  /* Enable GPT3 module clock */
-  ra_mstp_start(RA_MSTP_GPT3);
-
-  /* Disable write protection to configure GPT - FSP approach */
-  regval = (GPT_GTWP_PRKEY | GPT_GTWP_WP);
-  putreg32(regval, RA_GPT_GTWP);
+  /* Disable write protection to configure GPT - not supported */
+  //regval = (GPT_GTWP_PRKEY | GPT_GTWP_WP);
+  //putreg32(regval, RA_GPT_SYSTICK_GTWP);
 
   /* Stop GPT channel if running */
-  putreg32((1 << RA_GPT_CHANNEL), RA_GPT_GTSTP);
+  putreg32((1 << RA_GPT_CHANNEL), RA_GPT_SYSTICK_GTSTP);
 
   /* Clear GPT counter */
-  putreg32(0, RA_GPT_GTCNT);
+  putreg32(0, RA_GPT_SYSTICK_GTCNT);
 
   /* Configure GPT control register for periodic mode - Enhanced from FSP */
   regval = GPT_GTCR_MD_SAW_WAVE_UP |      /* Saw-wave PWM mode (up-counting) */
            GPT_GTCR_TPCS_PCLKD_1;         /* Use PCLKD as clock source */
-  putreg32(regval, RA_GPT_GTCR);
+  putreg32(regval, RA_GPT_SYSTICK_GTCR);
 
   /* Set period register for desired interrupt frequency */
-  putreg32(RA_TIMER_RELOAD, RA_GPT_GTPR);
+  putreg32(SYSTICK_RELOAD, RA_GPT_SYSTICK_GTPR);
 
   /* Enable overflow interrupt - Key for system timer */
   regval = GPT_GTINTAD_GTINTV;  /* Overflow interrupt enable */
-  putreg32(regval, RA_GPT_GTINTAD);
+  putreg32(regval, RA_GPT_SYSTICK_GTINTAD);
 
   /* Clear any pending interrupt flags before enabling interrupts */
-  putreg32(0, RA_GPT_GTST);
+  putreg32(0, RA_GPT_SYSTICK_GTST);
 
-  /* Set up ICU event linking for GPT3 overflow interrupt */
-  ra_icu_set_event(RA_IRQ_GPT3_OVERFLOW, RA_EL_GPT3_COUNTER_OVERFLOW);
+  /* Set up ICU event linking for  overflow interrupt */
+  ra_icu_set_event(RA_IRQ_SYSTICK_GPT, RA_EL_GPT(RA_GPT_CHANNEL));
 
   /* Attach the GPT interrupt vector */
-  irq_attach(RA_IRQ_GPT3_OVERFLOW, (xcpt_t)ra_systick_isr, NULL);
+  irq_attach(RA_IRQ_SYSTICK_GPT, (xcpt_t)ra_systick_isr, NULL);
 
   /* Enable GPT interrupt */
-  up_enable_irq(RA_IRQ_GPT3_OVERFLOW);
+  up_enable_irq(RA_IRQ_SYSTICK_GPT);
 
-  /* Re-enable write protection - FSP safety practice */
-  regval = GPT_GTWP_PRKEY;  /* Remove WP bit but keep key */
-  putreg32(regval, RA_GPT_GTWP);
+  /* Re-enable write protection - not supported */
+  //regval = GPT_GTWP_PRKEY;  /* Remove WP bit but keep key */
+  //putreg32(regval, RA_GPT_SYSTICK_GTWP);
 
   /* Start GPT timer */
-  putreg32((1 << RA_GPT_CHANNEL), RA_GPT_GTSTR);
+  putreg32((1 << RA_GPT_CHANNEL), RA_GPT_SYSTICK_GTSTR);
 
   tmrinfo("GPT3 timer configured: reload=0x%08x, clock=%u Hz, rate=%u Hz\n",
-          RA_TIMER_RELOAD, RA_TIMER_CLOCK, CLK_TCK);
+          SYSTICK_RELOAD, RA_TIMER_CLOCK, CLK_TCK);
 }
 #else
 /* Standard ARM Cortex-M85 SysTick configuration */
@@ -314,8 +314,8 @@ int up_timer_gettime(struct timespec *ts)
   flags = enter_critical_section();
 
   /* Get GPT registers - counter counts up in our configuration */
-  period  = getreg32(RA_GPT_GTPR) + 1;
-  current = getreg32(RA_GPT_GTCNT);
+  period  = getreg32(RA_GPT_SYSTICK_GTPR) + 1;
+  current = getreg32(RA_GPT_SYSTICK_GTCNT);
 
   /* Get the number of full ticks elapsed */
   usecs = clock_systime_ticks() * USEC_PER_TICK;
@@ -414,8 +414,8 @@ int up_timer_cancel(struct timespec *ts)
   if (ts != NULL)
     {
       /* Get the current GPT state */
-      period  = getreg32(RA_GPT_GTPR) + 1;
-      current = getreg32(RA_GPT_GTCNT);
+      period  = getreg32(RA_GPT_SYSTICK_GTPR) + 1;
+      current = getreg32(RA_GPT_SYSTICK_GTCNT);
 
       /* Calculate remaining time in this tick period */
       remaining = period - current;
@@ -429,13 +429,13 @@ int up_timer_cancel(struct timespec *ts)
     }
 
   /* Stop GPT timer */
-  putreg32((1 << RA_GPT_CHANNEL), RA_GPT_GTSTP);
+  putreg32((1 << RA_GPT_CHANNEL), RA_GPT_SYSTICK_GTSTP);
 
   /* Clear counter */
-  putreg32(0, RA_GPT_GTCNT);
+  putreg32(0, RA_GPT_SYSTICK_GTCNT);
 
   /* Disable overflow interrupt */
-  putreg32(0, RA_GPT_GTINTAD);
+  putreg32(0, RA_GPT_SYSTICK_GTINTAD);
 
   return OK;
 }
@@ -525,20 +525,20 @@ int up_timer_start(const struct timespec *ts)
     }
 
   /* Stop timer during setup */
-  putreg32((1 << RA_GPT_CHANNEL), RA_GPT_GTSTP);
+  putreg32((1 << RA_GPT_CHANNEL), RA_GPT_SYSTICK_GTSTP);
 
   /* Clear counter */
-  putreg32(0, RA_GPT_GTCNT);
+  putreg32(0, RA_GPT_SYSTICK_GTCNT);
 
   /* Set new period value */
-  putreg32(period_val - 1, RA_GPT_GTPR);
+  putreg32(period_val - 1, RA_GPT_SYSTICK_GTPR);
 
   /* Enable overflow interrupt */
   regval = GPT_GTINTAD_GTINTV;
-  putreg32(regval, RA_GPT_GTINTAD);
+  putreg32(regval, RA_GPT_SYSTICK_GTINTAD);
 
   /* Start timer */
-  putreg32((1 << RA_GPT_CHANNEL), RA_GPT_GTSTR);
+  putreg32((1 << RA_GPT_CHANNEL), RA_GPT_SYSTICK_GTSTR);
 
   return OK;
 }

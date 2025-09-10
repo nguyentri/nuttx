@@ -68,9 +68,11 @@ CONFIG_ARCH_HAVE_DATA_FLASH=y
 CONFIG_ARCH_HAVE_SRAM=y
 CONFIG_ARCH_FPU=y
 
-# RA8E1 MCU specific configurations
-CONFIG_RA8E1_GROUP=y
+# RA Family and Group
 CONFIG_RA_FAMILY=y
+CONFIG_RA8E1_GROUP=y
+
+# RA Clock Configuration
 CONFIG_RA_CLOCK_PLL=y
 
 # Serial Console Configuration

@@ -53,22 +53,16 @@
 
 #if RA_GPT_CHANNEL == 0
 #  define RA_MSTP_GPT_SYSTICK       RA_MSTP_GPT0
-#  define RA_EL_GPT_SYSTICK         RA_EL_GPT0_COUNTER_OVERFLOW
 #elif RA_GPT_CHANNEL == 1
 #  define RA_MSTP_GPT_SYSTICK       RA_MSTP_GPT1
-#  define RA_EL_GPT_SYSTICK         RA_EL_GPT1_COUNTER_OVERFLOW
 #elif RA_GPT_CHANNEL == 2
 #  define RA_MSTP_GPT_SYSTICK       RA_MSTP_GPT2
-#  define RA_EL_GPT_SYSTICK         RA_EL_GPT2_COUNTER_OVERFLOW
 #elif RA_GPT_CHANNEL == 3
 #  define RA_MSTP_GPT_SYSTICK       RA_MSTP_GPT3
-#  define RA_EL_GPT_SYSTICK         RA_EL_GPT3_COUNTER_OVERFLOW
 #elif RA_GPT_CHANNEL == 4
 #  define RA_MSTP_GPT_SYSTICK       RA_MSTP_GPT4
-#  define RA_EL_GPT_SYSTICK         RA_EL_GPT4_COUNTER_OVERFLOW
 #elif RA_GPT_CHANNEL == 5
 #  define RA_MSTP_GPT_SYSTICK       RA_MSTP_GPT5
-#  define RA_EL_GPT_SYSTICK         RA_EL_GPT5_COUNTER_OVERFLOW
 #else
 #  error "Unsupported GPT channel for system timer"
 #endif
@@ -125,7 +119,7 @@
  ****************************************************************************/
 
 #if !defined(CONFIG_ARMV8M_SYSTICK) && !defined(CONFIG_TIMER_ARCH)
-int ra_timer_arch_isr(int irq, uint32_t *regs, void *arg)
+int ra_timer_arch_isr(int irq, void *context, void *arg)
 {
   /* Process timer interrupt */
   nxsched_process_timer();
@@ -143,7 +137,7 @@ int ra_timer_arch_isr(int irq, uint32_t *regs, void *arg)
  *
  ****************************************************************************/
 
-static int ra_systick_isr(int irq, uint32_t *regs, void *arg)
+int ra_systick_isr(int irq, void *context, void *arg)
 {
   uint32_t status;
 
@@ -174,7 +168,7 @@ static int ra_systick_isr(int irq, uint32_t *regs, void *arg)
 }
 #else
 /* ARM Cortex-M85 SysTick interrupt handler for NuttX system timer */
-static int ra_systick_isr(int irq, uint32_t *regs, void *arg)
+int ra_systick_isr(int irq, void *context, void *arg)
 {
   /* SysTick interrupt is acknowledged automatically by reading the
    * SYST_CSR register or writing to the SYST_CVR register.
@@ -268,26 +262,12 @@ void up_timer_initialize(void)
   /* Clear any residual interrupt flags again after configuration */
   putreg32(0, RA_GPT_SYSTICK_GTST);
 
-  /* Set up ICU event linking for overflow interrupt */
-  ra_icu_set_event(RA_IRQ_SYSTICK_GPT, RA_EL_GPT_SYSTICK);
-
-  /* Attach the GPT interrupt vector */
-  irq_attach(RA_IRQ_SYSTICK_GPT, (xcpt_t)ra_systick_isr, NULL);
-
-  /* Enable GPT interrupt */
-  up_enable_irq(RA_IRQ_SYSTICK_GPT);
-
   /* Start GPT timer - this must be done BEFORE re-enabling write protection */
   putreg32((1 << RA_GPT_CHANNEL), RA_GPT_SYSTICK_GTSTR);
 
   /* Re-enable write protection after configuration */
   regval = GPT_GTWP_PRKEY | GPT_GTWP_WP;
   putreg32(regval, RA_GPT_SYSTICK_GTWP);
-
-  tmrinfo("GPT%d timer configured: reload=0x%08x, clock=%u Hz, rate=%u Hz\n",
-          RA_GPT_CHANNEL, SYSTICK_RELOAD, RA_TIMER_CLOCK, CLK_TCK);
-  tmrinfo("GPT%d IRQ=%d, ICU event=0x%x\n",
-          RA_GPT_CHANNEL, RA_IRQ_SYSTICK_GPT, RA_EL_GPT_SYSTICK);
 }
 #else
 /* Standard ARM Cortex-M85 SysTick configuration */

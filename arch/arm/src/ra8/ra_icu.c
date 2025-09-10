@@ -33,23 +33,13 @@
 #include <errno.h>
 #include <debug.h>
 
-#ifdef CONFIG_SERIAL_TERMIOS
-#include <termios.h>
-#endif
-
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
-#include <nuttx/fs/ioctl.h>
-#include <nuttx/serial/serial.h>
 
 #include <arch/board/board.h>
+#include <arch/irq.h>
 
 #include "arm_internal.h"
-#include "chip.h"
-
-#include "hardware/ra_sci.h"
-#include "hardware/ra_mstp.h"
-#include "hardware/ra_system.h"
 #include "hardware/ra_icu.h"
 #include "ra_icu.h"
 
@@ -58,16 +48,49 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Private Data
+ * Type Definitions
  ****************************************************************************/
 
-static void *g_icu_handlers[NR_IRQS];
-static void *g_icu_args[NR_IRQS];
+typedef struct {
+  int el[RA_IRQ_IELSR_SIZE]; /* Event Link number - use hardcoded size for now */
+  xcpt_t handler[RA_IRQ_IELSR_SIZE]; /* Handler function */
+  void *arg[RA_IRQ_IELSR_SIZE]; /* Argument for handler */
+} ra_icu_handler_t;
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
+/* Forward declarations for configuration-time interrupts */
+int button_handler_isr(int irq, void *context, void *arg);
+int ra_systick_isr(int irq, void *context, void *arg);
+
+/* Global ICU handler structure - supports both configuration and runtime registration */
+static ra_icu_handler_t g_icu_handlers;
+static uint32_t g_icu_slot = 0; /* next available slot */
+
+/****************************************************************************
+ * Configuration-time interrupt definitions
+ * These are registered during system initialization
+ ****************************************************************************/
+
+typedef struct
+{
+  int event;
+  xcpt_t handler;
+  void *arg;
+} ra_config_irq_t;
+
+static const ra_config_irq_t g_config_irqs[] =
+{
+#ifdef CONFIG_RA_SYSTICK_GPT
+  { RA_EL_GPT0_COUNTER_OVERFLOW, ra_systick_isr, NULL },
+#endif
+#ifdef CONFIG_ARCH_BUTTONS
+  { RA_EL_ICU_IRQ13, button_handler_isr, NULL },
+#endif
+  { -1, NULL, NULL } /* Sentinel */
+};
 
 /****************************************************************************
  * Private Functions
@@ -83,16 +106,12 @@ static void *g_icu_args[NR_IRQS];
 
 static int ra_icu_interrupt(int irq, void *context, void *arg)
 {
-  int icu_irq = (int)arg;
-
-  /* Clear the interrupt flag */
-  ra_icu_clear_irq(irq);
+  int icu_slot = (int)(uintptr_t)arg;
 
   /* Call the registered handler if available */
-  if (g_icu_handlers[icu_irq] != NULL)
+  if (g_icu_handlers.handler[icu_slot] != NULL)
     {
-      return ((int (*)(int, void *, void *))g_icu_handlers[icu_irq])
-               (irq, context, g_icu_args[icu_irq]);
+      return g_icu_handlers.handler[icu_slot](irq, context, g_icu_handlers.arg[icu_slot]);
     }
 
   return OK;
@@ -106,7 +125,7 @@ static int ra_icu_interrupt(int irq, void *context, void *arg)
  * Name: ra_icu_initialize
  *
  * Description:
- *   Initialize the ICU driver
+ *   Initialize the ICU driver and register configuration-time interrupts
  *
  ****************************************************************************/
 
@@ -114,130 +133,136 @@ void ra_icu_initialize(void)
 {
   int i;
 
-  /* Clear all handlers */
-  for (i = 0; i < NR_IRQS; i++)
+  /* Initialize the handlers structure */
+  for (i = 0; i < RA_IRQ_IELSR_SIZE; i++)
     {
-      g_icu_handlers[i] = NULL;
-      g_icu_args[i] = NULL;
+      g_icu_handlers.el[i] = -1;
+      g_icu_handlers.handler[i] = NULL;
+      g_icu_handlers.arg[i] = NULL;
     }
 
-  /* Clear all interrupt flags */
-  putreg16(0xFFFF, R_ICU_NMICLR);
+  /* Reset slot counter */
+  g_icu_slot = 0;
+
+  /* Register configuration-time interrupts using the unified API */
+  for (i = 0; g_config_irqs[i].event != -1; i++)
+    {
+      int ret = ra_icu_attach(g_config_irqs[i].event,
+                              g_config_irqs[i].handler,
+                              g_config_irqs[i].arg);
+      if (ret < 0)
+        {
+          /* Note: Cannot use _err() here as syslog is not ready during early IRQ init.
+           * Any error will be evident by system not working properly.
+           * For debugging, enable early showprogress in ra_start.c instead.
+           */
+           arm_lowputc('E'); // Indicate error with 'E'
+        }
+    }
 }
 
 /****************************************************************************
- * Name: ra_icu_attach_irq
+ * Name: ra_icu_attach
  *
  * Description:
- *   Attach an ICU interrupt handler
+ *   Attach an ICU interrupt handler (unified API for both config-time and runtime)
+ *   This function handles both event linking and IRQ enabling
  *
  ****************************************************************************/
 
-int ra_icu_attach_irq(int icu_irq, int (*handler)(int, void *, void *), void *arg)
+int ra_icu_attach(int event, xcpt_t handler, void *arg)
 {
-  if (icu_irq < 0 || icu_irq >= NR_IRQS)
+  int slot;
+
+  /* Find next available slot */
+  if (g_icu_slot >= RA_IRQ_IELSR_SIZE)
     {
-      return -EINVAL;
+      return -ENOMEM;
     }
 
-  g_icu_handlers[icu_irq] = handler;
-  g_icu_args[icu_irq] = arg;
+  slot = g_icu_slot++;
 
-  /* Attach the common interrupt handler using IELSR IRQ numbers */
-  irq_attach(RA_IRQ_FIRST + icu_irq, ra_icu_interrupt, (void *)(uintptr_t)icu_irq);
+  /* Set up the ICU event link */
+  ra_icu_set_event(slot, event);
 
-  return OK;
+  /* Store the handler information */
+  g_icu_handlers.el[slot] = event;
+  g_icu_handlers.handler[slot] = handler;
+  g_icu_handlers.arg[slot] = arg;
+
+  /* Attach the common interrupt handler */
+  irq_attach(RA_IRQ_FIRST + slot, ra_icu_interrupt, (void *)(uintptr_t)slot);
+
+  /* Enable the interrupt */
+  up_enable_irq(RA_IRQ_FIRST + slot);
+
+  return RA_IRQ_FIRST + slot;
 }
 
 /****************************************************************************
  * Name: ra_icu_detach
  *
  * Description:
- *   Detach an ICU interrupt handler
+ *   Detach an ICU interrupt handler (unified API)
+ *   This function handles both IRQ disabling and slot deallocation
  *
  ****************************************************************************/
 
 int ra_icu_detach(int icu_irq)
 {
-  if (icu_irq < 0 || icu_irq >= NR_IRQS)
+  int slot;
+  int i;
+
+  /* Validate IRQ range */
+  if (icu_irq < RA_IRQ_FIRST || icu_irq >= 112)
     {
       return -EINVAL;
     }
 
-  g_icu_handlers[icu_irq] = NULL;
-  g_icu_args[icu_irq] = NULL;
+  slot = icu_irq - RA_IRQ_FIRST;
+
+  /* Validate slot range */
+  if (slot < 0 || slot >= RA_IRQ_IELSR_SIZE)
+    {
+      return -EINVAL;
+    }
+
+  /* Check if slot is actually in use */
+  if (g_icu_handlers.handler[slot] == NULL)
+    {
+      return -ENOENT;
+    }
+
+  /* Disable the interrupt */
+  up_disable_irq(icu_irq);
 
   /* Detach the interrupt handler */
   irq_detach(icu_irq);
 
-  return OK;
-}
+  /* Clear the handler information */
+  g_icu_handlers.el[slot] = -1;
+  g_icu_handlers.handler[slot] = NULL;
+  g_icu_handlers.arg[slot] = NULL;
 
-/****************************************************************************
- * Name: ra_icu_enable
- *
- * Description:
- *   Enable an ICU interrupt
- *
- ****************************************************************************/
+  /* Clear the ICU event link */
+  ra_icu_set_event(slot, 0);
 
-void ra_icu_enable(int icu_irq)
-{
-  if (icu_irq >= 0 && icu_irq < NR_IRQS)
+  /* Compact the slot allocation if this was the last allocated slot */
+  if (slot == (g_icu_slot - 1))
     {
-      up_enable_irq(icu_irq);
+      /* Find the highest used slot */
+      int highest_used = -1;
+      for (i = 0; i < g_icu_slot; i++)
+        {
+          if (g_icu_handlers.handler[i] != NULL)
+            {
+              highest_used = i;
+            }
+        }
+
+      /* Update g_icu_slot to the next available slot after highest used */
+      g_icu_slot = highest_used + 1;
     }
-}
-
-/****************************************************************************
- * Name: ra_icu_disable
- *
- * Description:
- *   Disable an ICU interrupt
- *
- ****************************************************************************/
-
-void ra_icu_disable(int icu_irq)
-{
-  if (icu_irq >= 0 && icu_irq < NR_IRQS)
-    {
-      up_disable_irq(icu_irq);
-    }
-}
-
-/****************************************************************************
- * Name: ra_icu_config
- *
- * Description:
- *   Configure an ICU interrupt
- *
- ****************************************************************************/
-
-int ra_icu_config(int icu_irq, uint8_t mode, bool filter_enable,
-                  uint8_t filter_clock)
-{
-  uint32_t regaddr;
-  uint8_t regval;
-
-  if (icu_irq < 0 || icu_irq >= 16)  /* Only IRQ0-15 have configuration */
-    {
-      return -EINVAL;
-    }
-
-  regaddr = R_ICU_IRQCR(icu_irq);
-  regval = 0;
-
-  /* Set detection mode */
-  regval |= (mode & R_ICU_IRQCR_IRQMD_MASK) << R_ICU_IRQCR_IRQMD;
-
-  /* Set filter configuration */
-  if (filter_enable)
-    {
-      regval |= R_ICU_IRQCR_FLTEN;
-      regval |= (filter_clock & R_ICU_IRQCR_FCLKSEL_MASK) << R_ICU_IRQCR_FCLKSEL_SHIFT;
-    }
-
-  putreg8(regval, regaddr);
 
   return OK;
 }
@@ -255,14 +280,12 @@ int ra_icu_set_event(int icu_slot, int event)
   uint32_t regaddr;
   uint32_t regval;
 
-  uint32_t icu_slot_ielsr = icu_slot - RA_IRQ_FIRST;
-
-  if (icu_slot_ielsr < 0 || icu_slot_ielsr >= RA_IRQ_IELSR_SIZE)
+  if (icu_slot < 0 || icu_slot >= RA_IRQ_IELSR_SIZE)
     {
       return -EINVAL;
     }
 
-  regaddr = R_ICU_IELSR(icu_slot_ielsr);
+  regaddr = R_ICU_IELSR(icu_slot);
   regval = getreg32(regaddr);
 
   regval &= ~(R_ICU_IELSR_IELS_MASK << R_ICU_IELSR_IELS_SHIFT);
@@ -272,6 +295,7 @@ int ra_icu_set_event(int icu_slot, int event)
 
   return OK;
 }
+
 
 /****************************************************************************
  * Name: ra_icu_enable_wakeup
@@ -356,26 +380,31 @@ void ra_icu_disable_nmi(uint16_t mask)
  * Name: ra_icu_clear_irq
  *
  * Description:
- *   Clear interrupt request status
+ *   Clear interrupt request status. For most RA8 peripherals, interrupt
+ *   clearing is handled by the peripheral itself (e.g., reading data from
+ *   UART, clearing GPT status flags). The ICU IELSR.IR bit is automatically
+ *   cleared when the interrupt is acknowledged.
  *
  ****************************************************************************/
 
 void ra_icu_clear_irq(int irq)
 {
-  uint32_t regaddr;
-  regaddr = irq - RA_IRQ_FIRST;
-  modifyreg32(R_ICU_IELSR(regaddr), R_ICU_IELSR_IR, 0);
-  getreg32(R_ICU_IELSR(regaddr));
-}
+  /* For most RA8 interrupts, clearing is handled automatically by:
+   * 1. The peripheral itself (e.g., UART read/write, GPT status clear)
+   * 2. The ICU hardware when the interrupt is acknowledged
+   *
+   * The IR (Interrupt Request) bit in IELSR is automatically cleared
+   * by hardware when the interrupt is acknowledged by the CPU.
+   *
+   * Some specific cases that might need manual clearing:
+   * - External IRQ pins (IRQ0-15) - cleared by writing to IRQCR
+   * - Software interrupts
+   *
+   * For now, we implement a generic approach that works for most cases.
+   */
 
-/****************************************************************************
- * Name: ra_icu_attach_all
- *
- * Description:
- *   Attach all ICU events to the IRQ vector table
- *
- ****************************************************************************/
-void ra_icu_attach_all(void)
-{
-  /* Attach all ICU events to the IRQ vector table - currently not used */
+  /* The IR bit is automatically cleared by hardware for most events.
+   * If specific peripherals need manual clearing, they should handle
+   * it in their own interrupt handlers.
+   */
 }

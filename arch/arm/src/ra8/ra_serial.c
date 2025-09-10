@@ -239,12 +239,12 @@ struct up_dev_s
   uint32_t mstp;            /* Module Stop Control Register */
   uint32_t baud;            /* Configured baud */
   uint32_t sr;              /* Saved status bits */
-  uint8_t rxirq;            /* IRQ associated with this SCI */
-  uint8_t txirq;            /* IRQ associated with this SCI */
-  uint8_t teirq;            /* IRQ associated with this SCI */
-  uint8_t erirq;            /* IRQ associated with this SCI */
-  uint8_t parity;           /* 0=none, 1=odd, 2=even */
-  uint8_t bits;             /* Number of bits (5-9) */
+  uint32_t rxel;            /* RX event link associated with this SCI */
+  uint32_t txel;            /* TX event link associated with this SCI */
+  uint32_t txeel;           /* TX End event link associated with this SCI */
+  uint32_t erel;            /* Error event link associated with this SCI */
+  uint32_t parity;          /* 0=none, 1=odd, 2=even */
+  uint32_t bits;            /* Number of bits (5-9) */
   bool stopbits2;           /* true: Configure with 2 stop bits instead of 1 */
 };
 
@@ -288,12 +288,12 @@ static char g_uart9txbuffer[CONFIG_SCI9_TXBUFSIZE];
 #if defined(CONFIG_RA_SCI0_UART)
 static struct up_dev_s  g_uart0priv =
 {
-  .scibase    = R_SCI0_BASE,
+  .scibase      = R_SCI0_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI0,
-  .rxirq        = RA_IRQ_SCI0_RXI,
-  .txirq        = RA_IRQ_SCI0_TXI,
-  .teirq        = RA_IRQ_SCI0_TEI,
-  .erirq        = RA_IRQ_SCI0_ERI,
+  .rxel         = RA_EL_SCI0_RXI,
+  .txel         = RA_EL_SCI0_TXI,
+  .txeel        = RA_EL_SCI0_TEI,
+  .erel         = RA_EL_SCI0_ERI,
   .baud         = CONFIG_SCI0_BAUD,
   .parity       = CONFIG_SCI0_PARITY,
   .bits         = CONFIG_SCI0_BITS,
@@ -319,12 +319,12 @@ static uart_dev_t g_uart0port =
 #elif defined(CONFIG_RA_SCI1_UART)
 static struct up_dev_s  g_uart1priv =
 {
-  .scibase    = R_SCI1_BASE,
+  .scibase      = R_SCI1_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI1,
-  .rxirq        = RA_IRQ_SCI1_RXI,
-  .txirq        = RA_IRQ_SCI1_TXI,
-  .teirq        = RA_IRQ_SCI1_TEI,
-  .erirq        = RA_IRQ_SCI1_ERI,
+  .rxel         = RA_EL_SCI1_RXI,
+  .txel         = RA_EL_SCI1_TXI,
+  .txeel        = RA_EL_SCI1_TEI,
+  .erel         = RA_EL_SCI1_ERI,
   .baud         = CONFIG_SCI1_BAUD,
   .parity       = CONFIG_SCI1_PARITY,
   .bits         = CONFIG_SCI1_BITS,
@@ -350,12 +350,12 @@ static uart_dev_t  g_uart1port =
 #elif defined(CONFIG_RA_SCI2_UART)
 static struct up_dev_s  g_uart2priv =
 {
-  .scibase    = R_SCI2_BASE,
+  .scibase      = R_SCI2_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI2,
-  .rxirq        = RA_IRQ_SCI2_RXI,
-  .txirq        = RA_IRQ_SCI2_TXI,
-  .teirq        = RA_IRQ_SCI2_TEI,
-  .erirq        = RA_IRQ_SCI2_ERI,
+  .rxel         = RA_EL_SCI2_RXI,
+  .txel         = RA_EL_SCI2_TXI,
+  .txeel        = RA_EL_SCI2_TEI,
+  .erel         = RA_EL_SCI2_ERI,
   .baud         = CONFIG_SCI2_BAUD,
   .parity       = CONFIG_SCI2_PARITY,
   .bits         = CONFIG_SCI2_BITS,
@@ -381,12 +381,12 @@ static uart_dev_t  g_uart2port =
 #elif defined(CONFIG_RA_SCI3_UART)
 static struct up_dev_s  g_uart3priv =
 {
-  .scibase    = R_SCI3_BASE,
+  .scibase      = R_SCI3_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI3,
-  .rxirq        = RA_IRQ_SCI3_RXI,
-  .txirq        = RA_IRQ_SCI3_TXI,
-  .teirq        = RA_IRQ_SCI3_TEI,
-  .erirq        = RA_IRQ_SCI3_ERI,
+  .rxel         = RA_EL_SCI3_RXI,
+  .txel         = RA_EL_SCI3_TXI,
+  .txeel        = RA_EL_SCI3_TEI,
+  .erel         = RA_EL_SCI3_ERI,
   .baud         = CONFIG_SCI3_BAUD,
   .parity       = CONFIG_SCI3_PARITY,
   .bits         = CONFIG_SCI3_BITS,
@@ -412,12 +412,12 @@ static uart_dev_t  g_uart3port =
 #elif defined(CONFIG_RA_SCI4_UART)
 static struct up_dev_s  g_uart4priv =
 {
-  .scibase    = R_SCI4_BASE,
+  .scibase      = R_SCI4_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI4,
-  .rxirq        = RA_IRQ_SCI4_RXI,
-  .txirq        = RA_IRQ_SCI4_TXI,
-  .teirq        = RA_IRQ_SCI4_TEI,
-  .erirq        = RA_IRQ_SCI4_ERI,
+  .rxel         = RA_EL_SCI4_RXI,
+  .txel         = RA_EL_SCI4_TXI,
+  .txeel        = RA_EL_SCI4_TEI,
+  .erel         = RA_EL_SCI4_ERI,
   .baud         = CONFIG_SCI4_BAUD,
   .parity       = CONFIG_SCI4_PARITY,
   .bits         = CONFIG_SCI4_BITS,
@@ -443,12 +443,12 @@ static uart_dev_t  g_uart4port =
 #elif defined(CONFIG_RA_SCI9_UART)
 static struct up_dev_s  g_uart9priv =
 {
-  .scibase    = R_SCI9_BASE,
+  .scibase      = R_SCI9_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI9,
-  .rxirq        = RA_IRQ_SCI9_RXI,
-  .txirq        = RA_IRQ_SCI9_TXI,
-  .teirq        = RA_IRQ_SCI9_TEI,
-  .erirq        = RA_IRQ_SCI9_ERI,
+  .rxel         = RA_EL_SCI9_RXI,
+  .txel         = RA_EL_SCI9_TXI,
+  .txeel        = RA_EL_SCI9_TEI,
+  .erel         = RA_EL_SCI9_ERI,
   .baud         = CONFIG_SCI9_BAUD,
   .parity       = CONFIG_SCI9_PARITY,
   .bits         = CONFIG_SCI9_BITS,
@@ -628,33 +628,21 @@ static int up_setup(struct uart_dev_s *dev)
 #if defined(CONFIG_RA_SCI0_UART) && !defined(CONFIG_SCI0_SERIAL_CONSOLE)
   ra_configgpio(GPIO_SCI0_RX);
   ra_configgpio(GPIO_SCI0_TX);
-  ra_icu_set_event(RA_IRQ_SCI0_RXI, RA_EL_SCI0_RXI);
-  ra_icu_set_event(RA_IRQ_SCI0_TXI, RA_EL_SCI0_TXI);
 #elif defined(CONFIG_RA_SCI1_UART) && !defined(CONFIG_SCI1_SERIAL_CONSOLE)
   ra_configgpio(GPIO_SCI1_RX);
   ra_configgpio(GPIO_SCI1_TX);
-  ra_icu_set_event(RA_IRQ_SCI1_RXI, RA_EL_SCI1_RXI);
-  ra_icu_set_event(RA_IRQ_SCI1_TXI, RA_EL_SCI1_TXI);
 #elif defined(CONFIG_RA_SCI2_UART) && !defined(CONFIG_SCI2_SERIAL_CONSOLE)
   ra_configgpio(GPIO_SCI2_RX);
   ra_configgpio(GPIO_SCI2_TX);
-  ra_icu_set_event(RA_IRQ_SCI2_RXI, RA_EL_SCI2_RXI);
-  ra_icu_set_event(RA_IRQ_SCI2_TXI, RA_EL_SCI2_TXI);
 #elif defined(CONFIG_RA_SCI3_UART) && !defined(CONFIG_SCI3_SERIAL_CONSOLE)
   ra_configgpio(GPIO_SCI3_RX);
   ra_configgpio(GPIO_SCI3_TX);
-  ra_icu_set_event(RA_IRQ_SCI3_RXI, RA_EL_SCI3_RXI);
-  ra_icu_set_event(RA_IRQ_SCI3_TXI, RA_EL_SCI3_TXI);
 #elif defined(CONFIG_RA_SCI4_UART) && !defined(CONFIG_SCI4_SERIAL_CONSOLE)
   ra_configgpio(GPIO_SCI4_RX);
   ra_configgpio(GPIO_SCI4_TX);
-  ra_icu_set_event(RA_IRQ_SCI4_RXI, RA_EL_SCI4_RXI);
-  ra_icu_set_event(RA_IRQ_SCI4_TXI, RA_EL_SCI4_TXI);
 #elif defined(CONFIG_RA_SCI9_UART) && !defined(CONFIG_SCI9_SERIAL_CONSOLE)
   ra_configgpio(GPIO_SCI9_RX);
   ra_configgpio(GPIO_SCI9_TX);
-  ra_icu_set_event(RA_IRQ_SCI9_RXI, RA_EL_SCI9_RXI);
-  ra_icu_set_event(RA_IRQ_SCI9_TXI, RA_EL_SCI9_TXI);
 #endif
 
   /* Full initialization was already done in arm_earlyserialinit()
@@ -726,45 +714,42 @@ static int up_attach(struct uart_dev_s *dev)
   struct up_dev_s   *priv = (struct up_dev_s *)dev->priv;
   int               ret;
 
-  /* Attach and enable the IRQ */
+  /* Attach and enable the IRQ using the new unified ICU API */
 
-  ret = irq_attach(priv->rxirq, up_rxinterrupt, dev);
+  ret = ra_icu_attach(priv->rxel, up_rxinterrupt, dev);
   if (ret < 0)
     {
       return ret;
     }
+  priv->rxel = ret; /* Store the assigned IRQ number */
 
-  ret = irq_attach(priv->txirq, up_txinterrupt, dev);
+  ret = ra_icu_attach(priv->txel, up_txinterrupt, dev);
   if (ret < 0)
     {
-      irq_detach(priv->rxirq);
+      ra_icu_detach(priv->rxel);
       return ret;
     }
+  priv->txel = ret; /* Store the assigned IRQ number */
 
-  ret = irq_attach(priv->erirq, up_erinterrupt, dev);
+  ret = ra_icu_attach(priv->erel, up_erinterrupt, dev);
   if (ret < 0)
     {
-      irq_detach(priv->erirq);
+      ra_icu_detach(priv->rxel);
+      ra_icu_detach(priv->txel);
       return ret;
     }
+  priv->erel = ret; /* Store the assigned IRQ number */
 
-  up_enable_irq(priv->rxirq);
-  up_enable_irq(priv->txirq);
-  up_enable_irq(priv->erirq);
-
-  return ret;
+  return OK;
 }
 
 static void up_detach(struct uart_dev_s *dev)
 {
   struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
 
-  up_disable_irq(priv->rxirq);
-  up_disable_irq(priv->txirq);
-  up_disable_irq(priv->erirq);
-  irq_detach(priv->rxirq);
-  irq_detach(priv->txirq);
-  irq_detach(priv->erirq);
+  ra_icu_detach(priv->rxel);
+  ra_icu_detach(priv->txel);
+  ra_icu_detach(priv->erel);
 }
 
 /****************************************************************************
@@ -779,7 +764,7 @@ static int up_rxinterrupt(int irq, void *context, void *arg)
 {
   struct uart_dev_s *dev = (struct uart_dev_s *)arg;
 
-  ra_icu_clear_irq(irq);
+  /* SCI RX interrupt is automatically cleared by reading the data */
   uart_recvchars(dev);
   return OK;
 }
@@ -796,7 +781,7 @@ static int up_txinterrupt(int irq, void *context, void *arg)
 {
   struct uart_dev_s *dev = (struct uart_dev_s *)arg;
 
-  ra_icu_clear_irq(irq);
+  /* SCI TX interrupt is automatically cleared by writing data */
   uart_xmitchars(dev);
 
   return OK;
@@ -818,13 +803,11 @@ static int up_erinterrupt(int irq, void *context, void *arg)
   DEBUGASSERT(dev != NULL && dev->priv != NULL);
   priv = (struct up_dev_s *)dev->priv;
 
-  ra_icu_clear_irq(irq);
-
   /* Save for error reporting (SCI_B error bits) */
   priv->sr = up_serialin(priv, R_SCI_B_CSR_OFFSET) &
              (R_SCI_B_CSR_PER | R_SCI_B_CSR_FER | R_SCI_B_CSR_ORER);
 
-  /* Clear error flags */
+  /* Clear error flags - this also clears the interrupt */
   up_serialout(priv, R_SCI_B_CFCLR_OFFSET,
                (R_SCI_B_CFCLR_PERC | R_SCI_B_CFCLR_FERC | R_SCI_B_CFCLR_ORERC));
 

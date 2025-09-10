@@ -81,14 +81,6 @@ uint32_t board_button_initialize(void)
   /* Configure the button pin as an input with pullup and interrupt on falling edge */
   ra_configgpio(GPIO_SW1);
 
-  /* Set up ICU event linking for board switch 1 interrupt */
-  ra_icu_set_event(RA_IRQ_BOARD_SW1, RA_EL_ICU_IRQ13);
-
-  /* Attach the button interrupt handler */
-  irq_attach(RA_IRQ_BOARD_SW1, button_handler_isr, NULL);
-
-  /* Enable the interrupt */
-  up_enable_irq(RA_IRQ_BOARD_SW1);
 
   return 1;
 }

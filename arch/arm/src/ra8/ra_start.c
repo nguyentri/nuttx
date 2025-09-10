@@ -443,19 +443,19 @@ void __start(void)
   /* 7. Perform early serial initialization */
 #ifdef USE_EARLYSERIALINIT
   /* The 'A' character is not displayed because the UART hardware is not fully ready */
-  showprogress('A');
+  //showprogress('A');
   arm_earlyserialinit();
 #else
   /* The 'A' character should be displayed if the ra_lowsetup() is responsible for minimal UART setup */
-  showprogress('A');
+  //showprogress('A');
 #endif
 
-  showprogress('B');
+  //showprogress('B');
 
   /* Phase 5: Board-level Initialization */
   /* 8. Initialize onboard resources */
   ra_board_initialize();
-  showprogress('C');
+  //showprogress('C');
 
   /* Phase 6: Start NuttX */
   /* 9. Then start NuttX main initialization */

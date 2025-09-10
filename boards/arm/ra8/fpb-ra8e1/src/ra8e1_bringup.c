@@ -26,14 +26,15 @@
 
 #include <stdio.h>
 #include <syslog.h>
+#include <debug.h>
 
 #include <nuttx/board.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/leds/userled.h>
 
-#include "fpb-ra8e1.h"
-
 #include <arch/board/board.h>
+
+#include "fpb-ra8e1.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -66,7 +67,7 @@ int ra8e1_bringup(void)
 {
   int ret = OK;
 
-  syslog(LOG_INFO, "RA8E1 Board bring-up starting...\n");
+  syslog(LOG_INFO, "Nuttx: RA8E1 Board bring-up starting...\n");
 
 #ifdef CONFIG_FS_PROCFS
   /* Mount the procfs file system */

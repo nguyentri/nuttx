@@ -25,6 +25,11 @@
  * Included Files
  ****************************************************************************/
 
+#include <nuttx/config.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <nuttx/irq.h>
+
 #include "hardware/ra_icu.h"
 
 /****************************************************************************
@@ -52,19 +57,17 @@ extern "C"
 {
 #endif
 
-/* Legacy functions */
-void ra_icu_attach_all(void);
-void ra_icu_clear_irq(int irq);
 
-/* Enhanced ICU driver functions */
+/* ICU driver API */
 void ra_icu_initialize(void);
-int ra_icu_attach_irq(int icu_irq, int (*handler)(int, void *, void *), void *arg);
+int ra_icu_attach(int event, xcpt_t handler, void *arg);
 int ra_icu_detach(int icu_irq);
-void ra_icu_enable(int icu_irq);
-void ra_icu_disable(int icu_irq);
-int ra_icu_config(int icu_irq, uint8_t mode, bool filter_enable, 
-                  uint8_t filter_clock);
 int ra_icu_set_event(int icu_slot, int event);
+
+/* ICU configuration functions */
+int ra_icu_config(int icu_irq, uint8_t mode, bool filter_enable,
+                  uint8_t filter_clock);
+void ra_icu_clear_irq(int el);
 
 /* Wakeup control functions */
 void ra_icu_enable_wakeup(uint32_t mask);
@@ -72,9 +75,9 @@ void ra_icu_disable_wakeup(uint32_t mask);
 
 /* NMI control functions */
 void ra_icu_clear_nmi_status(uint16_t mask);
-uint16_t ra_icu_get_nmi_status(void);
 void ra_icu_enable_nmi(uint16_t mask);
 void ra_icu_disable_nmi(uint16_t mask);
+uint16_t ra_icu_get_nmi_status(void);
 
 #ifdef __cplusplus
 }

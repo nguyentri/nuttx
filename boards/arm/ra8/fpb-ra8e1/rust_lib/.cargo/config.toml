@@ -1,0 +1,7 @@
+[target.thumbv8m.main-none-eabihf]
+rustflags = [
+  "-C", "target-cpu=cortex-m85"
+]
+
+[build]
+target = "thumbv8m.main-none-eabihf"

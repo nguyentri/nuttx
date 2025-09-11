@@ -62,3 +62,9 @@ HOSTCC = gcc
 HOSTINCLUDES = -I.
 HOSTCFLAGS = -Wall -Wstrict-prototypes -Wshadow -Wundef -g -pipe
 HOSTLDFLAGS =
+
+# Add Rust library for linking (Zephyr-style integration)
+RUST_LIB_PATH = /home/a5094159/projects/nuttx_ra_dev/nuttx/boards/arm/ra8/fpb-ra8e1/rust_lib/target/thumbv8m.main-none-eabihf/release/libra8e1_rust_lib.a
+ifeq ($(wildcard $(RUST_LIB_PATH)),$(RUST_LIB_PATH))
+  EXTRA_LIBS += $(RUST_LIB_PATH)
+endif

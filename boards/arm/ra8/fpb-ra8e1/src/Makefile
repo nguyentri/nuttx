@@ -106,4 +106,39 @@ ifeq ($(CONFIG_RTC_DRIVER),y)
 CSRCS += ra8e1_rtc.c
 endif
 
+# Rust library integration (Zephyr-style approach)
+RUST_LIB_DIR = $(TOPDIR)/boards/arm/ra8/fpb-ra8e1/rust_lib
+RUST_TARGET_DIR = $(RUST_LIB_DIR)/target
+RUST_TARGET = thumbv8m.main-none-eabihf
+RUST_LIB_PATH = $(RUST_TARGET_DIR)/$(RUST_TARGET)/release/libra8e1_rust_lib.a
+
+# Check if cargo is available
+CARGO := $(shell which cargo 2>/dev/null)
+ifneq ($(CARGO),)
+  # Add Rust library to user libraries (gets linked at final stage)
+  USERLIBS += $(RUST_LIB_PATH)
+
+  # Build Rust library before C code (like add_dependencies in Zephyr)
+  context:: rust_lib
+
+  rust_lib: $(RUST_LIB_PATH)
+
+  # Build Rust library with proper dependencies (like add_custom_command in Zephyr)
+  $(RUST_LIB_PATH): $(RUST_LIB_DIR)/src/lib.rs $(RUST_LIB_DIR)/Cargo.toml
+	@echo "Building board-level Rust library for $(RUST_TARGET)..."
+	@cd $(RUST_LIB_DIR) && \
+		CARGO_TARGET_DIR=$(RUST_TARGET_DIR) \
+		$(CARGO) build --release --target $(RUST_TARGET)
+	@echo "Rust library built: $(RUST_LIB_PATH)"
+	@echo "Adding Rust library to USERLIBS for final linking"
+
+  clean::
+	@echo "Cleaning board-level Rust build artifacts..."
+	@cd $(RUST_LIB_DIR) && $(CARGO) clean 2>/dev/null || true
+
+  .PHONY: rust_lib
+else
+  $(warning "Cargo (Rust) not found. Rust integration disabled.")
+endif
+
 include $(TOPDIR)/boards/Board.mk

@@ -101,4 +101,9 @@ ifeq ($(CONFIG_RA8E1_SPI_GY912_DEMO),y)
 CSRCS += ra8e1_spi_gy912_demo.c
 endif
 
+# RTC driver support
+ifeq ($(CONFIG_RTC_DRIVER),y)
+CSRCS += ra8e1_rtc.c
+endif
+
 include $(TOPDIR)/boards/Board.mk

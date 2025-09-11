@@ -25,8 +25,14 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-
 #include <nuttx/arch.h>
+#include <nuttx/clock.h>
+#include <nuttx/power/pm.h>
+
+#include <debug.h>
+#include <time.h>
+#include <syslog.h>
+
 #include "arm_internal.h"
 
 /****************************************************************************
@@ -56,10 +62,63 @@ void up_idle(void)
   nxsched_process_timer();
 #else
 
-  /* Sleep until an interrupt occurs to save power */
+  /* Local heartbeat every 1000ms */
+  static struct timespec last_idle = {0, 0};
+  struct timespec current_time;
+
+  /* Get current time */
+  if (clock_gettime(CLOCK_MONOTONIC, &current_time) == 0)
+    {
+      /* Check if 1 second has passed */
+      time_t time_diff = current_time.tv_sec - last_idle.tv_sec;
+      long nsec_diff = current_time.tv_nsec - last_idle.tv_nsec;
+
+      /* Calculate total difference in milliseconds */
+      long total_ms = (time_diff * 1000) + (nsec_diff / 1000000);
+
+      if (total_ms >= 1000)
+        {
+          last_idle = current_time;
+
+          /* Get current time and format it */
+          struct timespec ts;
+          struct tm tm_info;
+          time_t time_for_format;
+          char time_str[32];
+
+          if (clock_gettime(CLOCK_REALTIME, &ts) == 0)
+            {
+              time_for_format = ts.tv_sec;
+              if (gmtime_r(&time_for_format, &tm_info) != NULL)
+                {
+                  strftime(time_str, sizeof(time_str), "%d/%m/%y %H:%M:%S", &tm_info);
+                  syslog(LOG_INFO, "Nuttx IDLE Heart Beat: %s.%03ld\n",
+                         time_str, ts.tv_nsec / 1000000);
+                }
+              else
+                {
+                  syslog(LOG_INFO, "Nuttx IDLE Heart Beat: %lu.%03ld sec\n",
+                         (unsigned long)ts.tv_sec, ts.tv_nsec / 1000000);
+                }
+            }
+          else
+            {
+              syslog(LOG_INFO, "Nuttx IDLE Heart Beat: %lu.%03ld sec\n",
+                     (unsigned long)current_time.tv_sec, current_time.tv_nsec / 1000000);
+            }
+
+#ifdef CONFIG_PM
+          /* Perform power management idle operations */
+          pm_idle(NULL);
+#endif
+        }
+    }
 
 #if 0
-  asm("WFI");  /* For example */
+  /* Sleep until an interrupt occurs to save power */
+  BEGIN_IDLE();
+  asm("WFI");
+  END_IDLE();
 #endif
 #endif
 }

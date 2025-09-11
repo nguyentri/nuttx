@@ -86,3 +86,9 @@ endif
 ifeq ($(CONFIG_RA_FLASH),y)
 CHIP_CSRCS += ra_flash.c
 endif
+
+# RTC driver
+ifeq ($(CONFIG_RA_RTC),y)
+CHIP_CSRCS += ra_rtc.c
+CHIP_CSRCS += ra_rtc_lowerhalf.c
+endif

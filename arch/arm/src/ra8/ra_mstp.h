@@ -73,6 +73,7 @@ typedef enum
   /* MSTPCRD register modules */
   RA_MSTP_ACMPHS0,          /* MSTPD28: High-Speed Analog Comparator 0 */
   RA_MSTP_ACMPHS1,          /* MSTPD27: High-Speed Analog Comparator 1 */
+  RA_MSTP_RTC,              /* MSTPD23: Real Time Clock */
   RA_MSTP_TSN,              /* MSTPD22: Temperature Sensor */
   RA_MSTP_DAC12,            /* MSTPD20: 12-bit D/A Converter */
   RA_MSTP_ADC0,             /* MSTPD16: 12-bit A/D Converter 0 */

@@ -67,7 +67,7 @@ int ra8e1_bringup(void)
 {
   int ret = OK;
 
-  syslog(LOG_INFO, "Nuttx: RA8E1 Board bring-up starting...\n");
+  syslog(LOG_INFO, "Nuttx: RA8E1 Board bring-up is successful...\n");
 
 #ifdef CONFIG_FS_PROCFS
   /* Mount the procfs file system */
@@ -94,6 +94,20 @@ int ra8e1_bringup(void)
   else
     {
       syslog(LOG_INFO, "UART initialized successfully\n");
+    }
+#endif
+
+#ifdef CONFIG_RTC_DRIVER
+  /* Initialize RTC driver */
+
+  ret = board_rtc_initialize();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize RTC: %d\n", ret);
+    }
+  else
+    {
+      syslog(LOG_INFO, "RTC initialized successfully\n");
     }
 #endif
 

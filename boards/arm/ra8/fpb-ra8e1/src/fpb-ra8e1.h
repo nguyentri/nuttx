@@ -109,6 +109,9 @@ void board_autoled_off(int led);
 int ra8e1_gpio_initialize(void);
 #endif
 
+#ifdef CONFIG_RTC_DRIVER
+int board_rtc_initialize(void);
+#endif
 
 #ifdef CONFIG_RA_SPI_LOOPBACK_DEMO
 int ra8e1_spi_loopback_demo_init(void);

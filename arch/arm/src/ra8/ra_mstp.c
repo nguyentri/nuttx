@@ -137,6 +137,7 @@ static uint32_t ra_mstp_get_bitmask(ra_mstp_module_t module)
       /* MSTPCRD register modules */
       case RA_MSTP_ACMPHS0:       return (1 << 28);  /* MSTPD28 */
       case RA_MSTP_ACMPHS1:       return (1 << 27);  /* MSTPD27 */
+      case RA_MSTP_RTC:           return (1 << 23);  /* MSTPD23 */
       case RA_MSTP_TSN:           return (1 << 22);  /* MSTPD22 */
       case RA_MSTP_DAC12:         return (1 << 20);  /* MSTPD20 */
       case RA_MSTP_ADC0:          return (1 << 16);  /* MSTPD16 */

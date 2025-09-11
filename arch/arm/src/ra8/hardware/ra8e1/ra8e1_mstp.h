@@ -119,6 +119,7 @@
 
 #define R_MSTP_MSTPCRD_MSTPD28         (1 << 28) /* 10000000: High-Speed Analog Comparator 0 Module Stop */
 #define R_MSTP_MSTPCRD_MSTPD27         (1 << 27) /* 08000000: High-Speed Analog Comparator 1 Module Stop */
+#define R_MSTP_MSTPCRD_MSTPD23         (1 << 23) /* 00800000: Real-Time Clock Module Stop */
 #define R_MSTP_MSTPCRD_MSTPD22         (1 << 22) /* 00400000: Temperature Sensor Module Stop */
 #define R_MSTP_MSTPCRD_MSTPD20         (1 << 20) /* 00100000: 12-bit D/A Converter Module Stop */
 #define R_MSTP_MSTPCRD_MSTPD16         (1 << 16) /* 00010000: 12-bit A/D Converter 0 Module Stop */
@@ -134,6 +135,7 @@
 #define R_MSTP_MSTPCRD_ACMPHS0         R_MSTP_MSTPCRD_MSTPD28
 #define R_MSTP_MSTPCRD_ACMPHS1         R_MSTP_MSTPCRD_MSTPD27
 #define R_MSTP_MSTPCRD_ACMPHS          R_MSTP_MSTPCRD_MSTPD28  /* Default to ACMPHS0 */
+#define R_MSTP_MSTPCRD_RTC             R_MSTP_MSTPCRD_MSTPD23
 #define R_MSTP_MSTPCRD_TSN             R_MSTP_MSTPCRD_MSTPD22
 #define R_MSTP_MSTPCRD_DAC12           R_MSTP_MSTPCRD_MSTPD20
 #define R_MSTP_MSTPCRD_DAC             R_MSTP_MSTPCRD_MSTPD20

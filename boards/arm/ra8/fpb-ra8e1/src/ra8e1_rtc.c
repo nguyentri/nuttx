@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/ra8/fpb-ra8e1/src/ra8e1_buttons.c
+ * boards/arm/ra8/fpb-ra8e1/src/ra_rtc.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -24,65 +24,80 @@
 
 #include <nuttx/config.h>
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <errno.h>
+#include <sys/types.h>
 #include <debug.h>
 
+#include <nuttx/timers/rtc.h>
 #include <nuttx/arch.h>
-#include <nuttx/board.h>
-#include <nuttx/irq.h>
 
-#include "ra_gpio.h"
-#include "ra_icu.h"
+#ifdef CONFIG_RTC_ARCH
+#include <nuttx/timers/arch_rtc.h>
+#endif
 
-#include <arch/board/board.h>
-
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-
-static bool g_led1_state = true; /* Active low, true = off */
-static bool g_led2_state = true; /* Active low, true = off */
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: button_handler_isr
- ****************************************************************************/
-
-static int button_handler_isr(int irq, void *context, void *arg)
-{
-  /* Toggle both LEDs */
-  g_led1_state = !g_led1_state;
-  g_led2_state = !g_led2_state;
-
-  ra_gpiowrite(GPIO_LED1, g_led1_state);
-  ra_gpiowrite(GPIO_LED2, g_led2_state);
-
-  /* Clear the interrupt flag */
-  ra_icu_clear_irq(irq);
-
-  return 0;
-}
+#ifdef CONFIG_RTC_DRIVER
+#include "ra_rtc_lowerhalf.c"
+#endif
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: board_button_initialize
+ * Name: ra_rtc_initialize
+ *
+ * Description:
+ *   Initialize the RTC driver for the FPB-RA8E1 board
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno on failure
+ *
  ****************************************************************************/
-#ifdef CONFIG_ARCH_BUTTONS
-uint32_t board_button_initialize(void)
-{
-  /* Configure the button pin as an input with pullup and interrupt on falling edge */
-  ra_configgpio(GPIO_SW1);
 
-  /* Attach the button interrupt handler */
-  ra_icu_attach(RA_EL_ICU_IRQ0, button_handler_isr, NULL);
-  return 1;
+#ifdef CONFIG_RTC_DRIVER
+int ra_rtc_initialize(void)
+{
+  FAR struct rtc_lowerhalf_s *lower;
+  int ret;
+
+  /* Get the RTC lowerhalf driver */
+  lower = ra_rtc_lowerhalf();
+  if (lower == NULL)
+    {
+      rtcerr("ERROR: Failed to get RTC lowerhalf\n");
+      return -ENODEV;
+    }
+
+  /* Register the RTC driver */
+  ret = rtc_initialize(0, lower);
+  if (ret < 0)
+    {
+      rtcerr("ERROR: Failed to register RTC driver: %d\n", ret);
+      return ret;
+    }
+
+#ifdef CONFIG_RTC_ARCH
+  /* For CONFIG_RTC_HIRES, register the lowerhalf with the generic arch RTC */
+  up_rtc_set_lowerhalf(lower, true);
+#endif
+
+  return OK;
+}
+#endif
+
+/****************************************************************************
+ * Name: board_rtc_initialize
+ *
+ * Description:
+ *   Initialize and register the RTC driver for the board
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno on failure
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_RTC_DRIVER
+int board_rtc_initialize(void)
+{
+  return ra_rtc_initialize();
 }
 #endif

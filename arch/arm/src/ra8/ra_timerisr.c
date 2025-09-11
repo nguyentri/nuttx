@@ -137,7 +137,7 @@ int ra_timer_arch_isr(int irq, void *context, void *arg)
  *
  ****************************************************************************/
 
-int ra_systick_isr(int irq, void *context, void *arg)
+static int ra_systick_isr(int irq, void *context, void *arg)
 {
   uint32_t status;
 
@@ -168,7 +168,7 @@ int ra_systick_isr(int irq, void *context, void *arg)
 }
 #else
 /* ARM Cortex-M85 SysTick interrupt handler for NuttX system timer */
-int ra_systick_isr(int irq, void *context, void *arg)
+static int ra_systick_isr(int irq, void *context, void *arg)
 {
   /* SysTick interrupt is acknowledged automatically by reading the
    * SYST_CSR register or writing to the SYST_CVR register.
@@ -261,6 +261,9 @@ void up_timer_initialize(void)
 
   /* Clear any residual interrupt flags again after configuration */
   putreg32(0, RA_GPT_SYSTICK_GTST);
+
+  /* Attach the timer interrupt handler through ICU */
+  ra_icu_attach(RA_EL_GPT0_COUNTER_OVERFLOW, ra_systick_isr, NULL);
 
   /* Start GPT timer - this must be done BEFORE re-enabling write protection */
   putreg32((1 << RA_GPT_CHANNEL), RA_GPT_SYSTICK_GTSTR);

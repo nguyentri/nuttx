@@ -52,21 +52,17 @@
  ****************************************************************************/
 
 typedef struct {
-  int el[RA_IRQ_IELSR_SIZE]; /* Event Link number - use hardcoded size for now */
-  xcpt_t handler[RA_IRQ_IELSR_SIZE]; /* Handler function */
-  void *arg[RA_IRQ_IELSR_SIZE]; /* Argument for handler */
+  int el; /* Event Link number - use hardcoded size for now */
+  xcpt_t handler; /* Handler function */
+  void *arg; /* Argument for handler */
 } ra_icu_handler_t;
 
 /****************************************************************************
  * Private Data
- ****************************************************************************/
-
-/* Forward declarations for configuration-time interrupts */
-int button_handler_isr(int irq, void *context, void *arg);
-int ra_systick_isr(int irq, void *context, void *arg);
-
-/* Global ICU handler structure - supports both configuration and runtime registration */
-static ra_icu_handler_t g_icu_handlers;
+ *
+ * Global ICU handler structure - supports both configuration and runtime registration
+ */
+static ra_icu_handler_t g_icu_handlers[RA_IRQ_IELSR_SIZE];
 static uint32_t g_icu_slot = 0; /* next available slot */
 
 /****************************************************************************
@@ -80,17 +76,6 @@ typedef struct
   xcpt_t handler;
   void *arg;
 } ra_config_irq_t;
-
-static const ra_config_irq_t g_config_irqs[] =
-{
-#ifdef CONFIG_RA_SYSTICK_GPT
-  { RA_EL_GPT0_COUNTER_OVERFLOW, ra_systick_isr, NULL },
-#endif
-#ifdef CONFIG_ARCH_BUTTONS
-  { RA_EL_ICU_IRQ13, button_handler_isr, NULL },
-#endif
-  { -1, NULL, NULL } /* Sentinel */
-};
 
 /****************************************************************************
  * Private Functions
@@ -109,9 +94,9 @@ static int ra_icu_interrupt(int irq, void *context, void *arg)
   int icu_slot = (int)(uintptr_t)arg;
 
   /* Call the registered handler if available */
-  if (g_icu_handlers.handler[icu_slot] != NULL)
+  if (g_icu_handlers[icu_slot].handler != NULL)
     {
-      return g_icu_handlers.handler[icu_slot](irq, context, g_icu_handlers.arg[icu_slot]);
+      return g_icu_handlers[icu_slot].handler(irq, context, g_icu_handlers[icu_slot].arg);
     }
 
   return OK;
@@ -136,37 +121,23 @@ void ra_icu_initialize(void)
   /* Initialize the handlers structure */
   for (i = 0; i < RA_IRQ_IELSR_SIZE; i++)
     {
-      g_icu_handlers.el[i] = -1;
-      g_icu_handlers.handler[i] = NULL;
-      g_icu_handlers.arg[i] = NULL;
+      g_icu_handlers[i].el = -1;
+      g_icu_handlers[i].handler = NULL;
+      g_icu_handlers[i].arg = NULL;
     }
 
   /* Reset slot counter */
   g_icu_slot = 0;
 
-  /* Register configuration-time interrupts using the unified API */
-  for (i = 0; g_config_irqs[i].event != -1; i++)
-    {
-      int ret = ra_icu_attach(g_config_irqs[i].event,
-                              g_config_irqs[i].handler,
-                              g_config_irqs[i].arg);
-      if (ret < 0)
-        {
-          /* Note: Cannot use _err() here as syslog is not ready during early IRQ init.
-           * Any error will be evident by system not working properly.
-           * For debugging, enable early showprogress in ra_start.c instead.
-           */
-           arm_lowputc('E'); // Indicate error with 'E'
-        }
-    }
 }
 
 /****************************************************************************
  * Name: ra_icu_attach
  *
  * Description:
- *   Attach an ICU interrupt handler (unified API for both config-time and runtime)
+ *   Attach an ICU interrupt handler at the runtime
  *   This function handles both event linking and IRQ enabling
+ *   This must only be called after a hardware event has been configured
  *
  ****************************************************************************/
 
@@ -186,9 +157,9 @@ int ra_icu_attach(int event, xcpt_t handler, void *arg)
   ra_icu_set_event(slot, event);
 
   /* Store the handler information */
-  g_icu_handlers.el[slot] = event;
-  g_icu_handlers.handler[slot] = handler;
-  g_icu_handlers.arg[slot] = arg;
+  g_icu_handlers[slot].el = event;
+  g_icu_handlers[slot].handler = handler;
+  g_icu_handlers[slot].arg = arg;
 
   /* Attach the common interrupt handler */
   irq_attach(RA_IRQ_FIRST + slot, ra_icu_interrupt, (void *)(uintptr_t)slot);
@@ -228,7 +199,7 @@ int ra_icu_detach(int icu_irq)
     }
 
   /* Check if slot is actually in use */
-  if (g_icu_handlers.handler[slot] == NULL)
+  if (g_icu_handlers[slot].handler == NULL)
     {
       return -ENOENT;
     }
@@ -240,9 +211,9 @@ int ra_icu_detach(int icu_irq)
   irq_detach(icu_irq);
 
   /* Clear the handler information */
-  g_icu_handlers.el[slot] = -1;
-  g_icu_handlers.handler[slot] = NULL;
-  g_icu_handlers.arg[slot] = NULL;
+  g_icu_handlers[slot].el = -1;
+  g_icu_handlers[slot].handler = NULL;
+  g_icu_handlers[slot].arg = NULL;
 
   /* Clear the ICU event link */
   ra_icu_set_event(slot, 0);
@@ -254,7 +225,7 @@ int ra_icu_detach(int icu_irq)
       int highest_used = -1;
       for (i = 0; i < g_icu_slot; i++)
         {
-          if (g_icu_handlers.handler[i] != NULL)
+          if (g_icu_handlers[i].handler != NULL)
             {
               highest_used = i;
             }

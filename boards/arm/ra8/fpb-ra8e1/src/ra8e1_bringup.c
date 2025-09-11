@@ -94,7 +94,56 @@ static int ra8e1_cyclic_logger_thread(int argc, char *argv[])
   return 0;
 }
 
-/* External function declarations for auto-started applications */
+/****************************************************************************
+ * Name: ra8e1_cyclic_logger_500ms_thread
+ *
+ * Description:
+ *   Simple cyclic logger that runs every 500 ms
+ *
+ ****************************************************************************/
+
+static int ra8e1_cyclic_logger_500ms_thread(int argc, char *argv[])
+{
+  struct timespec start_time;
+  uint32_t counter = 0;
+
+  syslog(LOG_INFO, "[CYCLIC] 500ms logger thread started\n");
+
+  /* Get start time for reference */
+  clock_gettime(CLOCK_REALTIME, &start_time);
+
+  while (1)
+    {
+      struct timespec current_time;
+      clock_gettime(CLOCK_REALTIME, &current_time);
+
+      /* Calculate elapsed time since start */
+      long elapsed_sec = current_time.tv_sec - start_time.tv_sec;
+      long elapsed_nsec = current_time.tv_nsec - start_time.tv_nsec;
+
+      if (elapsed_nsec < 0)
+        {
+          elapsed_sec--;
+          elapsed_nsec += 1000000000;
+        }
+
+      double elapsed_total = elapsed_sec + elapsed_nsec / 1000000000.0;
+
+      /* Print log message with timing information */
+      syslog(LOG_INFO,
+             "[Nuttx 500ms cyclic task is running] Count: %lu, Elapsed: %.3fs, Tick: %lu\n",
+             (unsigned long)counter,
+             elapsed_total,
+             (unsigned long)clock());
+
+      counter++;
+
+      /* Sleep for 500 ms */
+      usleep(500000);
+    }
+
+  return 0;
+}
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -378,6 +427,9 @@ int ra8e1_bringup(void)
   /* Auto-start the cyclic logger task since UART RX is not available */
   syslog(LOG_INFO, "Starting cyclic logger task automatically...\n");
 
+  /* Use task_create so it builds across configurations where kthread_create
+   * may not be available/enabled.
+   */
   ret = kthread_create("cyclic_logger",
                        100,
                        8192,
@@ -390,6 +442,23 @@ int ra8e1_bringup(void)
   else
     {
       syslog(LOG_INFO, "Cyclic logger task started successfully (PID: %d)\n", ret);
+    }
+
+  /* Auto-start the 500ms cyclic logger task */
+  syslog(LOG_INFO, "Starting 500ms cyclic logger task automatically...\n");
+
+  ret = kthread_create("cyclic_500ms_logger",
+                       100,
+                       8192,
+                       ra8e1_cyclic_logger_500ms_thread,
+                       NULL);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to start 500ms cyclic logger task: %d\n", ret);
+    }
+  else
+    {
+      syslog(LOG_INFO, "500ms cyclic logger task started successfully (PID: %d)\n", ret);
     }
 
   syslog(LOG_INFO, "Nuttx: RA8E1 Board bring-up is successful...\n");

@@ -67,7 +67,7 @@ int ra8e1_bringup(void)
 {
   int ret = OK;
 
-  syslog(LOG_INFO, "Nuttx: RA8E1 Board bring-up is successful...\n");
+  syslog(LOG_INFO, "Nuttx: RA8E1 Board bring-up is starting...\n");
 
 #ifdef CONFIG_FS_PROCFS
   /* Mount the procfs file system */
@@ -314,6 +314,8 @@ int ra8e1_bringup(void)
   /* Initialize buttons */
   board_button_initialize();
 #endif
+
+  syslog(LOG_INFO, "Nuttx: RA8E1 Board bring-up is successful...\n");
 
   /* Suppress unused variable warning */
   (void)ret;

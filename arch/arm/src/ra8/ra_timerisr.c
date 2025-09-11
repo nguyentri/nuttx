@@ -278,9 +278,6 @@ void up_timer_initialize(void)
 {
   uint32_t regval;
 
-  _info("Configuring SysTick with reload=%u with CPUCLK as %u Hz\n",
-        SYSTICK_RELOAD, RA_ICLK_FREQUENCY);
-
   /* Disable SysTick during setup */
   putreg32(0, NVIC_SYSTICK_CTRL);
 
@@ -307,11 +304,10 @@ void up_timer_initialize(void)
   putreg32(regval, NVIC_SYSTICK_CTRL);
 
   /* SysTick is now configured and will generate periodic interrupts
-   * at the rate specified by CLK_TCK (typically 100Hz for NuttX)
+   * at the rate specified by CLK_TCK (typically 1000Hz for NuttX)
    */
-
-  tmrinfo("SysTick configured: reload=0x%08x, clock=%u Hz, rate=%u Hz\n",
-          SYSTICK_RELOAD, SYSTICK_CLOCK, CLK_TCK);
+  _info("SysTick configured: CLOCK = %u MHz, Tick rate = %u Hz (reload = %u)\n",
+        SYSTICK_CLOCK / 1000000, CLK_TCK, SYSTICK_RELOAD + 1);
 }
 #endif
 

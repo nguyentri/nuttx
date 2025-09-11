@@ -24,17 +24,77 @@
 
 #include <nuttx/config.h>
 
-#include <stdio.h>
 #include <syslog.h>
 #include <debug.h>
+#include <unistd.h>
+#include <time.h>
+#include <stdint.h>
 
 #include <nuttx/board.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/leds/userled.h>
+#include <nuttx/kthread.h>
+#include <nuttx/sched.h>
 
 #include <arch/board/board.h>
 
 #include "fpb-ra8e1.h"
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: ra8e1_cyclic_logger_thread
+ *
+ * Description:
+ *   Simple cyclic logger that runs every 1 second
+ *
+ ****************************************************************************/
+
+static int ra8e1_cyclic_logger_thread(int argc, char *argv[])
+{
+  struct timespec start_time;
+  uint32_t counter = 0;
+
+  syslog(LOG_INFO, "[CYCLIC] Logger thread started\n");
+
+  /* Get start time for reference */
+  clock_gettime(CLOCK_REALTIME, &start_time);
+
+  while (1)
+    {
+      struct timespec current_time;
+      clock_gettime(CLOCK_REALTIME, &current_time);
+
+      /* Calculate elapsed time since start */
+      long elapsed_sec = current_time.tv_sec - start_time.tv_sec;
+      long elapsed_nsec = current_time.tv_nsec - start_time.tv_nsec;
+
+      if (elapsed_nsec < 0)
+        {
+          elapsed_sec--;
+          elapsed_nsec += 1000000000;
+        }
+
+      double elapsed_total = elapsed_sec + elapsed_nsec / 1000000000.0;
+
+      /* Print log message with timing information */
+      syslog(LOG_INFO, "[Nuttx 1s cyclic task is running ] Count: %lu, Elapsed: %.3fs, Tick: %lu\n",
+             (unsigned long)counter,
+             elapsed_total,
+             (unsigned long)clock());
+
+      counter++;
+
+      /* Sleep for 1 second */
+      sleep(1);
+    }
+
+  return 0;
+}
+
+/* External function declarations for auto-started applications */
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -65,7 +125,7 @@
 
 int ra8e1_bringup(void)
 {
-  int ret = OK;
+  int ret = 0;
 
   syslog(LOG_INFO, "Nuttx: RA8E1 Board bring-up is starting...\n");
 
@@ -314,6 +374,23 @@ int ra8e1_bringup(void)
   /* Initialize buttons */
   board_button_initialize();
 #endif
+
+  /* Auto-start the cyclic logger task since UART RX is not available */
+  syslog(LOG_INFO, "Starting cyclic logger task automatically...\n");
+
+  ret = kthread_create("cyclic_logger",
+                       100,
+                       8192,
+                       ra8e1_cyclic_logger_thread,
+                       NULL);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to start cyclic logger task: %d\n", ret);
+    }
+  else
+    {
+      syslog(LOG_INFO, "Cyclic logger task started successfully (PID: %d)\n", ret);
+    }
 
   syslog(LOG_INFO, "Nuttx: RA8E1 Board bring-up is successful...\n");
 

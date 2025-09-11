@@ -92,7 +92,7 @@
 #endif
 #else
 #  include "ra_clock.h"
-#  define SYSTICK_CLOCK     (RA_ICLK_FREQUENCY)
+#  define SYSTICK_CLOCK     RA_CPUCLK_FREQUENCY
 #  define SYSTICK_RELOAD    ((SYSTICK_CLOCK / CLK_TCK) - 1)
 #endif
 
@@ -277,6 +277,9 @@ void up_timer_initialize(void)
 void up_timer_initialize(void)
 {
   uint32_t regval;
+
+  _info("Configuring SysTick with reload=%u with CPUCLK as %u Hz\n",
+        SYSTICK_RELOAD, RA_ICLK_FREQUENCY);
 
   /* Disable SysTick during setup */
   putreg32(0, NVIC_SYSTICK_CTRL);

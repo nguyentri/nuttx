@@ -37,7 +37,7 @@ pub enum MessageType {
 }
 
 // Message structure for queue communication
-#[repr(C, packed)]
+#[repr(C)]
 #[derive(Clone, Copy)]
 pub struct QueueMessage {
     pub msg_type: u32,
@@ -184,8 +184,17 @@ pub extern "C" fn rust_store_sensor_data(temp: f32, humidity: f32, pressure: f32
         TEMP_HISTORY[TEMP_INDEX] = temp;
         TEMP_INDEX = (TEMP_INDEX + 1) % 10;
 
-        syslog(LOG_INFO, b"[RUST Application] Stored sensor data: T=%.1f, H=%.1f, P=%.1f, Bat=%.2f\n\0".as_ptr(),
-               temp as i32, humidity as i32, pressure as i32, battery as i32);
+        // Convert floats to fixed-point integers for syslog (multiply by 100 to preserve 2 decimal places)
+        let temp_fp = (temp * 100.0) as i32;
+        let humidity_fp = (humidity * 100.0) as i32;
+        let pressure_fp = (pressure * 100.0) as i32;
+        let battery_fp = (battery * 100.0) as i32;
+
+        syslog(LOG_INFO, b"[RUST Application] Stored sensor data: T=%d.%02d, H=%d.%02d, P=%d.%02d, Bat=%d.%02d\n\0".as_ptr(),
+               temp_fp / 100, temp_fp % 100,
+               humidity_fp / 100, humidity_fp % 100,
+               pressure_fp / 100, pressure_fp % 100,
+               battery_fp / 100, battery_fp % 100);
     }
     0
 }
@@ -235,17 +244,36 @@ pub extern "C" fn rust_process_sensor_data() -> *const RustProcessedData {
             0  // Normal
         };
 
-        // Calculate data quality score
-        PROCESSED_DATA.data_quality_score = if SENSOR_DATA.battery_voltage > 3.5 {
-            100
-        } else if SENSOR_DATA.battery_voltage > 3.2 {
-            80
-        } else {
-            60
-        };
+        // Calculate data quality score based on valid sensor ranges and battery level
+        let mut quality_score = 100u32;
 
-        syslog(LOG_INFO, b"[RUST Application] Processed data: AvgT=%.1f, Trend=%d, Alert=%d, Quality=%d\n\0".as_ptr(),
-               PROCESSED_DATA.avg_temperature as i32,
+        // Check if sensor data is within valid ranges
+        if SENSOR_DATA.temperature < -40.0 || SENSOR_DATA.temperature > 80.0 {
+            quality_score -= 30;
+        }
+        if SENSOR_DATA.humidity < 0.0 || SENSOR_DATA.humidity > 100.0 {
+            quality_score -= 30;
+        }
+        if SENSOR_DATA.pressure < 300.0 || SENSOR_DATA.pressure > 1200.0 {
+            quality_score -= 30;
+        }
+
+        // Battery voltage quality impact
+        if SENSOR_DATA.battery_voltage <= 0.0 {
+            quality_score = 0; // No battery data
+        } else if SENSOR_DATA.battery_voltage < 3.0 {
+            quality_score = quality_score.saturating_sub(50);
+        } else if SENSOR_DATA.battery_voltage < 3.3 {
+            quality_score = quality_score.saturating_sub(20);
+        }
+
+        PROCESSED_DATA.data_quality_score = quality_score;
+
+        // Convert floats to fixed-point integers for syslog
+        let avg_temp_fp = (PROCESSED_DATA.avg_temperature * 100.0) as i32;
+
+        syslog(LOG_INFO, b"[RUST Application] Processed data: AvgT=%d.%02d, Trend=%d, Alert=%d, Quality=%d\n\0".as_ptr(),
+               avg_temp_fp / 100, avg_temp_fp % 100,
                PROCESSED_DATA.trend_direction,
                PROCESSED_DATA.alert_level,
                PROCESSED_DATA.data_quality_score);
@@ -470,8 +498,17 @@ pub extern "C" fn rust_send_sensor_data(temp: f32, humidity: f32, pressure: f32,
             return -1;
         }
 
-        syslog(LOG_INFO, b"[RUST Application] Sent sensor data via queue: T=%.1f, H=%.1f, P=%.1f, Bat=%.2f\n\0".as_ptr(),
-               temp as i32, humidity as i32, pressure as i32, battery as i32);
+        // Convert floats to fixed-point integers for syslog
+        let temp_fp = (temp * 100.0) as i32;
+        let humidity_fp = (humidity * 100.0) as i32;
+        let pressure_fp = (pressure * 100.0) as i32;
+        let battery_fp = (battery * 100.0) as i32;
+
+        syslog(LOG_INFO, b"[RUST Application] Sent sensor data via queue: T=%d.%02d, H=%d.%02d, P=%d.%02d, Bat=%d.%02d\n\0".as_ptr(),
+               temp_fp / 100, temp_fp % 100,
+               humidity_fp / 100, humidity_fp % 100,
+               pressure_fp / 100, pressure_fp % 100,
+               battery_fp / 100, battery_fp % 100);
     }
     0
 }
@@ -503,8 +540,12 @@ pub extern "C" fn rust_send_processed_data() -> i32 {
             return -1;
         }
 
-        syslog(LOG_INFO, b"[RUST Application] Sent processed data via queue: AvgT=%.1f, Trend=%d, Alert=%d\n\0".as_ptr(),
-               PROCESSED_DATA.avg_temperature as i32, PROCESSED_DATA.trend_direction, PROCESSED_DATA.alert_level);
+        // Convert floats to fixed-point integers for syslog
+        let avg_temp_fp = (PROCESSED_DATA.avg_temperature * 100.0) as i32;
+
+        syslog(LOG_INFO, b"[RUST Application] Sent processed data via queue: AvgT=%d.%02d, Trend=%d, Alert=%d\n\0".as_ptr(),
+               avg_temp_fp / 100, avg_temp_fp % 100,
+               PROCESSED_DATA.trend_direction, PROCESSED_DATA.alert_level);
     }
     0
 }

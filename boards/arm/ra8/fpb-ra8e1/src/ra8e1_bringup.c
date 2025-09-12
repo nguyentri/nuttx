@@ -242,14 +242,15 @@ static void simulate_sensor_reading(float *temp, float *humidity, float *pressur
 
   /* Add some variation to simulate real sensor readings */
   *temp = base_temp + (float)(rand() % 20 - 10) * 0.1f;
-  *humidity = base_humidity + (float)(rand() % 40 - 20) * 0.1f;
-  *pressure = base_pressure + (float)(rand() % 100 - 50) * 0.1f;
-  *battery = base_battery - (float)(rand() % 20) * 0.01f;
+  *humidity = base_humidity + (float)(rand() % 10 - 5) * 0.5f;
+  *pressure = base_pressure + (float)(rand() % 50 - 25) * 0.2f;
+  *battery = base_battery - (float)(rand() % 10) * 0.05f;
 
-  /* Ensure reasonable ranges */
-  if (*humidity < 0.0f) *humidity = 0.0f;
-  if (*humidity > 100.0f) *humidity = 100.0f;
-  if (*battery < 3.0f) *battery = 3.0f;
+  /* Ensure reasonable ranges and prevent zero/extreme values */
+  if (*humidity < 30.0f) *humidity = 30.0f;
+  if (*humidity > 80.0f) *humidity = 80.0f;
+  if (*pressure < 950.0f) *pressure = 950.0f;
+  if (*battery < 3.5f) *battery = 3.5f;
 }
 
 /****************************************************************************
@@ -295,41 +296,44 @@ static int ra8e1_cyclic_rust_thread(int argc, char *argv[])
       syslog(LOG_INFO, "[Rust Thread] Count: %lu, Elapsed: %.3fs\n",
              (unsigned long)counter, elapsed_total);
 
-      /* Check for messages from C thread */
-      if (g_c_to_rust_queue >= 0)
+      /* Check for messages from C thread every 2nd iteration to reduce overhead */
+      if (g_c_to_rust_queue >= 0 && counter % 2 == 0)
         {
           rust_receive_message();
         }
 
-      /* Simulate and store sensor data every cycle using thread-safe queues */
-      float temp, humidity, pressure, battery;
-      simulate_sensor_reading(&temp, &humidity, &pressure, &battery);
-
-      /* Validate sensor data using Rust */
-      if (rust_validate_sensor_data(temp, humidity, pressure))
+      /* Simulate and store sensor data every 3rd cycle to reduce processing load */
+      if (counter % 3 == 0)
         {
-          if (g_rust_to_c_queue >= 0)
+          float temp, humidity, pressure, battery;
+          simulate_sensor_reading(&temp, &humidity, &pressure, &battery);
+
+          /* Validate sensor data using Rust */
+          if (rust_validate_sensor_data(temp, humidity, pressure))
             {
-              /* Send validated data via message queue */
-              rust_send_sensor_data(temp, humidity, pressure,
-                                   (uint64_t)current_time.tv_sec, battery);
-            }
-          else
-            {
-              /* Use legacy method when queues are not available */
-              rust_store_sensor_data(temp, humidity, pressure,
-                                    (uint64_t)current_time.tv_sec, battery);
+              if (g_rust_to_c_queue >= 0)
+                {
+                  /* Send validated data via message queue */
+                  rust_send_sensor_data(temp, humidity, pressure,
+                                       (uint64_t)current_time.tv_sec, battery);
+                }
+              else
+                {
+                  /* Use legacy method when queues are not available */
+                  rust_store_sensor_data(temp, humidity, pressure,
+                                        (uint64_t)current_time.tv_sec, battery);
+                }
             }
         }
 
-      /* Call Rust calculation functions every few iterations */
-      if (counter % 3 == 0)
+      /* Call Rust calculation functions every 6 iterations instead of 3 */
+      if (counter % 6 == 0)
         {
           int calc_result = rust_calculate((int)counter, 5);
           syslog(LOG_INFO, "[Rust Application] Basic calculation result: %d\n", calc_result);
         }
 
-      if (counter % 5 == 0 && counter > 0)
+      if (counter % 10 == 0 && counter > 0)
         {
           /* Test different math operations */
           int operations[] = {0, 1, 2, 3, 4, 5, 6}; // All available operations
@@ -338,8 +342,8 @@ static int ra8e1_cyclic_rust_thread(int argc, char *argv[])
           syslog(LOG_INFO, "[Rust Application] Advanced math (op=%d) result: %d\n", op, math_result);
         }
 
-      /* Process sensor data and send analytics every 4th iteration */
-      if (counter % 4 == 0)
+      /* Process sensor data and send analytics every 8th iteration instead of 4th */
+      if (counter % 8 == 0)
         {
           if (g_rust_to_c_queue >= 0)
             {
@@ -354,8 +358,8 @@ static int ra8e1_cyclic_rust_thread(int argc, char *argv[])
             }
         }
 
-      /* System health check every 6th iteration */
-      if (counter % 6 == 0)
+      /* System health check every 12th iteration instead of 6th */
+      if (counter % 12 == 0)
         {
           if (g_rust_to_c_queue >= 0)
             {
@@ -369,8 +373,8 @@ static int ra8e1_cyclic_rust_thread(int argc, char *argv[])
             }
         }
 
-      /* Test string processing every 8th iteration */
-      if (counter % 8 == 0)
+      /* Test string processing every 16th iteration instead of 8th */
+      if (counter % 16 == 0)
         {
           const char *test_string = "Hello from C to Rust!";
           uint32_t string_result = rust_process_string((const uint8_t*)test_string, strlen(test_string));
@@ -379,8 +383,8 @@ static int ra8e1_cyclic_rust_thread(int argc, char *argv[])
           syslog(LOG_INFO, "[Rust String] Checksum: %u, Vowels: %u\n", checksum, vowels);
         }
 
-      /* Test array processing every 10th iteration */
-      if (counter % 10 == 0 && counter > 0)
+      /* Test array processing every 20th iteration instead of 10th */
+      if (counter % 20 == 0 && counter > 0)
         {
           int32_t test_array[] = {1, 2, 3, 4, 5, (int32_t)counter};
           int32_t avg_result = rust_process_array(test_array, sizeof(test_array)/sizeof(test_array[0]));
@@ -388,7 +392,7 @@ static int ra8e1_cyclic_rust_thread(int argc, char *argv[])
         }
 
       counter++;
-      sleep(5);
+      sleep(1);
     }
 
   return 0;
@@ -555,7 +559,7 @@ static int ra8e1_cyclic_c_thread(int argc, char *argv[])
         }
 
       counter++;
-      sleep(2);
+      sleep(1);
     }
 
   return 0;

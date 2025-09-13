@@ -180,8 +180,9 @@ void up_idle(void)
     {
       struct timespec ts;
       clock_gettime(CLOCK_REALTIME, &ts);
-      syslog(LOG_INFO, "[%ld.%03ld] Idle State: CPU entering low power mode (WFI)...\n",
-             ts.tv_sec, ts.tv_nsec / 1000000);
+
+      syslog(LOG_INFO, "[Idle State] Count:%ld.%03ld, CPU entering low power mode (WFI)...\n",
+             (long)ts.tv_sec, (long)(ts.tv_nsec / 1000));
       g_last_log_time = current_time;
     }
 #endif

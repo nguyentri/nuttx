@@ -34,6 +34,7 @@
 #include <mqueue.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <math.h>
 
 #include <nuttx/board.h>
 #include <nuttx/fs/fs.h>
@@ -115,8 +116,10 @@ static mqd_t g_c_to_rust_queue = -1;
  * External Function Declarations (Rust functions)
  ****************************************************************************/
 
-extern int rust_calculate(int a, int b);
-extern int rust_advanced_math(int x, int y, unsigned char operation);
+extern int rust_gaussian_filter_imu(float accel_x, float accel_y, float accel_z,
+                                    float gyro_x, float gyro_y, float gyro_z);
+extern int rust_complementary_filter(uint64_t dt_us, unsigned char filter_type);
+extern int rust_pid_controller(float setpoint, float measured_value, uint32_t dt_ms, unsigned char controller_type);
 extern int rust_system_init(void);
 
 /* Legacy Rust functions (kept for backward compatibility) */
@@ -326,20 +329,43 @@ static int ra8e1_cyclic_rust_thread(int argc, char *argv[])
             }
         }
 
-      /* Call Rust calculation functions every 6 iterations instead of 3 */
+      /* Apply Gaussian filter to IMU data every 6 iterations instead of 3 */
       if (counter % 6 == 0)
         {
-          int calc_result = rust_calculate((int)counter, 5);
-          syslog(LOG_INFO, "[Rust Application] Basic calculation result: %d\n", calc_result);
+          /* Simulate IMU readings for demonstration */
+          float sim_time = counter * 0.01f; // 10ms cycle time
+          float accel_x = 0.5f * sinf(sim_time * 0.5f) + 0.1f * sinf(sim_time * 3.0f);
+          float accel_y = 0.3f * cosf(sim_time * 0.7f) + 0.05f * sinf(sim_time * 5.0f);
+          float accel_z = 9.81f + 0.2f * sinf(sim_time * 1.2f);
+          float gyro_x = 0.1f * sinf(sim_time * 0.8f) + 0.02f * sinf(sim_time * 10.0f);
+          float gyro_y = 0.08f * cosf(sim_time * 0.6f) + 0.015f * cosf(sim_time * 8.0f);
+          float gyro_z = 0.05f * sinf(sim_time * 0.3f) + 0.01f * sinf(sim_time * 12.0f);
+
+          int filter_result = rust_gaussian_filter_imu(accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z);
+          syslog(LOG_INFO, "[Rust Drone] Gaussian filter applied, result: %d\n", filter_result);
         }
 
       if (counter % 10 == 0 && counter > 0)
         {
-          /* Test different math operations */
-          int operations[] = {0, 1, 2, 3, 4, 5, 6}; // All available operations
-          int op = operations[counter % 7];
-          int math_result = rust_advanced_math((int)counter, 3, op);
-          syslog(LOG_INFO, "[Rust Application] Advanced math (op=%d) result: %d\n", op, math_result);
+          /* Test different complementary filter operations */
+          unsigned char filter_types[] = {0, 1, 2, 3, 4, 5}; // Roll, Pitch, Yaw, Confidence, etc.
+          unsigned char filter_type = filter_types[counter % 6];
+          uint64_t dt_microseconds = 10000; // 10ms in microseconds
+          int comp_result = rust_complementary_filter(dt_microseconds, filter_type);
+          syslog(LOG_INFO, "[Rust Drone] Complementary filter (type=%d) result: %d\n", filter_type, comp_result);
+        }
+
+      /* Test PID controller every 12 iterations */
+      if (counter % 12 == 0 && counter > 0)
+        {
+          /* Test PID controllers for Roll, Pitch, Yaw */
+          float setpoint = 0.0f; // Target angle (level flight)
+          float measured_angle = 0.1f * sinf(counter * 0.05f); // Simulated current angle
+          uint32_t dt_ms = 10; // 10ms sample time
+          unsigned char pid_type = (counter / 12) % 3; // Cycle through Roll, Pitch, Yaw PIDs
+
+          int pid_result = rust_pid_controller(setpoint, measured_angle, dt_ms, pid_type);
+          syslog(LOG_INFO, "[Rust Drone] PID controller[%d] result: %d (milli-units)\n", pid_type, pid_result);
         }
 
       /* Process sensor data and send analytics every 8th iteration instead of 4th */

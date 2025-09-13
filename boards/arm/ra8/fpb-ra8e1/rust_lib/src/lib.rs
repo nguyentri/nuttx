@@ -135,39 +135,289 @@ fn panic(_info: &PanicInfo) -> ! {
     loop {}
 }
 
-/// Enhanced Rust calculation function for cyclic logger
-#[no_mangle]
-pub extern "C" fn rust_calculate(a: i32, b: i32) -> i32 {
-    let result = a * b + 42;
-    unsafe {
-        syslog(LOG_INFO, b"[RUST Application] rust_calculate: %d * %d + 42 = %d\n\0".as_ptr(), a, b, result);
-    }
-    result
+// Drone-specific data structures for IMU and control systems
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct ImuRawData {
+    pub accel_x: f32,    // Accelerometer X-axis (m/s²)
+    pub accel_y: f32,    // Accelerometer Y-axis (m/s²)
+    pub accel_z: f32,    // Accelerometer Z-axis (m/s²)
+    pub gyro_x: f32,     // Gyroscope X-axis (rad/s)
+    pub gyro_y: f32,     // Gyroscope Y-axis (rad/s)
+    pub gyro_z: f32,     // Gyroscope Z-axis (rad/s)
+    pub mag_x: f32,      // Magnetometer X-axis (μT)
+    pub mag_y: f32,      // Magnetometer Y-axis (μT)
+    pub mag_z: f32,      // Magnetometer Z-axis (μT)
+    pub timestamp: u64,  // Timestamp in microseconds
 }
 
-/// Advanced math function with different operations
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct ImuFilteredData {
+    pub roll: f32,       // Roll angle in radians
+    pub pitch: f32,      // Pitch angle in radians
+    pub yaw: f32,        // Yaw angle in radians
+    pub roll_rate: f32,  // Roll rate in rad/s
+    pub pitch_rate: f32, // Pitch rate in rad/s
+    pub yaw_rate: f32,   // Yaw rate in rad/s
+    pub confidence: f32, // Filter confidence (0.0 - 1.0)
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct PidController {
+    pub kp: f32,         // Proportional gain
+    pub ki: f32,         // Integral gain
+    pub kd: f32,         // Derivative gain
+    pub integral: f32,   // Integral accumulator
+    pub last_error: f32, // Previous error for derivative
+    pub output_limit: f32, // Output saturation limit
+}
+
+// Static storage for drone control systems
+static mut IMU_RAW_DATA: ImuRawData = ImuRawData {
+    accel_x: 0.0, accel_y: 0.0, accel_z: 0.0,
+    gyro_x: 0.0, gyro_y: 0.0, gyro_z: 0.0,
+    mag_x: 0.0, mag_y: 0.0, mag_z: 0.0,
+    timestamp: 0,
+};
+
+static mut IMU_FILTERED_DATA: ImuFilteredData = ImuFilteredData {
+    roll: 0.0, pitch: 0.0, yaw: 0.0,
+    roll_rate: 0.0, pitch_rate: 0.0, yaw_rate: 0.0,
+    confidence: 1.0,
+};
+
+// Gaussian filter buffers for IMU data smoothing
+static mut ACCEL_FILTER_BUFFER_X: [f32; 5] = [0.0; 5];
+static mut ACCEL_FILTER_BUFFER_Y: [f32; 5] = [0.0; 5];
+static mut ACCEL_FILTER_BUFFER_Z: [f32; 5] = [0.0; 5];
+static mut GYRO_FILTER_BUFFER_X: [f32; 5] = [0.0; 5];
+static mut GYRO_FILTER_BUFFER_Y: [f32; 5] = [0.0; 5];
+static mut GYRO_FILTER_BUFFER_Z: [f32; 5] = [0.0; 5];
+static mut FILTER_INDEX: usize = 0;
+
+// Complementary filter state
+static mut COMP_FILTER_ANGLE_X: f32 = 0.0;
+static mut COMP_FILTER_ANGLE_Y: f32 = 0.0;
+static mut LAST_FILTER_TIME: u64 = 0;
+
+// PID controllers for drone stabilization
+static mut ROLL_PID: PidController = PidController {
+    kp: 2.0, ki: 0.1, kd: 0.05, integral: 0.0, last_error: 0.0, output_limit: 45.0
+};
+static mut PITCH_PID: PidController = PidController {
+    kp: 2.0, ki: 0.1, kd: 0.05, integral: 0.0, last_error: 0.0, output_limit: 45.0
+};
+static mut YAW_PID: PidController = PidController {
+    kp: 1.5, ki: 0.05, kd: 0.02, integral: 0.0, last_error: 0.0, output_limit: 30.0
+};
+
+/// Gaussian filter for IMU data smoothing - replaces basic calculation
 #[no_mangle]
-pub extern "C" fn rust_advanced_math(x: i32, y: i32, operation: u8) -> i32 {
+pub extern "C" fn rust_gaussian_filter_imu(accel_x: f32, accel_y: f32, accel_z: f32,
+                                          gyro_x: f32, gyro_y: f32, gyro_z: f32) -> i32 {
     unsafe {
-        syslog(LOG_INFO, b"[RUST Application] rust_advanced_math: x=%d, y=%d, op=%d\n\0".as_ptr(), x, y, operation as i32);
+        // Store raw IMU data in circular buffers for Gaussian filtering
+        ACCEL_FILTER_BUFFER_X[FILTER_INDEX] = accel_x;
+        ACCEL_FILTER_BUFFER_Y[FILTER_INDEX] = accel_y;
+        ACCEL_FILTER_BUFFER_Z[FILTER_INDEX] = accel_z;
+        GYRO_FILTER_BUFFER_X[FILTER_INDEX] = gyro_x;
+        GYRO_FILTER_BUFFER_Y[FILTER_INDEX] = gyro_y;
+        GYRO_FILTER_BUFFER_Z[FILTER_INDEX] = gyro_z;
+
+        FILTER_INDEX = (FILTER_INDEX + 1) % 5;
+
+        // Apply Gaussian weights: [0.06, 0.24, 0.40, 0.24, 0.06] (approximation)
+        let weights = [0.06, 0.24, 0.40, 0.24, 0.06];
+
+        // Calculate filtered accelerometer values
+        let mut filtered_accel_x = 0.0;
+        let mut filtered_accel_y = 0.0;
+        let mut filtered_accel_z = 0.0;
+
+        for i in 0..5 {
+            filtered_accel_x += ACCEL_FILTER_BUFFER_X[i] * weights[i];
+            filtered_accel_y += ACCEL_FILTER_BUFFER_Y[i] * weights[i];
+            filtered_accel_z += ACCEL_FILTER_BUFFER_Z[i] * weights[i];
+        }
+
+        // Store filtered data
+        IMU_RAW_DATA.accel_x = filtered_accel_x;
+        IMU_RAW_DATA.accel_y = filtered_accel_y;
+        IMU_RAW_DATA.accel_z = filtered_accel_z;
+
+        // Convert to fixed-point for syslog
+        let ax_fp = (filtered_accel_x * 100.0) as i32;
+        let ay_fp = (filtered_accel_y * 100.0) as i32;
+        let az_fp = (filtered_accel_z * 100.0) as i32;
+
+        syslog(LOG_INFO, b"[Rust App IMU Gaussian Filter] Filtered IMU: ax=%d.%02d, ay=%d.%02d, az=%d.%02d\n\0".as_ptr(),
+               ax_fp / 100, ax_fp % 100, ay_fp / 100, ay_fp % 100, az_fp / 100, az_fp % 100);
     }
+    0
+}
 
-    let result = match operation {
-        0 => x + y,           // Addition
-        1 => x - y,           // Subtraction
-        2 => x * y,           // Multiplication
-        3 => if y != 0 { x / y } else { 0 }, // Division (safe)
-        4 => fibonacci(x.abs() as u32) as i32, // Fibonacci of x
-        5 => prime_check(x.abs() as u32) as i32, // Check if prime
-        6 => gcd(x.abs() as u32, y.abs() as u32) as i32, // Greatest Common Divisor
-        _ => x * x + y * y,   // Default: sum of squares
-    };
-
+/// Complementary filter for attitude estimation - replaces advanced math
+#[no_mangle]
+pub extern "C" fn rust_complementary_filter(dt_us: u64, filter_type: u8) -> i32 {
     unsafe {
-        syslog(LOG_INFO, b"[RUST Application] rust_advanced_math result: %d\n\0".as_ptr(), result);
-    }
+        let dt_sec = dt_us as f32 / 1_000_000.0; // Convert microseconds to seconds
 
-    result
+        syslog(LOG_INFO, b"[Rust App Complementary Filter] Input: dt=%d us, type=%d\n\0".as_ptr(),
+               dt_us as i32, filter_type as i32);
+
+        let result = match filter_type {
+            0 => { // Roll angle estimation
+                // Accelerometer angle (noisy but no drift)
+                let accel_angle = libm::atan2f(IMU_RAW_DATA.accel_y, IMU_RAW_DATA.accel_z);
+
+                // Gyroscope integration (smooth but drifts)
+                COMP_FILTER_ANGLE_X += IMU_RAW_DATA.gyro_x * dt_sec;
+
+                // Complementary filter: 98% gyro + 2% accelerometer
+                COMP_FILTER_ANGLE_X = 0.98 * COMP_FILTER_ANGLE_X + 0.02 * accel_angle;
+                IMU_FILTERED_DATA.roll = COMP_FILTER_ANGLE_X;
+                IMU_FILTERED_DATA.roll_rate = IMU_RAW_DATA.gyro_x;
+
+                (COMP_FILTER_ANGLE_X * 1000.0) as i32 // Return angle in milliradians
+            },
+            1 => { // Pitch angle estimation
+                let accel_angle = libm::atan2f(-IMU_RAW_DATA.accel_x,
+                    libm::sqrtf(IMU_RAW_DATA.accel_y * IMU_RAW_DATA.accel_y + IMU_RAW_DATA.accel_z * IMU_RAW_DATA.accel_z));
+
+                COMP_FILTER_ANGLE_Y += IMU_RAW_DATA.gyro_y * dt_sec;
+                COMP_FILTER_ANGLE_Y = 0.98 * COMP_FILTER_ANGLE_Y + 0.02 * accel_angle;
+                IMU_FILTERED_DATA.pitch = COMP_FILTER_ANGLE_Y;
+                IMU_FILTERED_DATA.pitch_rate = IMU_RAW_DATA.gyro_y;
+
+                (COMP_FILTER_ANGLE_Y * 1000.0) as i32
+            },
+            2 => { // Yaw rate (gyroscope only, no drift correction without magnetometer)
+                IMU_FILTERED_DATA.yaw_rate = IMU_RAW_DATA.gyro_z;
+                (IMU_RAW_DATA.gyro_z * 1000.0) as i32
+            },
+            3 => { // Calculate filter confidence based on accelerometer magnitude
+                let accel_magnitude = libm::sqrtf(
+                    IMU_RAW_DATA.accel_x * IMU_RAW_DATA.accel_x +
+                    IMU_RAW_DATA.accel_y * IMU_RAW_DATA.accel_y +
+                    IMU_RAW_DATA.accel_z * IMU_RAW_DATA.accel_z
+                );
+
+                // Confidence is higher when accelerometer magnitude is close to 1g (9.81 m/s²)
+                let gravity = 9.81;
+                let magnitude_error = libm::fabsf(accel_magnitude - gravity) / gravity;
+                IMU_FILTERED_DATA.confidence = if magnitude_error < 0.1 { 1.0 }
+                                              else if magnitude_error < 0.3 { 0.7 }
+                                              else { 0.3 };
+
+                (IMU_FILTERED_DATA.confidence * 1000.0) as i32
+            },
+            4 => { // Update IMU raw data with gyro values
+                IMU_RAW_DATA.gyro_x = GYRO_FILTER_BUFFER_X.iter().sum::<f32>() / 5.0;
+                IMU_RAW_DATA.gyro_y = GYRO_FILTER_BUFFER_Y.iter().sum::<f32>() / 5.0;
+                IMU_RAW_DATA.gyro_z = GYRO_FILTER_BUFFER_Z.iter().sum::<f32>() / 5.0;
+
+                let gyro_magnitude = libm::sqrtf(
+                    IMU_RAW_DATA.gyro_x * IMU_RAW_DATA.gyro_x +
+                    IMU_RAW_DATA.gyro_y * IMU_RAW_DATA.gyro_y +
+                    IMU_RAW_DATA.gyro_z * IMU_RAW_DATA.gyro_z
+                );
+                (gyro_magnitude * 1000.0) as i32
+            },
+            5 => { // Low-pass filter for accelerometer noise reduction
+                let alpha = 0.1; // Filter coefficient
+                static mut PREV_ACCEL_X: f32 = 0.0;
+                static mut PREV_ACCEL_Y: f32 = 0.0;
+                static mut PREV_ACCEL_Z: f32 = 0.0;
+
+                PREV_ACCEL_X = alpha * IMU_RAW_DATA.accel_x + (1.0 - alpha) * PREV_ACCEL_X;
+                PREV_ACCEL_Y = alpha * IMU_RAW_DATA.accel_y + (1.0 - alpha) * PREV_ACCEL_Y;
+                PREV_ACCEL_Z = alpha * IMU_RAW_DATA.accel_z + (1.0 - alpha) * PREV_ACCEL_Z;
+
+                IMU_RAW_DATA.accel_x = PREV_ACCEL_X;
+                IMU_RAW_DATA.accel_y = PREV_ACCEL_Y;
+                IMU_RAW_DATA.accel_z = PREV_ACCEL_Z;
+
+                let filtered_magnitude = libm::sqrtf(PREV_ACCEL_X * PREV_ACCEL_X +
+                                                   PREV_ACCEL_Y * PREV_ACCEL_Y +
+                                                   PREV_ACCEL_Z * PREV_ACCEL_Z);
+                (filtered_magnitude * 100.0) as i32
+            },
+            _ => { // Default: Return timestamp difference for debugging
+                let time_diff = dt_us.saturating_sub(LAST_FILTER_TIME);
+                LAST_FILTER_TIME = dt_us;
+                time_diff as i32
+            }
+        };
+
+        syslog(LOG_INFO, b"[Rust App Complementary Filter] Result: %d\n\0".as_ptr(), result);
+        result
+    }
+}
+
+/// PID Controller for drone stabilization
+#[no_mangle]
+pub extern "C" fn rust_pid_controller(setpoint: f32, measured_value: f32, dt_ms: u32, controller_type: u8) -> i32 {
+    unsafe {
+        let dt_sec = dt_ms as f32 / 1000.0; // Convert milliseconds to seconds
+        let error = setpoint - measured_value;
+
+        let controller = match controller_type {
+            0 => &mut ROLL_PID,  // Roll PID controller
+            1 => &mut PITCH_PID, // Pitch PID controller
+            2 => &mut YAW_PID,   // Yaw PID controller
+            _ => &mut ROLL_PID,  // Default to roll
+        };
+
+        // Proportional term
+        let p_term = controller.kp * error;
+
+        // Integral term (with windup protection)
+        controller.integral += error * dt_sec;
+        // Limit integral to prevent windup
+        let integral_limit = controller.output_limit / controller.ki;
+        if controller.integral > integral_limit {
+            controller.integral = integral_limit;
+        } else if controller.integral < -integral_limit {
+            controller.integral = -integral_limit;
+        }
+        let i_term = controller.ki * controller.integral;
+
+        // Derivative term
+        let d_term = if dt_sec > 0.0 {
+            controller.kd * (error - controller.last_error) / dt_sec
+        } else {
+            0.0
+        };
+        controller.last_error = error;
+
+        // Calculate PID output
+        let mut output = p_term + i_term + d_term;
+
+        // Apply output saturation
+        if output > controller.output_limit {
+            output = controller.output_limit;
+        } else if output < -controller.output_limit {
+            output = -controller.output_limit;
+        }
+
+        let output_fp = (output * 100.0) as i32;
+        let error_fp = (error * 100.0) as i32;
+        let p_fp = (p_term * 100.0) as i32;
+        let i_fp = (i_term * 100.0) as i32;
+        let d_fp = (d_term * 100.0) as i32;
+
+        syslog(LOG_INFO, b"[Rust App PID Controller] PID[%d]: err=%d.%02d, P=%d.%02d, I=%d.%02d, D=%d.%02d, out=%d.%02d\n\0".as_ptr(),
+               controller_type as i32,
+               error_fp / 100, error_fp.abs() % 100,
+               p_fp / 100, p_fp.abs() % 100,
+               i_fp / 100, i_fp.abs() % 100,
+               d_fp / 100, d_fp.abs() % 100,
+               output_fp / 100, output_fp.abs() % 100);
+
+        (output * 1000.0) as i32 // Return output in milli-units
+    }
 }
 
 /// Store sensor data from C thread (simulated sensor readings)
@@ -190,7 +440,7 @@ pub extern "C" fn rust_store_sensor_data(temp: f32, humidity: f32, pressure: f32
         let pressure_fp = (pressure * 100.0) as i32;
         let battery_fp = (battery * 100.0) as i32;
 
-        syslog(LOG_INFO, b"[RUST Application] Stored sensor data: T=%d.%02d, H=%d.%02d, P=%d.%02d, Bat=%d.%02d\n\0".as_ptr(),
+        syslog(LOG_INFO, b"[Rust App Sensor Data Store] Stored: T=%d.%02d, H=%d.%02d, P=%d.%02d, Bat=%d.%02d\n\0".as_ptr(),
                temp_fp / 100, temp_fp % 100,
                humidity_fp / 100, humidity_fp % 100,
                pressure_fp / 100, pressure_fp % 100,
@@ -272,7 +522,7 @@ pub extern "C" fn rust_process_sensor_data() -> *const RustProcessedData {
         // Convert floats to fixed-point integers for syslog
         let avg_temp_fp = (PROCESSED_DATA.avg_temperature * 100.0) as i32;
 
-        syslog(LOG_INFO, b"[RUST Application] Processed data: AvgT=%d.%02d, Trend=%d, Alert=%d, Quality=%d\n\0".as_ptr(),
+        syslog(LOG_INFO, b"[Rust App Data Analytics] Processed: AvgT=%d.%02d, Trend=%d, Alert=%d, Quality=%d\n\0".as_ptr(),
                avg_temp_fp / 100, avg_temp_fp % 100,
                PROCESSED_DATA.trend_direction,
                PROCESSED_DATA.alert_level,
@@ -299,9 +549,9 @@ pub extern "C" fn rust_validate_sensor_data(temp: f32, humidity: f32, pressure: 
 
     unsafe {
         if is_valid {
-            syslog(LOG_INFO, b"[RUST Application] Sensor data validation: PASSED\n\0".as_ptr());
+            syslog(LOG_INFO, b"[Rust App Sensor Validator] Validation: PASSED\n\0".as_ptr());
         } else {
-            syslog(LOG_WARNING, b"[RUST Application] Sensor data validation: FAILED\n\0".as_ptr());
+            syslog(LOG_WARNING, b"[Rust App Sensor Validator] Validation: FAILED\n\0".as_ptr());
         }
     }
 
@@ -336,7 +586,7 @@ pub extern "C" fn rust_system_health_check() -> u32 {
             issues |= 0x08; // Data quality poor
         }
 
-        syslog(LOG_INFO, b"[RUST Application] System health: Score=%d, Issues=0x%08X\n\0".as_ptr(),
+        syslog(LOG_INFO, b"[Rust App System Health Check] Score=%d, Issues=0x%08X\n\0".as_ptr(),
                health_score, issues);
 
         (health_score << 16) | issues
@@ -364,7 +614,7 @@ pub extern "C" fn rust_process_string(input: *const u8, len: usize) -> u32 {
             }
         }
 
-        syslog(LOG_INFO, b"[RUST Application] String processed: len=%d, checksum=%d, vowels=%d\n\0".as_ptr(),
+        syslog(LOG_INFO, b"[Rust App String Processor] Processed: len=%d, checksum=%d, vowels=%d\n\0".as_ptr(),
                len as i32, checksum, vowel_count);
 
         (checksum << 16) | vowel_count
@@ -383,70 +633,73 @@ pub extern "C" fn rust_process_array(data: *const i32, len: usize) -> i32 {
         let sum: i64 = slice.iter().map(|&x| x as i64).sum();
         let avg = sum / len as i64;
 
-        syslog(LOG_INFO, b"[RUST Application] Array processed: len=%d, sum=%ld, avg=%ld\n\0".as_ptr(),
+        syslog(LOG_INFO, b"[Rust App Array Processor] Processed: len=%d, sum=%ld, avg=%ld\n\0".as_ptr(),
                len as i32, sum as i32, avg as i32);
 
         avg as i32
     }
 }
 
-/// Calculate Fibonacci number (iterative approach for efficiency)
-fn fibonacci(n: u32) -> u32 {
-    if n <= 1 {
-        return n;
-    }
+/// Simulate realistic IMU data for testing (replaces fibonacci)
+fn simulate_imu_data(cycle: u32) -> (f32, f32, f32, f32, f32, f32) {
+    let time = cycle as f32 * 0.01; // 10ms cycle time
 
-    let mut a = 0;
-    let mut b = 1;
+    // Simulate drone movement with some realistic patterns
+    let accel_x = 0.5 * libm::sinf(time * 0.5) + 0.1 * libm::sinf(time * 3.0); // ±0.6g
+    let accel_y = 0.3 * libm::cosf(time * 0.7) + 0.05 * libm::sinf(time * 5.0); // ±0.35g
+    let accel_z = 9.81 + 0.2 * libm::sinf(time * 1.2); // ~1g with small variations
 
-    for _ in 2..=n {
-        let temp = a + b;
-        a = b;
-        b = temp;
-    }
+    // Simulate angular rates (rad/s)
+    let gyro_x = 0.1 * libm::sinf(time * 0.8) + 0.02 * libm::sinf(time * 10.0); // Roll rate
+    let gyro_y = 0.08 * libm::cosf(time * 0.6) + 0.015 * libm::cosf(time * 8.0); // Pitch rate
+    let gyro_z = 0.05 * libm::sinf(time * 0.3) + 0.01 * libm::sinf(time * 12.0); // Yaw rate
 
-    b
+    (accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z)
 }
 
-/// Check if a number is prime
-fn prime_check(n: u32) -> bool {
-    if n < 2 {
-        return false;
-    }
-    if n == 2 {
-        return true;
-    }
-    if n % 2 == 0 {
-        return false;
-    }
+/// Validate IMU data ranges for drone safety (replaces prime_check)
+fn validate_imu_ranges(accel_x: f32, accel_y: f32, accel_z: f32, gyro_x: f32, gyro_y: f32, gyro_z: f32) -> bool {
+    // Check accelerometer ranges (reasonable for drone: ±16g)
+    let accel_valid = accel_x.abs() <= 156.8 && accel_y.abs() <= 156.8 && accel_z.abs() <= 156.8;
 
-    let mut i = 3;
-    while i * i <= n {
-        if n % i == 0 {
-            return false;
-        }
-        i += 2;
-    }
-    true
+    // Check gyroscope ranges (reasonable for drone: ±2000 deg/s = ±34.9 rad/s)
+    let gyro_valid = gyro_x.abs() <= 34.9 && gyro_y.abs() <= 34.9 && gyro_z.abs() <= 34.9;
+
+    // Check for NaN or infinite values
+    let no_nan = !accel_x.is_nan() && !accel_y.is_nan() && !accel_z.is_nan() &&
+                 !gyro_x.is_nan() && !gyro_y.is_nan() && !gyro_z.is_nan() &&
+                 accel_x.is_finite() && accel_y.is_finite() && accel_z.is_finite() &&
+                 gyro_x.is_finite() && gyro_y.is_finite() && gyro_z.is_finite();
+
+    accel_valid && gyro_valid && no_nan
 }
 
-/// Calculate Greatest Common Divisor
-fn gcd(mut a: u32, mut b: u32) -> u32 {
-    while b != 0 {
-        let temp = b;
-        b = a % b;
-        a = temp;
-    }
-    a
+/// Calculate motor mixing for quadcopter (replaces gcd)
+fn calculate_motor_mixing(roll_output: f32, pitch_output: f32, yaw_output: f32, throttle: f32) -> (u32, u32, u32, u32) {
+    // Standard X-configuration quadcopter motor mixing
+    // Motors: Front-Left, Front-Right, Rear-Left, Rear-Right
+
+    let motor_fl = throttle + pitch_output + roll_output - yaw_output; // Front-Left
+    let motor_fr = throttle + pitch_output - roll_output + yaw_output; // Front-Right
+    let motor_rl = throttle - pitch_output + roll_output + yaw_output; // Rear-Left
+    let motor_rr = throttle - pitch_output - roll_output - yaw_output; // Rear-Right
+
+    // Constrain motor outputs to 0-100% range and convert to integer
+    let constrain = |value: f32| -> u32 {
+        let clamped = if value < 0.0 { 0.0 } else if value > 100.0 { 100.0 } else { value };
+        (clamped * 10.0) as u32 // Return as percentage * 10 (0-1000)
+    };
+
+    (constrain(motor_fl), constrain(motor_fr), constrain(motor_rl), constrain(motor_rr))
 }
 
 /// Initialize Rust subsystem with message queue descriptors
 #[no_mangle]
 pub extern "C" fn rust_system_init() -> i32 {
     unsafe {
-        syslog(LOG_INFO, b"[RUST Application] Board-level Rust subsystem initialized!\n\0".as_ptr());
-        syslog(LOG_INFO, b"[RUST Application] Available functions: calculations, data processing, validation\n\0".as_ptr());
-        syslog(LOG_INFO, b"[RUST Application] Thread-safe message queue communication enabled\n\0".as_ptr());
+        syslog(LOG_INFO, b"[Rust App System Init] Board-level Rust drone control system initialized!\n\0".as_ptr());
+        syslog(LOG_INFO, b"[Rust App System Init] Available functions: IMU filtering, attitude estimation, PID control\n\0".as_ptr());
+        syslog(LOG_INFO, b"[Rust App System Init] Thread-safe message queue communication enabled\n\0".as_ptr());
     }
     0
 }
@@ -457,7 +710,7 @@ pub extern "C" fn rust_set_queues(rust_to_c: i32, c_to_rust: i32) -> i32 {
     unsafe {
         RUST_TO_C_QUEUE = rust_to_c;
         C_TO_RUST_QUEUE = c_to_rust;
-        syslog(LOG_INFO, b"[RUST Application] Message queues set: R->C=%d, C->R=%d\n\0".as_ptr(), rust_to_c, c_to_rust);
+        syslog(LOG_INFO, b"[Rust App Message Queue] Queues set: R->C=%d, C->R=%d\n\0".as_ptr(), rust_to_c, c_to_rust);
     }
     0
 }
@@ -467,7 +720,7 @@ pub extern "C" fn rust_set_queues(rust_to_c: i32, c_to_rust: i32) -> i32 {
 pub extern "C" fn rust_send_sensor_data(temp: f32, humidity: f32, pressure: f32, timestamp: u64, battery: f32) -> i32 {
     unsafe {
         if RUST_TO_C_QUEUE < 0 {
-            syslog(LOG_ERR, b"[RUST Application] Error: Message queue not initialized\n\0".as_ptr());
+            syslog(LOG_ERR, b"[Rust App Queue Sender] Error: Message queue not initialized\n\0".as_ptr());
             return -1;
         }
 
@@ -494,7 +747,7 @@ pub extern "C" fn rust_send_sensor_data(temp: f32, humidity: f32, pressure: f32,
                            core::mem::size_of::<QueueMessage>(), 0);
 
         if result < 0 {
-            syslog(LOG_ERR, b"[RUST Application] Failed to send sensor data to queue\n\0".as_ptr());
+            syslog(LOG_ERR, b"[Rust App Queue Sender] Failed to send sensor data to queue\n\0".as_ptr());
             return -1;
         }
 
@@ -504,7 +757,7 @@ pub extern "C" fn rust_send_sensor_data(temp: f32, humidity: f32, pressure: f32,
         let pressure_fp = (pressure * 100.0) as i32;
         let battery_fp = (battery * 100.0) as i32;
 
-        syslog(LOG_INFO, b"[RUST Application] Sent sensor data via queue: T=%d.%02d, H=%d.%02d, P=%d.%02d, Bat=%d.%02d\n\0".as_ptr(),
+        syslog(LOG_INFO, b"[Rust App Queue Sender] Sent sensor data: T=%d.%02d, H=%d.%02d, P=%d.%02d, Bat=%d.%02d\n\0".as_ptr(),
                temp_fp / 100, temp_fp % 100,
                humidity_fp / 100, humidity_fp % 100,
                pressure_fp / 100, pressure_fp % 100,
@@ -536,14 +789,14 @@ pub extern "C" fn rust_send_processed_data() -> i32 {
                            core::mem::size_of::<QueueMessage>(), 0);
 
         if result < 0 {
-            syslog(LOG_ERR, b"[RUST Application] Failed to send processed data to queue\n\0".as_ptr());
+            syslog(LOG_ERR, b"[Rust App Queue Sender] Failed to send processed data to queue\n\0".as_ptr());
             return -1;
         }
 
         // Convert floats to fixed-point integers for syslog
         let avg_temp_fp = (PROCESSED_DATA.avg_temperature * 100.0) as i32;
 
-        syslog(LOG_INFO, b"[RUST Application] Sent processed data via queue: AvgT=%d.%02d, Trend=%d, Alert=%d\n\0".as_ptr(),
+        syslog(LOG_INFO, b"[Rust App Queue Sender] Sent processed data: AvgT=%d.%02d, Trend=%d, Alert=%d\n\0".as_ptr(),
                avg_temp_fp / 100, avg_temp_fp % 100,
                PROCESSED_DATA.trend_direction, PROCESSED_DATA.alert_level);
     }
@@ -580,11 +833,11 @@ pub extern "C" fn rust_send_health_check() -> i32 {
                            core::mem::size_of::<QueueMessage>(), 0);
 
         if result < 0 {
-            syslog(LOG_ERR, b"[RUST Application] Failed to send health check to queue\n\0".as_ptr());
+            syslog(LOG_ERR, b"[Rust App Queue Sender] Failed to send health check to queue\n\0".as_ptr());
             return -1;
         }
 
-        syslog(LOG_INFO, b"[RUST Application] Sent health check via queue: Score=%d, Issues=0x%08X\n\0".as_ptr(),
+        syslog(LOG_INFO, b"[Rust App Queue Sender] Sent health check: Score=%d, Issues=0x%08X\n\0".as_ptr(),
                health_data.score, health_data.issues);
     }
     0
@@ -612,17 +865,17 @@ pub extern "C" fn rust_receive_message() -> i32 {
         // Process received message
         match msg.msg_type {
             1 => { // SensorData message from C
-                syslog(LOG_INFO, b"[RUST Application] Received sensor data from C thread\n\0".as_ptr());
+                syslog(LOG_INFO, b"[Rust App Message Receiver] Received sensor data from C thread\n\0".as_ptr());
                 SENSOR_DATA = msg.data.sensor;
             },
             4 => { // String processing request
-                syslog(LOG_INFO, b"[RUST Application] Received string processing request from C thread\n\0".as_ptr());
+                syslog(LOG_INFO, b"[Rust App Message Receiver] Received string processing request from C thread\n\0".as_ptr());
             },
             5 => { // Array processing request
-                syslog(LOG_INFO, b"[RUST Application] Received array processing request from C thread\n\0".as_ptr());
+                syslog(LOG_INFO, b"[Rust App Message Receiver] Received array processing request from C thread\n\0".as_ptr());
             },
             _ => {
-                syslog(LOG_WARNING, b"[RUST Application] Unknown message type received: %d\n\0".as_ptr(), msg.msg_type);
+                syslog(LOG_WARNING, b"[Rust App Message Receiver] Unknown message type received: %d\n\0".as_ptr(), msg.msg_type);
             }
         }
     }

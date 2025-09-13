@@ -34,6 +34,8 @@
 #include <nuttx/power/pm.h>
 
 #include <nuttx/irq.h>
+#include <nuttx/clock.h>
+#include <syslog.h>
 
 #include "chip.h"
 #include "arm_internal.h"
@@ -52,6 +54,16 @@
 #else
 #  define BEGIN_IDLE()
 #  define END_IDLE()
+#endif
+
+#define CONFIG_RA_IDLE_LOG_STATE
+
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+#ifdef CONFIG_RA_IDLE_LOG_STATE
+static clock_t g_last_log_time = 0;
 #endif
 
 /****************************************************************************
@@ -152,6 +164,8 @@ static void up_idlepm(void)
 
 void up_idle(void)
 {
+  clock_t current_time;
+
 #if defined(CONFIG_SUPPRESS_INTERRUPTS) || defined(CONFIG_SUPPRESS_TIMER_INTS)
   /* If the system is idle and there are no timer interrupts, then process
    * "fake" timer interrupts. Hopefully, something will wake up.
@@ -159,7 +173,18 @@ void up_idle(void)
 
   nxsched_process_timer();
 #else
-
+#ifdef CONFIG_RA_IDLE_LOG_STATE
+  /* Check if 1 second has passed and log with timestamp */
+  current_time = clock();
+  if ((current_time - g_last_log_time) >= CLOCKS_PER_SEC)
+    {
+      struct timespec ts;
+      clock_gettime(CLOCK_REALTIME, &ts);
+      syslog(LOG_INFO, "[%ld.%03ld] Idle State: CPU entering low power mode (WFI)...\n",
+             ts.tv_sec, ts.tv_nsec / 1000000);
+      g_last_log_time = current_time;
+    }
+#endif
   /* Perform IDLE mode power management */
 
   up_idlepm();
@@ -173,7 +198,6 @@ void up_idle(void)
  */
 
   /* Sleep until an interrupt occurs to save power. */
-
   BEGIN_IDLE();
   asm("WFI");
   END_IDLE();

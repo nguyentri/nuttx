@@ -106,7 +106,10 @@ ifeq ($(CONFIG_RTC_DRIVER),y)
 CSRCS += ra8e1_rtc.c
 endif
 
-# Rust library integration (Zephyr-style approach)
+# Rust Demo Support
+ifeq ($(CONFIG_RA8E1_RUST_DEMO),y)
+CSRCS += ra8e1_rust.c
+# Rust library integration
 RUST_LIB_DIR = $(TOPDIR)/boards/arm/ra8/fpb-ra8e1/rust_lib
 RUST_TARGET_DIR = $(RUST_LIB_DIR)/target
 RUST_TARGET = thumbv8m.main-none-eabihf
@@ -139,6 +142,7 @@ ifneq ($(CARGO),)
   .PHONY: rust_lib
 else
   $(warning "Cargo (Rust) not found. Rust integration disabled.")
+endif
 endif
 
 include $(TOPDIR)/boards/Board.mk

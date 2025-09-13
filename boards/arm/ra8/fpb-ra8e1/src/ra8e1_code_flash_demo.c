@@ -137,7 +137,7 @@ int ra8e1_code_flash_demo_test(void)
   demoprintf("  Block size: %lu bytes\n", (unsigned long)geo.blocksize);
   demoprintf("  Erase size: %lu bytes\n", (unsigned long)geo.erasesize);
   demoprintf("  Blocks: %lu\n", (unsigned long)geo.neraseblocks);
-  demoprintf("  Total size: %lu bytes\n", 
+  demoprintf("  Total size: %lu bytes\n",
          (unsigned long)(geo.blocksize * geo.neraseblocks));
 
   /* Test at a safe offset (not affecting running code) */
@@ -146,7 +146,7 @@ int ra8e1_code_flash_demo_test(void)
   test_offset = (geo.neraseblocks - 1) * geo.blocksize;
   uint32_t test_block = test_offset / geo.blocksize;
 
-  demoprintf("Testing at offset: 0x%08lx (block %lu)\n", 
+  demoprintf("Testing at offset: 0x%08lx (block %lu)\n",
          (unsigned long)test_offset, (unsigned long)test_block);
 
   /* Prepare test data */
@@ -285,12 +285,12 @@ int ra8e1_code_flash_demo_info(void)
     }
 
   demoprintf("Flash Geometry:\n");
-  demoprintf("  Block size: %lu bytes (%lu KB)\n", 
+  demoprintf("  Block size: %lu bytes (%lu KB)\n",
          (unsigned long)geo.blocksize, (unsigned long)(geo.blocksize / 1024));
-  demoprintf("  Erase size: %lu bytes (%lu KB)\n", 
+  demoprintf("  Erase size: %lu bytes (%lu KB)\n",
          (unsigned long)geo.erasesize, (unsigned long)(geo.erasesize / 1024));
   demoprintf("  Total blocks: %lu\n", (unsigned long)geo.neraseblocks);
-  demoprintf("  Total size: %lu bytes (%lu KB)\n", 
+  demoprintf("  Total size: %lu bytes (%lu KB)\n",
          (unsigned long)(geo.blocksize * geo.neraseblocks),
          (unsigned long)(geo.blocksize * geo.neraseblocks / 1024));
 
@@ -305,11 +305,11 @@ int ra8e1_code_flash_demo_info(void)
   /* Dual bank information */
 
   demoprintf("\nDual Bank Configuration:\n");
-  demoprintf("  Bank A: 0x%08x - 0x%08x (512KB)\n", 
-         CODE_FLASH_BANK_A_OFFSET, 
+  demoprintf("  Bank A: 0x%08x - 0x%08x (512KB)\n",
+         CODE_FLASH_BANK_A_OFFSET,
          CODE_FLASH_BANK_A_OFFSET + 0x7FFFF);
-  demoprintf("  Bank B: 0x%08x - 0x%08x (512KB)\n", 
-         CODE_FLASH_BANK_B_OFFSET, 
+  demoprintf("  Bank B: 0x%08x - 0x%08x (512KB)\n",
+         CODE_FLASH_BANK_B_OFFSET,
          CODE_FLASH_BANK_B_OFFSET + 0x7FFFF);
   demoprintf("  Current active bank: A (placeholder)\n");
 

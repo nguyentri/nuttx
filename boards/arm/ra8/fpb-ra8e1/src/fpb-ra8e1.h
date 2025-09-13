@@ -167,5 +167,9 @@ int ra8e1_i2c_test_init(void);
 int ra8e1_i2c_test_main(int argc, char *argv[]);
 #endif
 
+#ifdef CONFIG_RA8E1_RUST_DEMO
+int ra8e1_thread_init(void);
+#endif
+
 #endif /* __ASSEMBLY__ */
 #endif /* __BOARDS_ARM_RA8_FPB_RA8E1_SRC_H */

@@ -169,3 +169,14 @@ config RA8E1_CODE_FLASH_DEMO
 		Enable code flash demo application for FPB-RA8E1.
 		Demonstrates code flash programming operations.
 		Self-contained demo with no external app dependencies.
+
+config RA8E1_RUST_DEMO
+	bool "Rust Demo Application"
+	default n
+	---help---
+		Enable Rust demo application for FPB-RA8E1.
+		Demonstrates Rust integration and functionality.
+		Self-contained demo with no external app dependencies.
+		Demonstrates code flash programming operations.
+		Self-contained demo with no external app dependencies.
+

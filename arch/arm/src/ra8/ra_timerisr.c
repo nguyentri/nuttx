@@ -33,6 +33,7 @@
 #include <nuttx/clock.h>
 #include <arch/board/board.h>
 #include <arch/irq.h>
+#include <syslog.h>
 
 #include "nvic.h"
 #include "chip.h"
@@ -306,7 +307,7 @@ void up_timer_initialize(void)
   /* SysTick is now configured and will generate periodic interrupts
    * at the rate specified by CLK_TCK (typically 1000Hz for NuttX)
    */
-  _info("SysTick configured: CLOCK = %u MHz, Tick rate = %u Hz (reload = %u)\n",
+  syslog(LOG_INFO, "SysTick configured: CLOCK = %u MHz, Tick rate = %u Hz (reload = %u)\n",
         SYSTICK_CLOCK / 1000000, CLK_TCK, SYSTICK_RELOAD + 1);
 }
 #endif

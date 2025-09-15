@@ -842,13 +842,19 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
 static int up_receive(struct uart_dev_s *dev, unsigned int *status)
 {
   struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
+  int ch;
 
   /* Return the error information in the saved status */
   *status   = priv->sr;
   priv->sr  = 0;
 
-  /* Then return the actual received byte */
-  return (int)(up_serialin(priv, R_SCI_B_RDR_BY_OFFSET) & 0xff);
+  /* Read the received byte from RDR_BY register */
+  ch = (int)(up_serialin(priv, R_SCI_B_RDR_BY_OFFSET) & 0xff);
+
+  /* Clear RDRF flag by writing to CFCLR register (SCI_B requirement) */
+  up_serialout(priv, R_SCI_B_CFCLR_OFFSET, R_SCI_B_CFCLR_RDRFC);
+
+  return ch;
 }
 
 /****************************************************************************
@@ -912,7 +918,18 @@ static void up_send(struct uart_dev_s *dev, int ch)
 {
   struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
 
+  /* RA8E1 uses SCI_B (version 2) registers
+   * Wait for Transmit Data Register Empty (TDRE) flag in CSR register
+   */
+  while ((up_serialin(priv, R_SCI_B_CSR_OFFSET) & R_SCI_B_CSR_TDRE) == 0)
+    {
+    }
+
+  /* Send the character to TDR_BY register (byte access) */
   up_serialout(priv, R_SCI_B_TDR_BY_OFFSET, (uint8_t)ch);
+
+  /* Clear TDRE flag by writing to CFCLR register */
+  up_serialout(priv, R_SCI_B_CFCLR_OFFSET, R_SCI_B_CFCLR_TDREC);
 }
 
 /****************************************************************************

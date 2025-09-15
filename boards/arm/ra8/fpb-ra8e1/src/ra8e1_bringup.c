@@ -85,19 +85,9 @@ int ra8e1_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_RA_SCI_UART
-  /* Initialize UART drivers */
-
-  ret = ra8e1_uart_initialize();
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to initialize UART: %d\n", ret);
-    }
-  else
-    {
-      syslog(LOG_INFO, "UART initialized successfully\n");
-    }
-#endif
+  /* UART/SCI serial console is automatically initialized by arm_earlyserialinit()
+   * during early boot process. No additional initialization needed here.
+   */
 
 #ifdef CONFIG_RTC_DRIVER
   /* Initialize RTC driver */

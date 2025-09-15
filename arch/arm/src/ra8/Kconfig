@@ -2026,3 +2026,10 @@ config RA_VBATT_SWITCH
    help
      Enable VBATT switch functionality.
      VCC can switch to VBAT if the voltage drops too low.
+
+config RA_IDLE_LOG_STATE
+   bool "Idle Log State"
+   default n
+   help
+     Enable logging of idle state for performance monitoring.
+     Useful for debugging and optimizing power consumption.

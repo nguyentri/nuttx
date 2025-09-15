@@ -137,7 +137,7 @@
 void up_allocate_heap(void **heap_start, size_t *heap_size)
 {
   /* FSP-based memory map validation and heap setup - Compatible with linker script */
-  
+
   board_autoled_on(LED_HEAPALLOCATE);
 
 #ifdef CONFIG_RA_DTCM_HEAP
@@ -145,9 +145,9 @@ void up_allocate_heap(void **heap_start, size_t *heap_size)
   /* Linker script: dtcm (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00004000 */
   *heap_start = (void *)CONFIG_RA_DTCM_BASE;
   *heap_size  = CONFIG_RA_DTCM_SIZE;
-  
+
 #ifdef CONFIG_RA_HEAP_DEBUG
-  syslog(LOG_INFO, "Using DTCM heap: start=0x%08lx size=%zu bytes\n", 
+  syslog(LOG_INFO, "Using DTCM heap: start=0x%08lx size=%zu bytes\n",
          (unsigned long)*heap_start, *heap_size);
 #endif
 
@@ -156,9 +156,9 @@ void up_allocate_heap(void **heap_start, size_t *heap_size)
   /* Linker script: itcm (rwx) : ORIGIN = 0x00000000, LENGTH = 0x00004000 */
   *heap_start = (void *)CONFIG_RA_ITCM_BASE;
   *heap_size  = CONFIG_RA_ITCM_SIZE;
-  
+
 #ifdef CONFIG_RA_HEAP_DEBUG
-  syslog(LOG_INFO, "Using ITCM heap: start=0x%08lx size=%zu bytes\n", 
+  syslog(LOG_INFO, "Using ITCM heap: start=0x%08lx size=%zu bytes\n",
          (unsigned long)*heap_start, *heap_size);
 #endif
 
@@ -167,9 +167,9 @@ void up_allocate_heap(void **heap_start, size_t *heap_size)
   /* Linker script: ospi0_cs0 (rwx) : ORIGIN = 0x80000000, LENGTH = 0x10000000 */
   *heap_start = (void *)CONFIG_RA_EXTERNAL_RAM_BASE;
   *heap_size  = CONFIG_RA_EXTERNAL_RAM_SIZE;
-  
+
 #ifdef CONFIG_RA_HEAP_DEBUG
-  syslog(LOG_INFO, "Using external RAM heap: start=0x%08lx size=%zu bytes\n", 
+  syslog(LOG_INFO, "Using external RAM heap: start=0x%08lx size=%zu bytes\n",
          (unsigned long)*heap_start, *heap_size);
 #endif
 
@@ -178,7 +178,7 @@ void up_allocate_heap(void **heap_start, size_t *heap_size)
   /* Linker script: sram (rwx) : ORIGIN = 0x22060000, LENGTH = 0x00080000 */
   /* Validate memory boundaries using FSP memory map */
   uintptr_t heap_end = CONFIG_RAM_END;  /* 0x22060000 + 0x80000 = 0x220E0000 */
-  
+
 #ifdef CONFIG_RA_STACK_GUARD
   /* Reserve stack guard region - FSP security feature */
   heap_end -= CONFIG_RA_STACK_GUARD_SIZE;
@@ -197,7 +197,7 @@ void up_allocate_heap(void **heap_start, size_t *heap_size)
 #endif
 
 #ifdef CONFIG_RA_HEAP_DEBUG
-  syslog(LOG_INFO, "Using main SRAM heap: start=0x%08lx size=%zu bytes\n", 
+  syslog(LOG_INFO, "Using main SRAM heap: start=0x%08lx size=%zu bytes\n",
          (unsigned long)*heap_start, *heap_size);
   syslog(LOG_INFO, "SRAM region: 0x%08lx-0x%08lx, idle_topstack=0x%08lx\n",
          CONFIG_RA_SRAM_BASE, CONFIG_RAM_END, (unsigned long)g_idle_topstack);
@@ -207,7 +207,7 @@ void up_allocate_heap(void **heap_start, size_t *heap_size)
   /* Validate heap configuration against linker script */
   if (*heap_start == NULL || *heap_size == 0)
     {
-      syslog(LOG_ERR, "Invalid heap configuration: start=%p size=%zu\n", 
+      syslog(LOG_ERR, "Invalid heap configuration: start=%p size=%zu\n",
              *heap_start, *heap_size);
       board_autoled_on(LED_PANIC);
       PANIC();
@@ -217,7 +217,7 @@ void up_allocate_heap(void **heap_start, size_t *heap_size)
   if (*heap_size < CONFIG_IDLETHREAD_STACKSIZE)
     {
       /* Insufficient heap space - FSP error handling */
-      syslog(LOG_ERR, "Insufficient heap space: %zu < %d bytes\n", 
+      syslog(LOG_ERR, "Insufficient heap space: %zu < %d bytes\n",
              *heap_size, CONFIG_IDLETHREAD_STACKSIZE);
       board_autoled_on(LED_PANIC);
       PANIC();
@@ -228,28 +228,28 @@ void up_allocate_heap(void **heap_start, size_t *heap_size)
   uintptr_t heap_end_addr = heap_start_addr + *heap_size;
 
 #ifdef CONFIG_RA_DTCM_HEAP
-  if (heap_start_addr < CONFIG_RA_DTCM_BASE || 
+  if (heap_start_addr < CONFIG_RA_DTCM_BASE ||
       heap_end_addr > (CONFIG_RA_DTCM_BASE + CONFIG_RA_DTCM_SIZE))
     {
       syslog(LOG_ERR, "DTCM heap exceeds linker boundaries\n");
       PANIC();
     }
 #elif defined(CONFIG_RA_ITCM_HEAP)
-  if (heap_start_addr < CONFIG_RA_ITCM_BASE || 
+  if (heap_start_addr < CONFIG_RA_ITCM_BASE ||
       heap_end_addr > (CONFIG_RA_ITCM_BASE + CONFIG_RA_ITCM_SIZE))
     {
       syslog(LOG_ERR, "ITCM heap exceeds linker boundaries\n");
       PANIC();
     }
 #elif defined(CONFIG_RA_EXTERNAL_RAM_HEAP)
-  if (heap_start_addr < CONFIG_RA_EXTERNAL_RAM_BASE || 
+  if (heap_start_addr < CONFIG_RA_EXTERNAL_RAM_BASE ||
       heap_end_addr > (CONFIG_RA_EXTERNAL_RAM_BASE + CONFIG_RA_EXTERNAL_RAM_SIZE))
     {
       syslog(LOG_ERR, "External RAM heap exceeds linker boundaries\n");
       PANIC();
     }
 #else
-  if (heap_start_addr < CONFIG_RA_SRAM_BASE || 
+  if (heap_start_addr < CONFIG_RA_SRAM_BASE ||
       heap_end_addr > CONFIG_RAM_END)
     {
       syslog(LOG_ERR, "SRAM heap exceeds linker boundaries\n");
@@ -275,14 +275,14 @@ bool ra_mem_validate(void)
   /* Linker: dtcm (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00004000 */
   if (CONFIG_RA_DTCM_BASE != 0x20000000)
     {
-      syslog(LOG_ERR, "DTCM base mismatch: config=0x%08lx linker=0x20000000\n", 
+      syslog(LOG_ERR, "DTCM base mismatch: config=0x%08lx linker=0x20000000\n",
              (unsigned long)CONFIG_RA_DTCM_BASE);
       valid = false;
     }
 
   if (CONFIG_RA_DTCM_SIZE != 0x4000)
     {
-      syslog(LOG_ERR, "DTCM size mismatch: config=%d linker=16384 bytes\n", 
+      syslog(LOG_ERR, "DTCM size mismatch: config=%d linker=16384 bytes\n",
              CONFIG_RA_DTCM_SIZE);
       valid = false;
     }
@@ -293,14 +293,14 @@ bool ra_mem_validate(void)
   /* Linker: itcm (rwx) : ORIGIN = 0x00000000, LENGTH = 0x00004000 */
   if (CONFIG_RA_ITCM_BASE != 0x00000000)
     {
-      syslog(LOG_ERR, "ITCM base mismatch: config=0x%08lx linker=0x00000000\n", 
+      syslog(LOG_ERR, "ITCM base mismatch: config=0x%08lx linker=0x00000000\n",
              (unsigned long)CONFIG_RA_ITCM_BASE);
       valid = false;
     }
 
   if (CONFIG_RA_ITCM_SIZE != 0x4000)
     {
-      syslog(LOG_ERR, "ITCM size mismatch: config=%d linker=16384 bytes\n", 
+      syslog(LOG_ERR, "ITCM size mismatch: config=%d linker=16384 bytes\n",
              CONFIG_RA_ITCM_SIZE);
       valid = false;
     }
@@ -311,14 +311,14 @@ bool ra_mem_validate(void)
   /* Linker: ospi0_cs0 (rwx) : ORIGIN = 0x80000000, LENGTH = 0x10000000 */
   if (CONFIG_RA_EXTERNAL_RAM_BASE != 0x80000000)
     {
-      syslog(LOG_ERR, "External RAM base mismatch: config=0x%08lx linker=0x80000000\n", 
+      syslog(LOG_ERR, "External RAM base mismatch: config=0x%08lx linker=0x80000000\n",
              (unsigned long)CONFIG_RA_EXTERNAL_RAM_BASE);
       valid = false;
     }
 
   if (CONFIG_RA_EXTERNAL_RAM_SIZE > 0x10000000)
     {
-      syslog(LOG_ERR, "External RAM size exceeds linker: config=%d max=268435456 bytes\n", 
+      syslog(LOG_ERR, "External RAM size exceeds linker: config=%d max=268435456 bytes\n",
              CONFIG_RA_EXTERNAL_RAM_SIZE);
       valid = false;
     }
@@ -328,14 +328,14 @@ bool ra_mem_validate(void)
   /* Linker: sram (rwx) : ORIGIN = 0x22060000, LENGTH = 0x00080000 */
   if (CONFIG_RA_SRAM_BASE != 0x22060000)
     {
-      syslog(LOG_ERR, "SRAM base mismatch: config=0x%08lx linker=0x22060000\n", 
+      syslog(LOG_ERR, "SRAM base mismatch: config=0x%08lx linker=0x22060000\n",
              (unsigned long)CONFIG_RA_SRAM_BASE);
       valid = false;
     }
 
   if (CONFIG_RA_SRAM_SIZE != 0x80000)
     {
-      syslog(LOG_ERR, "SRAM size mismatch: config=%d linker=524288 bytes\n", 
+      syslog(LOG_ERR, "SRAM size mismatch: config=%d linker=524288 bytes\n",
              CONFIG_RA_SRAM_SIZE);
       valid = false;
     }
@@ -343,7 +343,7 @@ bool ra_mem_validate(void)
   /* Validate heap alignment is power of 2 */
   if ((CONFIG_RA_HEAP_ALIGNMENT & (CONFIG_RA_HEAP_ALIGNMENT - 1)) != 0)
     {
-      syslog(LOG_ERR, "Heap alignment must be power of 2: %d\n", 
+      syslog(LOG_ERR, "Heap alignment must be power of 2: %d\n",
              CONFIG_RA_HEAP_ALIGNMENT);
       valid = false;
     }

@@ -174,14 +174,14 @@ void up_idle(void)
   nxsched_process_timer();
 #else
 #ifdef CONFIG_RA_IDLE_LOG_STATE
-  /* Check if 1 second has passed and log with timestamp */
+  /* Check if 5 seconds have passed and log with timestamp */
   current_time = clock();
-  if ((current_time - g_last_log_time) >= CLOCKS_PER_SEC)
+  if ((current_time - g_last_log_time) >= 5*CLOCKS_PER_SEC)
     {
       struct timespec ts;
       clock_gettime(CLOCK_REALTIME, &ts);
 
-      syslog(LOG_INFO, "[Idle State] Count:%ld.%03ld, CPU entering low power mode (WFI)...\n",
+      syslog(LOG_INFO, "[C Idle State] Time:%ld.%06ld, CPU entering low power mode (WFI)...\n",
              (long)ts.tv_sec, (long)(ts.tv_nsec / 1000));
       g_last_log_time = current_time;
     }

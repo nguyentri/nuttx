@@ -6,9 +6,10 @@ use core::panic::PanicInfo;
 extern "C" {
     fn syslog(priority: i32, format: *const u8, ...);
     // NuttX message queue functions
+    #[allow(dead_code)]
     fn mq_send(mqdes: i32, msg: *const u8, msglen: usize, prio: u32) -> i32;
     fn mq_receive(mqdes: i32, msg: *mut u8, msglen: usize, prio: *mut u32) -> isize;
-    fn mq_getattr(mqdes: i32, mq_stat: *mut MqAttr) -> i32;
+    //fn mq_getattr(mqdes: i32, mq_stat: *mut MqAttr) -> i32;
 }
 
 // Message queue attributes structure (mirrors NuttX mq_attr)
@@ -23,37 +24,163 @@ pub struct MqAttr {
 // Syslog priority levels (from NuttX syslog.h)
 const LOG_INFO: i32 = 6;
 const LOG_WARNING: i32 = 4;
+#[allow(dead_code)]
 const LOG_ERR: i32 = 3;
 
-// Message types for queue communication
+// Message types for Rust low-priority tasks (matching C definitions)
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub enum MessageType {
-    SensorData = 1,
-    ProcessedData = 2,
-    HealthCheck = 3,
-    StringProcess = 4,
-    ArrayProcess = 5,
+    DataLogging = 1,      // Flight data logging to Rust
+    DataAnalytics = 2,    // Statistical analysis requests
+    LogCompression = 3,   // Compress old flight logs
+    HealthAnalysis = 4,   // System health trend analysis
+    FlightStats = 5,      // Calculate flight statistics
+    FlightData = 6,       // Raw flight data from C flight control
+    Telemetry = 7,        // Telemetry packets from C for external transmission
 }
 
-// Message structure for queue communication
+// Flight control data structures (matching C definitions)
 #[repr(C)]
 #[derive(Clone, Copy)]
-pub struct QueueMessage {
-    pub msg_type: u32,
+pub struct ImuData {
+    pub accel_x: f32,
+    pub accel_y: f32,
+    pub accel_z: f32,
+    pub gyro_x: f32,
+    pub gyro_y: f32,
+    pub gyro_z: f32,
+    pub mag_x: f32,
+    pub mag_y: f32,
+    pub mag_z: f32,
+    pub timestamp_us: u64,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct AttitudeData {
+    pub roll: f32,
+    pub pitch: f32,
+    pub yaw: f32,
+    pub roll_rate: f32,
+    pub pitch_rate: f32,
+    pub yaw_rate: f32,
+    pub confidence: f32,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct ControlData {
+    pub roll_output: f32,
+    pub pitch_output: f32,
+    pub yaw_output: f32,
+    pub throttle: f32,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct MotorData {
+    pub motor_fl: u32,
+    pub motor_fr: u32,
+    pub motor_rl: u32,
+    pub motor_rr: u32,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct FlightData {
+    pub attitude: AttitudeData,
+    pub control: ControlData,
+    pub imu_raw: ImuData,
+    pub motors: MotorData,
+    pub timestamp_us: u64,
+    pub cycle_count: u32,
+}
+
+// Data logging and analytics structures
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct FlightLogEntry {
+    pub timestamp_us: u64,
+    pub attitude: AttitudeData,
+    pub control: ControlData,
+    pub motor_commands: MotorData,
+    pub battery_voltage: f32,
+    pub system_load: u32,
+}
+
+// Rust low-priority task data structures (matching C definitions)
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct DataLoggingRequest {
+    pub request_id: u32,
+    pub data_type: u32,     // 1=flight_logs, 2=sensor_data, 3=health_data
+    pub priority: u32,      // 1=low, 2=normal, 3=high
+    pub timestamp_us: u64,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct AnalyticsRequest {
+    pub analysis_type: u32, // 1=trend, 2=statistics, 3=anomaly_detection
+    pub time_window: u32,   // Analysis window in seconds
+    pub data_points: u32,   // Number of data points to analyze
+    pub threshold: f32,     // Analysis threshold value
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct CompressionRequest {
+    pub compression_level: u32, // 1=fast, 2=balanced, 3=max
+    pub age_threshold: u32,     // Compress data older than X seconds
+    pub size_limit: u32,        // Maximum size before compression
+    pub preserve_recent: u32,   // Keep recent X entries uncompressed
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct TelemetryPacket {
+    pub packet_id: u32,
+    pub timestamp_us: u64,
+    pub roll_deg: f32,
+    pub pitch_deg: f32,
+    pub yaw_rate_deg: f32,
+    pub altitude_est: f32,
+    pub battery_percent: u32,
+    pub system_status: u32,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct SystemHealthStatus {
+    pub overall_score: u32,
+    pub imu_health: u32,
+    pub control_health: u32,
+    pub motor_health: u32,
+    pub battery_health: u32,
+    pub memory_usage: u32,
+    pub cpu_load: u32,
+}
+
+// Legacy structures for compatibility
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct SharedSensorData {
+    pub temperature: f32,
+    pub humidity: f32,
+    pub pressure: f32,
     pub timestamp: u64,
-    pub data: MessageData,
+    pub battery_voltage: f32,
+    pub status_flags: u32,
 }
 
-// Union-like structure for different message data types
 #[repr(C)]
 #[derive(Clone, Copy)]
-pub union MessageData {
-    pub sensor: SharedSensorData,
-    pub processed: RustProcessedData,
-    pub health: HealthData,
-    pub string_result: StringProcessResult,
-    pub array_result: ArrayProcessResult,
+pub struct RustProcessedData {
+    pub avg_temperature: f32,
+    pub trend_direction: i32,
+    pub alert_level: u32,
+    pub data_quality_score: u32,
 }
 
 #[repr(C)]
@@ -83,28 +210,48 @@ pub struct ArrayProcessResult {
     pub count: u32,
 }
 
-// Shared data structure for inter-thread communication
+// Message structure for queue communication
 #[repr(C)]
 #[derive(Clone, Copy)]
-pub struct SharedSensorData {
-    pub temperature: f32,
-    pub humidity: f32,
-    pub pressure: f32,
+pub struct QueueMessage {
+    pub msg_type: u32,
     pub timestamp: u64,
-    pub battery_voltage: f32,
-    pub status_flags: u32,
+    pub data: MessageData,
 }
 
+// Union-like structure for different message data types (matching C definitions)
 #[repr(C)]
 #[derive(Clone, Copy)]
-pub struct RustProcessedData {
-    pub avg_temperature: f32,
-    pub trend_direction: i32,  // -1: decreasing, 0: stable, 1: increasing
-    pub alert_level: u32,      // 0: normal, 1: warning, 2: critical
-    pub data_quality_score: u32, // 0-100
+pub union MessageData {
+    pub logging_req: DataLoggingRequest,
+    pub analytics_req: AnalyticsRequest,
+    pub compression_req: CompressionRequest,
+    pub health_analysis: HealthData,
+    pub flight_data: FlightData,
+    pub telemetry: TelemetryPacket,  // Telemetry sent from Rust to C
 }
 
-// Static storage for shared data (thread-safe access through queues)
+// Static storage for data logging and analytics
+static mut FLIGHT_LOG_BUFFER: [FlightLogEntry; 100] = [FlightLogEntry {
+    timestamp_us: 0,
+    attitude: AttitudeData { roll: 0.0, pitch: 0.0, yaw: 0.0, roll_rate: 0.0, pitch_rate: 0.0, yaw_rate: 0.0, confidence: 0.0 },
+    control: ControlData { roll_output: 0.0, pitch_output: 0.0, yaw_output: 0.0, throttle: 0.0 },
+    motor_commands: MotorData { motor_fl: 0, motor_fr: 0, motor_rl: 0, motor_rr: 0 },
+    battery_voltage: 0.0,
+    system_load: 0,
+}; 100];
+
+static mut LOG_INDEX: usize = 0;
+static mut TELEMETRY_PACKET_ID: u32 = 0;
+static mut SYSTEM_UPTIME_MS: u64 = 0;
+
+// Data analytics storage
+static mut ATTITUDE_HISTORY: [AttitudeData; 50] = [AttitudeData {
+    roll: 0.0, pitch: 0.0, yaw: 0.0, roll_rate: 0.0, pitch_rate: 0.0, yaw_rate: 0.0, confidence: 0.0
+}; 50];
+static mut ATTITUDE_INDEX: usize = 0;
+
+// Legacy sensor data (for compatibility)
 static mut SENSOR_DATA: SharedSensorData = SharedSensorData {
     temperature: 0.0,
     humidity: 0.0,
@@ -121,10 +268,6 @@ static mut PROCESSED_DATA: RustProcessedData = RustProcessedData {
     data_quality_score: 100,
 };
 
-// Temperature history for trend analysis (circular buffer)
-static mut TEMP_HISTORY: [f32; 10] = [0.0; 10];
-static mut TEMP_INDEX: usize = 0;
-
 // Message queue descriptors (set by C code)
 static mut RUST_TO_C_QUEUE: i32 = -1;
 static mut C_TO_RUST_QUEUE: i32 = -1;
@@ -135,292 +278,324 @@ fn panic(_info: &PanicInfo) -> ! {
     loop {}
 }
 
-// Drone-specific data structures for IMU and control systems
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct ImuRawData {
-    pub accel_x: f32,    // Accelerometer X-axis (m/s²)
-    pub accel_y: f32,    // Accelerometer Y-axis (m/s²)
-    pub accel_z: f32,    // Accelerometer Z-axis (m/s²)
-    pub gyro_x: f32,     // Gyroscope X-axis (rad/s)
-    pub gyro_y: f32,     // Gyroscope Y-axis (rad/s)
-    pub gyro_z: f32,     // Gyroscope Z-axis (rad/s)
-    pub mag_x: f32,      // Magnetometer X-axis (μT)
-    pub mag_y: f32,      // Magnetometer Y-axis (μT)
-    pub mag_z: f32,      // Magnetometer Z-axis (μT)
-    pub timestamp: u64,  // Timestamp in microseconds
-}
-
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct ImuFilteredData {
-    pub roll: f32,       // Roll angle in radians
-    pub pitch: f32,      // Pitch angle in radians
-    pub yaw: f32,        // Yaw angle in radians
-    pub roll_rate: f32,  // Roll rate in rad/s
-    pub pitch_rate: f32, // Pitch rate in rad/s
-    pub yaw_rate: f32,   // Yaw rate in rad/s
-    pub confidence: f32, // Filter confidence (0.0 - 1.0)
-}
-
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct PidController {
-    pub kp: f32,         // Proportional gain
-    pub ki: f32,         // Integral gain
-    pub kd: f32,         // Derivative gain
-    pub integral: f32,   // Integral accumulator
-    pub last_error: f32, // Previous error for derivative
-    pub output_limit: f32, // Output saturation limit
-}
-
-// Static storage for drone control systems
-static mut IMU_RAW_DATA: ImuRawData = ImuRawData {
-    accel_x: 0.0, accel_y: 0.0, accel_z: 0.0,
-    gyro_x: 0.0, gyro_y: 0.0, gyro_z: 0.0,
-    mag_x: 0.0, mag_y: 0.0, mag_z: 0.0,
-    timestamp: 0,
-};
-
-static mut IMU_FILTERED_DATA: ImuFilteredData = ImuFilteredData {
-    roll: 0.0, pitch: 0.0, yaw: 0.0,
-    roll_rate: 0.0, pitch_rate: 0.0, yaw_rate: 0.0,
-    confidence: 1.0,
-};
-
-// Gaussian filter buffers for IMU data smoothing
-static mut ACCEL_FILTER_BUFFER_X: [f32; 5] = [0.0; 5];
-static mut ACCEL_FILTER_BUFFER_Y: [f32; 5] = [0.0; 5];
-static mut ACCEL_FILTER_BUFFER_Z: [f32; 5] = [0.0; 5];
-static mut GYRO_FILTER_BUFFER_X: [f32; 5] = [0.0; 5];
-static mut GYRO_FILTER_BUFFER_Y: [f32; 5] = [0.0; 5];
-static mut GYRO_FILTER_BUFFER_Z: [f32; 5] = [0.0; 5];
-static mut FILTER_INDEX: usize = 0;
-
-// Complementary filter state
-static mut COMP_FILTER_ANGLE_X: f32 = 0.0;
-static mut COMP_FILTER_ANGLE_Y: f32 = 0.0;
-static mut LAST_FILTER_TIME: u64 = 0;
-
-// PID controllers for drone stabilization
-static mut ROLL_PID: PidController = PidController {
-    kp: 2.0, ki: 0.1, kd: 0.05, integral: 0.0, last_error: 0.0, output_limit: 45.0
-};
-static mut PITCH_PID: PidController = PidController {
-    kp: 2.0, ki: 0.1, kd: 0.05, integral: 0.0, last_error: 0.0, output_limit: 45.0
-};
-static mut YAW_PID: PidController = PidController {
-    kp: 1.5, ki: 0.05, kd: 0.02, integral: 0.0, last_error: 0.0, output_limit: 30.0
-};
-
-/// Gaussian filter for IMU data smoothing - replaces basic calculation
+/// Data Logging Service - Store flight data for analysis
 #[no_mangle]
-pub extern "C" fn rust_gaussian_filter_imu(accel_x: f32, accel_y: f32, accel_z: f32,
-                                          gyro_x: f32, gyro_y: f32, gyro_z: f32) -> i32 {
+pub extern "C" fn rust_log_flight_data(flight_data: *const FlightData) -> i32 {
+    if flight_data.is_null() {
+        return -1;
+    }
+
     unsafe {
-        // Store raw IMU data in circular buffers for Gaussian filtering
-        ACCEL_FILTER_BUFFER_X[FILTER_INDEX] = accel_x;
-        ACCEL_FILTER_BUFFER_Y[FILTER_INDEX] = accel_y;
-        ACCEL_FILTER_BUFFER_Z[FILTER_INDEX] = accel_z;
-        GYRO_FILTER_BUFFER_X[FILTER_INDEX] = gyro_x;
-        GYRO_FILTER_BUFFER_Y[FILTER_INDEX] = gyro_y;
-        GYRO_FILTER_BUFFER_Z[FILTER_INDEX] = gyro_z;
+        let data = *flight_data;
 
-        FILTER_INDEX = (FILTER_INDEX + 1) % 5;
+        // Create log entry
+        let log_entry = FlightLogEntry {
+            timestamp_us: data.timestamp_us,
+            attitude: data.attitude,
+            control: data.control,
+            motor_commands: data.motors,
+            battery_voltage: 4.2f32 - (data.cycle_count as f32 * 0.0001f32), // Simulate battery drain
+            system_load: (data.cycle_count % 100) as u32, // Simulate system load
+        };
 
-        // Apply Gaussian weights: [0.06, 0.24, 0.40, 0.24, 0.06] (approximation)
-        let weights = [0.06, 0.24, 0.40, 0.24, 0.06];
+        // Store in circular buffer
+        FLIGHT_LOG_BUFFER[LOG_INDEX] = log_entry;
+        LOG_INDEX = (LOG_INDEX + 1) % 100;
 
-        // Calculate filtered accelerometer values
-        let mut filtered_accel_x = 0.0;
-        let mut filtered_accel_y = 0.0;
-        let mut filtered_accel_z = 0.0;
+        // Store attitude for trend analysis
+        ATTITUDE_HISTORY[ATTITUDE_INDEX] = data.attitude;
+        ATTITUDE_INDEX = (ATTITUDE_INDEX + 1) % 50;
 
-        for i in 0..5 {
-            filtered_accel_x += ACCEL_FILTER_BUFFER_X[i] * weights[i];
-            filtered_accel_y += ACCEL_FILTER_BUFFER_Y[i] * weights[i];
-            filtered_accel_z += ACCEL_FILTER_BUFFER_Z[i] * weights[i];
+        // Log every 10th data point (10Hz when input is 100Hz)
+        if data.cycle_count % 10 == 0 {
+            let roll_deg = (data.attitude.roll * 180.0 / 3.14159) as i32;
+            let pitch_deg = (data.attitude.pitch * 180.0 / 3.14159) as i32;
+            let conf_percent = (data.attitude.confidence * 100.0) as i32;
+
+            syslog(LOG_INFO, b"[Rust Data Logger] Flight Log: Roll=%ddegC, Pitch=%ddegC, Conf=%d%%, Motors=[%d,%d,%d,%d]\n\0".as_ptr(),
+                   roll_deg, pitch_deg, conf_percent,
+                   data.motors.motor_fl, data.motors.motor_fr,
+                   data.motors.motor_rl, data.motors.motor_rr);
+        }
+    }
+
+    0
+}
+
+/// Telemetry Service - Generate telemetry packets for transmission
+#[no_mangle]
+pub extern "C" fn rust_generate_telemetry() -> *const TelemetryPacket {
+    unsafe {
+        TELEMETRY_PACKET_ID += 1;
+        SYSTEM_UPTIME_MS += 100; // Called every 100ms
+
+        // Get latest attitude data
+        let latest_attitude = if ATTITUDE_INDEX > 0 {
+            ATTITUDE_HISTORY[ATTITUDE_INDEX - 1]
+        } else {
+            ATTITUDE_HISTORY[49]
+        };
+
+        static mut TELEMETRY_PACKET: TelemetryPacket = TelemetryPacket {
+            packet_id: 0,
+            timestamp_us: 0,
+            roll_deg: 0.0,
+            pitch_deg: 0.0,
+            yaw_rate_deg: 0.0,
+            altitude_est: 0.0,
+            battery_percent: 100,
+            system_status: 0,
+        };
+
+        TELEMETRY_PACKET.packet_id = TELEMETRY_PACKET_ID;
+        TELEMETRY_PACKET.timestamp_us = SYSTEM_UPTIME_MS * 1000;
+        TELEMETRY_PACKET.roll_deg = latest_attitude.roll * 180.0 / 3.14159;
+        TELEMETRY_PACKET.pitch_deg = latest_attitude.pitch * 180.0 / 3.14159;
+        TELEMETRY_PACKET.yaw_rate_deg = latest_attitude.yaw_rate * 180.0 / 3.14159;
+        TELEMETRY_PACKET.altitude_est = 10.0 + libm::sinf(SYSTEM_UPTIME_MS as f32 * 0.001) * 2.0; // Simulated altitude
+        TELEMETRY_PACKET.battery_percent = ((4.2 - SYSTEM_UPTIME_MS as f32 * 0.00001) / 4.2 * 100.0) as u32;
+        TELEMETRY_PACKET.system_status = if latest_attitude.confidence > 0.8 { 1 } else { 2 }; // 1=OK, 2=WARNING
+
+        &raw const TELEMETRY_PACKET as *const TelemetryPacket
+    }
+}
+
+/// System Health Monitoring - Analyze flight data for anomalies
+#[no_mangle]
+pub extern "C" fn rust_analyze_system_health() -> *const SystemHealthStatus {
+    unsafe {
+        static mut HEALTH_STATUS: SystemHealthStatus = SystemHealthStatus {
+            overall_score: 100,
+            imu_health: 100,
+            control_health: 100,
+            motor_health: 100,
+            battery_health: 100,
+            memory_usage: 50,
+            cpu_load: 30,
+        };
+
+        let mut total_score = 0u32;
+        let mut sample_count = 0u32;
+
+        // Analyze attitude stability over recent history
+        for i in 0..50 {
+            let attitude = ATTITUDE_HISTORY[i];
+            if attitude.confidence > 0.0 {
+                sample_count += 1;
+
+                // Check for reasonable attitude values
+                if attitude.roll.abs() < 0.5 && attitude.pitch.abs() < 0.5 {
+                    total_score += 100;
+                } else if attitude.roll.abs() < 1.0 && attitude.pitch.abs() < 1.0 {
+                    total_score += 75;
+                } else {
+                    total_score += 25;
+                }
+            }
         }
 
-        // Store filtered data
-        IMU_RAW_DATA.accel_x = filtered_accel_x;
-        IMU_RAW_DATA.accel_y = filtered_accel_y;
-        IMU_RAW_DATA.accel_z = filtered_accel_z;
+        if sample_count > 0 {
+            HEALTH_STATUS.imu_health = total_score / sample_count;
+            HEALTH_STATUS.control_health = if HEALTH_STATUS.imu_health > 80 { 95 } else { 60 };
+        }
 
-        // Convert to fixed-point for syslog
-        let ax_fp = (filtered_accel_x * 100.0) as i32;
-        let ay_fp = (filtered_accel_y * 100.0) as i32;
-        let az_fp = (filtered_accel_z * 100.0) as i32;
+        // Simulate other health metrics
+        HEALTH_STATUS.battery_health = if SYSTEM_UPTIME_MS < 300000 { 100 } else { 75 }; // Degrade after 5 minutes
+        HEALTH_STATUS.motor_health = 90 + (SYSTEM_UPTIME_MS % 20) as u32; // Simulate minor variations
+        HEALTH_STATUS.memory_usage = 40 + (SYSTEM_UPTIME_MS / 1000 % 30) as u32; // Slowly increasing memory usage
+        HEALTH_STATUS.cpu_load = 25 + (SYSTEM_UPTIME_MS % 50) as u32; // Variable CPU load
 
-        syslog(LOG_INFO, b"[Rust App IMU Gaussian Filter] Filtered IMU: ax=%d.%02d, ay=%d.%02d, az=%d.%02d\n\0".as_ptr(),
-               ax_fp / 100, ax_fp % 100, ay_fp / 100, ay_fp % 100, az_fp / 100, az_fp % 100);
+        HEALTH_STATUS.overall_score = (HEALTH_STATUS.imu_health + HEALTH_STATUS.control_health +
+                                       HEALTH_STATUS.motor_health + HEALTH_STATUS.battery_health) / 4;
+
+        syslog(LOG_INFO, b"[Rust System Health] Overall: %d%%, IMU: %d%%, Battery: %d%%, Memory: %d%%\n\0".as_ptr(),
+               HEALTH_STATUS.overall_score, HEALTH_STATUS.imu_health,
+               HEALTH_STATUS.battery_health, HEALTH_STATUS.memory_usage);
+
+        &raw const HEALTH_STATUS as *const SystemHealthStatus
+    }
+}
+
+/// Data Compression Service - Compress old flight logs
+#[no_mangle]
+pub extern "C" fn rust_compress_flight_logs() -> i32 {
+    unsafe {
+        // Simple data compression simulation
+        let mut compressed_entries = 0u32;
+
+        for i in 0..100 {
+            let entry = FLIGHT_LOG_BUFFER[i];
+            if entry.timestamp_us > 0 {
+                // In a real implementation, this would compress and store to filesystem
+                compressed_entries += 1;
+            }
+        }
+
+        syslog(LOG_INFO, b"[Rust Data Compression] Compressed %d flight log entries\n\0".as_ptr(), compressed_entries);
+        compressed_entries as i32
+    }
+}
+
+/// Data Analytics - Calculate flight statistics
+#[no_mangle]
+pub extern "C" fn rust_calculate_flight_stats() -> i32 {
+    unsafe {
+        let mut max_roll = 0.0f32;
+        let mut max_pitch = 0.0f32;
+        let mut avg_confidence = 0.0f32;
+        let mut valid_samples = 0u32;
+
+        for i in 0..50 {
+            let attitude = ATTITUDE_HISTORY[i];
+            if attitude.confidence > 0.0 {
+                valid_samples += 1;
+                if attitude.roll.abs() > max_roll.abs() {
+                    max_roll = attitude.roll;
+                }
+                if attitude.pitch.abs() > max_pitch.abs() {
+                    max_pitch = attitude.pitch;
+                }
+                avg_confidence += attitude.confidence;
+            }
+        }
+
+        if valid_samples > 0 {
+            avg_confidence /= valid_samples as f32;
+
+            let max_roll_deg = (max_roll * 180.0 / 3.14159) as i32;
+            let max_pitch_deg = (max_pitch * 180.0 / 3.14159) as i32;
+            let avg_conf_percent = (avg_confidence * 100.0) as i32;
+
+            syslog(LOG_INFO, b"[Rust Flight Analytics] Max Roll: %degC, Max Pitch: %ddegC, Avg Confidence: %d%%\n\0".as_ptr(),
+                   max_roll_deg, max_pitch_deg, avg_conf_percent);
+        }        valid_samples as i32
+    }
+}
+
+/// Initialize Rust data services subsystem
+#[no_mangle]
+pub extern "C" fn rust_system_init() -> i32 {
+    unsafe {
+        syslog(LOG_INFO, b"[Rust Data Services] Initializing Rust Data Services Subsystem\n\0".as_ptr());
+        TELEMETRY_PACKET_ID = 0;
+        SYSTEM_UPTIME_MS = 0;
+        LOG_INDEX = 0;
+        ATTITUDE_INDEX = 0;
     }
     0
 }
 
-/// Complementary filter for attitude estimation - replaces advanced math
+/// Set message queue descriptors for thread-safe communication
 #[no_mangle]
-pub extern "C" fn rust_complementary_filter(dt_us: u64, filter_type: u8) -> i32 {
+pub extern "C" fn rust_set_queues(rust_to_c: i32, c_to_rust: i32) -> i32 {
     unsafe {
-        let dt_sec = dt_us as f32 / 1_000_000.0; // Convert microseconds to seconds
+        RUST_TO_C_QUEUE = rust_to_c;
+        C_TO_RUST_QUEUE = c_to_rust;
+        syslog(LOG_INFO, b"[Rust Data Services] Message queues configured: R2C=%d, C2R=%d\n\0".as_ptr(),
+               rust_to_c, c_to_rust);
+    }
+    0
+}
 
-        syslog(LOG_INFO, b"[Rust App Complementary Filter] Input: dt=%d us, type=%d\n\0".as_ptr(),
-               dt_us as i32, filter_type as i32);
+/// Thread-safe function to receive low-priority task requests from C thread
+#[no_mangle]
+pub extern "C" fn rust_receive_flight_data() -> i32 {
+    unsafe {
+        if C_TO_RUST_QUEUE < 0 {
+            return -1;
+        }
 
-        let result = match filter_type {
-            0 => { // Roll angle estimation
-                // Accelerometer angle (noisy but no drift)
-                let accel_angle = libm::atan2f(IMU_RAW_DATA.accel_y, IMU_RAW_DATA.accel_z);
+        let mut msg: QueueMessage = core::mem::zeroed();
+        let result = mq_receive(C_TO_RUST_QUEUE, &mut msg as *mut _ as *mut u8,
+                               core::mem::size_of::<QueueMessage>(), core::ptr::null_mut());
 
-                // Gyroscope integration (smooth but drifts)
-                COMP_FILTER_ANGLE_X += IMU_RAW_DATA.gyro_x * dt_sec;
+        if result > 0 {
+            // Debug: Log all received messages
+            //syslog(LOG_INFO, b"[Rust Message Debug] Received message type: //%u\n\0".as_ptr(), msg.msg_type);
 
-                // Complementary filter: 98% gyro + 2% accelerometer
-                COMP_FILTER_ANGLE_X = 0.98 * COMP_FILTER_ANGLE_X + 0.02 * accel_angle;
-                IMU_FILTERED_DATA.roll = COMP_FILTER_ANGLE_X;
-                IMU_FILTERED_DATA.roll_rate = IMU_RAW_DATA.gyro_x;
-
-                (COMP_FILTER_ANGLE_X * 1000.0) as i32 // Return angle in milliradians
-            },
-            1 => { // Pitch angle estimation
-                let accel_angle = libm::atan2f(-IMU_RAW_DATA.accel_x,
-                    libm::sqrtf(IMU_RAW_DATA.accel_y * IMU_RAW_DATA.accel_y + IMU_RAW_DATA.accel_z * IMU_RAW_DATA.accel_z));
-
-                COMP_FILTER_ANGLE_Y += IMU_RAW_DATA.gyro_y * dt_sec;
-                COMP_FILTER_ANGLE_Y = 0.98 * COMP_FILTER_ANGLE_Y + 0.02 * accel_angle;
-                IMU_FILTERED_DATA.pitch = COMP_FILTER_ANGLE_Y;
-                IMU_FILTERED_DATA.pitch_rate = IMU_RAW_DATA.gyro_y;
-
-                (COMP_FILTER_ANGLE_Y * 1000.0) as i32
-            },
-            2 => { // Yaw rate (gyroscope only, no drift correction without magnetometer)
-                IMU_FILTERED_DATA.yaw_rate = IMU_RAW_DATA.gyro_z;
-                (IMU_RAW_DATA.gyro_z * 1000.0) as i32
-            },
-            3 => { // Calculate filter confidence based on accelerometer magnitude
-                let accel_magnitude = libm::sqrtf(
-                    IMU_RAW_DATA.accel_x * IMU_RAW_DATA.accel_x +
-                    IMU_RAW_DATA.accel_y * IMU_RAW_DATA.accel_y +
-                    IMU_RAW_DATA.accel_z * IMU_RAW_DATA.accel_z
-                );
-
-                // Confidence is higher when accelerometer magnitude is close to 1g (9.81 m/s²)
-                let gravity = 9.81;
-                let magnitude_error = libm::fabsf(accel_magnitude - gravity) / gravity;
-                IMU_FILTERED_DATA.confidence = if magnitude_error < 0.1 { 1.0 }
-                                              else if magnitude_error < 0.3 { 0.7 }
-                                              else { 0.3 };
-
-                (IMU_FILTERED_DATA.confidence * 1000.0) as i32
-            },
-            4 => { // Update IMU raw data with gyro values
-                IMU_RAW_DATA.gyro_x = GYRO_FILTER_BUFFER_X.iter().sum::<f32>() / 5.0;
-                IMU_RAW_DATA.gyro_y = GYRO_FILTER_BUFFER_Y.iter().sum::<f32>() / 5.0;
-                IMU_RAW_DATA.gyro_z = GYRO_FILTER_BUFFER_Z.iter().sum::<f32>() / 5.0;
-
-                let gyro_magnitude = libm::sqrtf(
-                    IMU_RAW_DATA.gyro_x * IMU_RAW_DATA.gyro_x +
-                    IMU_RAW_DATA.gyro_y * IMU_RAW_DATA.gyro_y +
-                    IMU_RAW_DATA.gyro_z * IMU_RAW_DATA.gyro_z
-                );
-                (gyro_magnitude * 1000.0) as i32
-            },
-            5 => { // Low-pass filter for accelerometer noise reduction
-                let alpha = 0.1; // Filter coefficient
-                static mut PREV_ACCEL_X: f32 = 0.0;
-                static mut PREV_ACCEL_Y: f32 = 0.0;
-                static mut PREV_ACCEL_Z: f32 = 0.0;
-
-                PREV_ACCEL_X = alpha * IMU_RAW_DATA.accel_x + (1.0 - alpha) * PREV_ACCEL_X;
-                PREV_ACCEL_Y = alpha * IMU_RAW_DATA.accel_y + (1.0 - alpha) * PREV_ACCEL_Y;
-                PREV_ACCEL_Z = alpha * IMU_RAW_DATA.accel_z + (1.0 - alpha) * PREV_ACCEL_Z;
-
-                IMU_RAW_DATA.accel_x = PREV_ACCEL_X;
-                IMU_RAW_DATA.accel_y = PREV_ACCEL_Y;
-                IMU_RAW_DATA.accel_z = PREV_ACCEL_Z;
-
-                let filtered_magnitude = libm::sqrtf(PREV_ACCEL_X * PREV_ACCEL_X +
-                                                   PREV_ACCEL_Y * PREV_ACCEL_Y +
-                                                   PREV_ACCEL_Z * PREV_ACCEL_Z);
-                (filtered_magnitude * 100.0) as i32
-            },
-            _ => { // Default: Return timestamp difference for debugging
-                let time_diff = dt_us.saturating_sub(LAST_FILTER_TIME);
-                LAST_FILTER_TIME = dt_us;
-                time_diff as i32
+            match msg.msg_type {
+                1 => { // MSG_TYPE_DATA_LOGGING
+                    //syslog(LOG_INFO, b"[Rust Data Services] Processing flight data message\n\0".as_ptr());
+                    let flight_data = &msg.data.flight_data;
+                    rust_log_flight_data(flight_data as *const FlightData);
+                    return 1;
+                },
+                2 => { // MSG_TYPE_DATA_ANALYTICS
+                    let analytics_req = &msg.data.analytics_req;
+                    syslog(LOG_INFO, b"[Rust Data Services] Received analytics request: type=%d, window=%ds\n\0".as_ptr(),
+                           analytics_req.analysis_type, analytics_req.time_window);
+                    // Perform the requested analytics
+                    rust_calculate_flight_stats();
+                    return 1;
+                },
+                3 => { // MSG_TYPE_LOG_COMPRESSION
+                    let compression_req = &msg.data.compression_req;
+                    syslog(LOG_INFO, b"[Rust Data Services] Received compression request: level=%d, age_threshold=%ds\n\0".as_ptr(),
+                           compression_req.compression_level, compression_req.age_threshold);
+                    // Perform log compression
+                    rust_compress_flight_logs();
+                    return 1;
+                },
+                4 => { // MSG_TYPE_HEALTH_ANALYSIS
+                    //syslog(LOG_INFO, b"[Rust Data Services] Received health analysis request\n\0".as_ptr());
+                    rust_analyze_system_health();
+                    return 1;
+                },
+                5 => { // MSG_TYPE_FLIGHT_STATS
+                    //syslog(LOG_INFO, b"[Rust Data Services] Received flight statistics request\n\0".as_ptr());
+                    rust_calculate_flight_stats();
+                    return 1;
+                },
+                6 => { // MSG_TYPE_FLIGHT_DATA
+                    //syslog(LOG_INFO, b"[Rust Data Services] Processing flight data message\n\0".as_ptr());
+                    let flight_data = &msg.data.flight_data;
+                    rust_log_flight_data(flight_data as *const FlightData);
+                    return 1;
+                },
+                7 => { // MSG_TYPE_TELEMETRY
+                    //syslog(LOG_INFO, b"[Rust Data Services] Processing telemetry message\n\0".as_ptr());
+                    let telemetry = &msg.data.telemetry;
+                    rust_transmit_telemetry(telemetry as *const TelemetryPacket);
+                    return 1;
+                },
+                _ => {
+                    syslog(LOG_INFO, b"[Rust Data Services] Received unknown message type: %d\n\0".as_ptr(), msg.msg_type);
+                }
             }
-        };
-
-        syslog(LOG_INFO, b"[Rust App Complementary Filter] Result: %d\n\0".as_ptr(), result);
-        result
+        }
     }
+    0
 }
 
-/// PID Controller for drone stabilization
+/// External Telemetry Transmission Service - Transmit telemetry generated by C flight control
 #[no_mangle]
-pub extern "C" fn rust_pid_controller(setpoint: f32, measured_value: f32, dt_ms: u32, controller_type: u8) -> i32 {
+pub extern "C" fn rust_transmit_telemetry(telemetry: *const TelemetryPacket) -> i32 {
     unsafe {
-        let dt_sec = dt_ms as f32 / 1000.0; // Convert milliseconds to seconds
-        let error = setpoint - measured_value;
-
-        let controller = match controller_type {
-            0 => &mut ROLL_PID,  // Roll PID controller
-            1 => &mut PITCH_PID, // Pitch PID controller
-            2 => &mut YAW_PID,   // Yaw PID controller
-            _ => &mut ROLL_PID,  // Default to roll
-        };
-
-        // Proportional term
-        let p_term = controller.kp * error;
-
-        // Integral term (with windup protection)
-        controller.integral += error * dt_sec;
-        // Limit integral to prevent windup
-        let integral_limit = controller.output_limit / controller.ki;
-        if controller.integral > integral_limit {
-            controller.integral = integral_limit;
-        } else if controller.integral < -integral_limit {
-            controller.integral = -integral_limit;
-        }
-        let i_term = controller.ki * controller.integral;
-
-        // Derivative term
-        let d_term = if dt_sec > 0.0 {
-            controller.kd * (error - controller.last_error) / dt_sec
-        } else {
-            0.0
-        };
-        controller.last_error = error;
-
-        // Calculate PID output
-        let mut output = p_term + i_term + d_term;
-
-        // Apply output saturation
-        if output > controller.output_limit {
-            output = controller.output_limit;
-        } else if output < -controller.output_limit {
-            output = -controller.output_limit;
+        if telemetry.is_null() {
+            return -1;
         }
 
-        let output_fp = (output * 100.0) as i32;
-        let error_fp = (error * 100.0) as i32;
-        let p_fp = (p_term * 100.0) as i32;
-        let i_fp = (i_term * 100.0) as i32;
-        let d_fp = (d_term * 100.0) as i32;
+        let data = &*telemetry;
 
-        syslog(LOG_INFO, b"[Rust App PID Controller] PID[%d]: err=%d.%02d, P=%d.%02d, I=%d.%02d, D=%d.%02d, out=%d.%02d\n\0".as_ptr(),
-               controller_type as i32,
-               error_fp / 100, error_fp.abs() % 100,
-               p_fp / 100, p_fp.abs() % 100,
-               i_fp / 100, i_fp.abs() % 100,
-               d_fp / 100, d_fp.abs() % 100,
-               output_fp / 100, output_fp.abs() % 100);
+        // Simulate external telemetry transmission (radio, network, etc.)
+        syslog(LOG_INFO, b"[Rust Telemetry TX] External transmission: Packet #%u\n\0".as_ptr(),
+               data.packet_id);
+        syslog(LOG_INFO, b"[Rust Telemetry TX] Attitude: Roll=%.1fdeg, Pitch=%.1fdeg, YawRate=%.1fdeg/s\n\0".as_ptr(),
+               data.roll_deg as i32, data.pitch_deg as i32, data.yaw_rate_deg as i32);
+        syslog(LOG_INFO, b"[Rust Telemetry TX] Status: Altitude=%.1fm, Battery=%u%%, System=%u\n\0".as_ptr(),
+               data.altitude_est as i32, data.battery_percent, data.system_status);
 
-        (output * 1000.0) as i32 // Return output in milli-units
+        // In a real implementation, this would:
+        // - Format telemetry into radio protocol (e.g., MAVLink)
+        // - Transmit via radio/network interface
+        // - Handle transmission acknowledgments
+        // - Queue retransmissions for failed packets
+
+        0 // Success
     }
 }
 
-/// Store sensor data from C thread (simulated sensor readings)
+/// Legacy sensor data processing
 #[no_mangle]
 pub extern "C" fn rust_store_sensor_data(temp: f32, humidity: f32, pressure: f32, timestamp: u64, battery: f32) -> i32 {
     unsafe {
@@ -430,170 +605,30 @@ pub extern "C" fn rust_store_sensor_data(temp: f32, humidity: f32, pressure: f32
         SENSOR_DATA.timestamp = timestamp;
         SENSOR_DATA.battery_voltage = battery;
 
-        // Update temperature history for trend analysis
-        TEMP_HISTORY[TEMP_INDEX] = temp;
-        TEMP_INDEX = (TEMP_INDEX + 1) % 10;
+        // Simple data validation
+        if temp < -50.0 || temp > 85.0 || humidity < 0.0 || humidity > 100.0 {
+            syslog(LOG_WARNING, b"[Rust Data Services] Invalid sensor data detected\n\0".as_ptr());
+            return -1;
+        }
 
-        // Convert floats to fixed-point integers for syslog (multiply by 100 to preserve 2 decimal places)
-        let temp_fp = (temp * 100.0) as i32;
-        let humidity_fp = (humidity * 100.0) as i32;
-        let pressure_fp = (pressure * 100.0) as i32;
-        let battery_fp = (battery * 100.0) as i32;
-
-        syslog(LOG_INFO, b"[Rust App Sensor Data Store] Stored: T=%d.%02d, H=%d.%02d, P=%d.%02d, Bat=%d.%02d\n\0".as_ptr(),
-               temp_fp / 100, temp_fp % 100,
-               humidity_fp / 100, humidity_fp % 100,
-               pressure_fp / 100, pressure_fp % 100,
-               battery_fp / 100, battery_fp % 100);
+        syslog(LOG_INFO, b"[Rust Sensor Service] Stored legacy sensor data\n\0".as_ptr());
     }
     0
 }
 
-/// Process stored sensor data and generate analytics
-#[no_mangle]
-pub extern "C" fn rust_process_sensor_data() -> *const RustProcessedData {
-    unsafe {
-        // Calculate average temperature from history
-        let mut sum = 0.0;
-        let mut count = 0;
-        for &temp in &TEMP_HISTORY {
-            if temp != 0.0 {
-                sum += temp;
-                count += 1;
-            }
-        }
-
-        if count > 0 {
-            PROCESSED_DATA.avg_temperature = sum / count as f32;
-        }
-
-        // Determine trend direction
-        if count >= 3 {
-            let recent_avg = (TEMP_HISTORY[(TEMP_INDEX + 7) % 10] +
-                             TEMP_HISTORY[(TEMP_INDEX + 8) % 10] +
-                             TEMP_HISTORY[(TEMP_INDEX + 9) % 10]) / 3.0;
-            let older_avg = (TEMP_HISTORY[(TEMP_INDEX + 4) % 10] +
-                            TEMP_HISTORY[(TEMP_INDEX + 5) % 10] +
-                            TEMP_HISTORY[(TEMP_INDEX + 6) % 10]) / 3.0;
-
-            if recent_avg > older_avg + 1.0 {
-                PROCESSED_DATA.trend_direction = 1;  // Increasing
-            } else if recent_avg < older_avg - 1.0 {
-                PROCESSED_DATA.trend_direction = -1; // Decreasing
-            } else {
-                PROCESSED_DATA.trend_direction = 0;  // Stable
-            }
-        }
-
-        // Determine alert level based on temperature and battery
-        PROCESSED_DATA.alert_level = if SENSOR_DATA.temperature > 40.0 || SENSOR_DATA.battery_voltage < 3.0 {
-            2  // Critical
-        } else if SENSOR_DATA.temperature > 35.0 || SENSOR_DATA.battery_voltage < 3.3 {
-            1  // Warning
-        } else {
-            0  // Normal
-        };
-
-        // Calculate data quality score based on valid sensor ranges and battery level
-        let mut quality_score = 100u32;
-
-        // Check if sensor data is within valid ranges
-        if SENSOR_DATA.temperature < -40.0 || SENSOR_DATA.temperature > 80.0 {
-            quality_score -= 30;
-        }
-        if SENSOR_DATA.humidity < 0.0 || SENSOR_DATA.humidity > 100.0 {
-            quality_score -= 30;
-        }
-        if SENSOR_DATA.pressure < 300.0 || SENSOR_DATA.pressure > 1200.0 {
-            quality_score -= 30;
-        }
-
-        // Battery voltage quality impact
-        if SENSOR_DATA.battery_voltage <= 0.0 {
-            quality_score = 0; // No battery data
-        } else if SENSOR_DATA.battery_voltage < 3.0 {
-            quality_score = quality_score.saturating_sub(50);
-        } else if SENSOR_DATA.battery_voltage < 3.3 {
-            quality_score = quality_score.saturating_sub(20);
-        }
-
-        PROCESSED_DATA.data_quality_score = quality_score;
-
-        // Convert floats to fixed-point integers for syslog
-        let avg_temp_fp = (PROCESSED_DATA.avg_temperature * 100.0) as i32;
-
-        syslog(LOG_INFO, b"[Rust App Data Analytics] Processed: AvgT=%d.%02d, Trend=%d, Alert=%d, Quality=%d\n\0".as_ptr(),
-               avg_temp_fp / 100, avg_temp_fp % 100,
-               PROCESSED_DATA.trend_direction,
-               PROCESSED_DATA.alert_level,
-               PROCESSED_DATA.data_quality_score);
-
-        &PROCESSED_DATA as *const RustProcessedData
-    }
-}
-
-/// Get current sensor data (for C thread to read)
-#[no_mangle]
-pub extern "C" fn rust_get_sensor_data() -> *const SharedSensorData {
-    unsafe {
-        &SENSOR_DATA as *const SharedSensorData
-    }
-}
-
-/// Validate and filter sensor data
-#[no_mangle]
-pub extern "C" fn rust_validate_sensor_data(temp: f32, humidity: f32, pressure: f32) -> i32 {
-    let is_valid = temp >= -50.0 && temp <= 85.0 &&
-                   humidity >= 0.0 && humidity <= 100.0 &&
-                   pressure >= 300.0 && pressure <= 1200.0;
-
-    unsafe {
-        if is_valid {
-            syslog(LOG_INFO, b"[Rust App Sensor Validator] Validation: PASSED\n\0".as_ptr());
-        } else {
-            syslog(LOG_WARNING, b"[Rust App Sensor Validator] Validation: FAILED\n\0".as_ptr());
-        }
-    }
-
-    is_valid as i32
-}
-
-/// Generate system health report
+/// Generate system health report (simplified)
 #[no_mangle]
 pub extern "C" fn rust_system_health_check() -> u32 {
     unsafe {
-        let mut health_score = 100u32;
-        let mut issues = 0u32;
+        let health_status = rust_analyze_system_health();
+        let overall_score = (*health_status).overall_score;
+        let issues = if overall_score < 70 { 0x01 } else { 0x00 };
 
-        // Check battery level
-        if SENSOR_DATA.battery_voltage < 3.0 {
-            health_score -= 30;
-            issues |= 0x01; // Battery critical
-        } else if SENSOR_DATA.battery_voltage < 3.3 {
-            health_score -= 15;
-            issues |= 0x02; // Battery low
-        }
-
-        // Check temperature range
-        if SENSOR_DATA.temperature > 60.0 || SENSOR_DATA.temperature < -20.0 {
-            health_score -= 25;
-            issues |= 0x04; // Temperature out of range
-        }
-
-        // Check data freshness (simplified check)
-        if PROCESSED_DATA.data_quality_score < 70 {
-            health_score -= 20;
-            issues |= 0x08; // Data quality poor
-        }
-
-        syslog(LOG_INFO, b"[Rust App System Health Check] Score=%d, Issues=0x%08X\n\0".as_ptr(),
-               health_score, issues);
-
-        (health_score << 16) | issues
+        (overall_score << 16) | issues
     }
 }
 
-/// String processing function (C to Rust string handling)
+/// String processing function (lightweight data service)
 #[no_mangle]
 pub extern "C" fn rust_process_string(input: *const u8, len: usize) -> u32 {
     if input.is_null() || len == 0 {
@@ -614,270 +649,97 @@ pub extern "C" fn rust_process_string(input: *const u8, len: usize) -> u32 {
             }
         }
 
-        syslog(LOG_INFO, b"[Rust App String Processor] Processed: len=%d, checksum=%d, vowels=%d\n\0".as_ptr(),
-               len as i32, checksum, vowel_count);
+        syslog(LOG_INFO, b"[Rust Data Services] String processing: checksum=%d, vowels=%d\n\0".as_ptr(),
+               checksum, vowel_count);
 
         (checksum << 16) | vowel_count
     }
 }
 
-/// Array processing function (C array to Rust)
+/// Array processing function (lightweight analytics)
 #[no_mangle]
 pub extern "C" fn rust_process_array(data: *const i32, len: usize) -> i32 {
     if data.is_null() || len == 0 {
-        return -1;
+        return 0;
     }
 
     unsafe {
         let slice = core::slice::from_raw_parts(data, len);
-        let sum: i64 = slice.iter().map(|&x| x as i64).sum();
-        let avg = sum / len as i64;
+        let mut sum = 0i64;
 
-        syslog(LOG_INFO, b"[Rust App Array Processor] Processed: len=%d, sum=%ld, avg=%ld\n\0".as_ptr(),
-               len as i32, sum as i32, avg as i32);
+        for &value in slice {
+            sum += value as i64;
+        }
 
-        avg as i32
+        let average = if len > 0 { sum / len as i64 } else { 0 };
+
+        syslog(LOG_INFO, b"[Rust Data Services] Array analytics: avg=%d from %d elements\n\0".as_ptr(),
+               average as i32, len);
+
+        average as i32
     }
 }
 
-/// Simulate realistic IMU data for testing (replaces fibonacci)
-fn simulate_imu_data(cycle: u32) -> (f32, f32, f32, f32, f32, f32) {
-    let time = cycle as f32 * 0.01; // 10ms cycle time
-
-    // Simulate drone movement with some realistic patterns
-    let accel_x = 0.5 * libm::sinf(time * 0.5) + 0.1 * libm::sinf(time * 3.0); // ±0.6g
-    let accel_y = 0.3 * libm::cosf(time * 0.7) + 0.05 * libm::sinf(time * 5.0); // ±0.35g
-    let accel_z = 9.81 + 0.2 * libm::sinf(time * 1.2); // ~1g with small variations
-
-    // Simulate angular rates (rad/s)
-    let gyro_x = 0.1 * libm::sinf(time * 0.8) + 0.02 * libm::sinf(time * 10.0); // Roll rate
-    let gyro_y = 0.08 * libm::cosf(time * 0.6) + 0.015 * libm::cosf(time * 8.0); // Pitch rate
-    let gyro_z = 0.05 * libm::sinf(time * 0.3) + 0.01 * libm::sinf(time * 12.0); // Yaw rate
-
-    (accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z)
-}
-
-/// Validate IMU data ranges for drone safety (replaces prime_check)
-fn validate_imu_ranges(accel_x: f32, accel_y: f32, accel_z: f32, gyro_x: f32, gyro_y: f32, gyro_z: f32) -> bool {
-    // Check accelerometer ranges (reasonable for drone: ±16g)
-    let accel_valid = accel_x.abs() <= 156.8 && accel_y.abs() <= 156.8 && accel_z.abs() <= 156.8;
-
-    // Check gyroscope ranges (reasonable for drone: ±2000 deg/s = ±34.9 rad/s)
-    let gyro_valid = gyro_x.abs() <= 34.9 && gyro_y.abs() <= 34.9 && gyro_z.abs() <= 34.9;
-
-    // Check for NaN or infinite values
-    let no_nan = !accel_x.is_nan() && !accel_y.is_nan() && !accel_z.is_nan() &&
-                 !gyro_x.is_nan() && !gyro_y.is_nan() && !gyro_z.is_nan() &&
-                 accel_x.is_finite() && accel_y.is_finite() && accel_z.is_finite() &&
-                 gyro_x.is_finite() && gyro_y.is_finite() && gyro_z.is_finite();
-
-    accel_valid && gyro_valid && no_nan
-}
-
-/// Calculate motor mixing for quadcopter (replaces gcd)
-fn calculate_motor_mixing(roll_output: f32, pitch_output: f32, yaw_output: f32, throttle: f32) -> (u32, u32, u32, u32) {
-    // Standard X-configuration quadcopter motor mixing
-    // Motors: Front-Left, Front-Right, Rear-Left, Rear-Right
-
-    let motor_fl = throttle + pitch_output + roll_output - yaw_output; // Front-Left
-    let motor_fr = throttle + pitch_output - roll_output + yaw_output; // Front-Right
-    let motor_rl = throttle - pitch_output + roll_output + yaw_output; // Rear-Left
-    let motor_rr = throttle - pitch_output - roll_output - yaw_output; // Rear-Right
-
-    // Constrain motor outputs to 0-100% range and convert to integer
-    let constrain = |value: f32| -> u32 {
-        let clamped = if value < 0.0 { 0.0 } else if value > 100.0 { 100.0 } else { value };
-        (clamped * 10.0) as u32 // Return as percentage * 10 (0-1000)
-    };
-
-    (constrain(motor_fl), constrain(motor_fr), constrain(motor_rl), constrain(motor_rr))
-}
-
-/// Initialize Rust subsystem with message queue descriptors
+/// Get legacy sensor data (for compatibility)
 #[no_mangle]
-pub extern "C" fn rust_system_init() -> i32 {
+pub extern "C" fn rust_get_sensor_data() -> *const SharedSensorData {
     unsafe {
-        syslog(LOG_INFO, b"[Rust App System Init] Board-level Rust drone control system initialized!\n\0".as_ptr());
-        syslog(LOG_INFO, b"[Rust App System Init] Available functions: IMU filtering, attitude estimation, PID control\n\0".as_ptr());
-        syslog(LOG_INFO, b"[Rust App System Init] Thread-safe message queue communication enabled\n\0".as_ptr());
+        &raw const SENSOR_DATA as *const SharedSensorData
     }
-    0
 }
 
-/// Set message queue descriptors for thread-safe communication
+/// Legacy processed data (simplified)
 #[no_mangle]
-pub extern "C" fn rust_set_queues(rust_to_c: i32, c_to_rust: i32) -> i32 {
+pub extern "C" fn rust_process_sensor_data() -> *const RustProcessedData {
     unsafe {
-        RUST_TO_C_QUEUE = rust_to_c;
-        C_TO_RUST_QUEUE = c_to_rust;
-        syslog(LOG_INFO, b"[Rust App Message Queue] Queues set: R->C=%d, C->R=%d\n\0".as_ptr(), rust_to_c, c_to_rust);
+        PROCESSED_DATA.avg_temperature = SENSOR_DATA.temperature;
+        PROCESSED_DATA.trend_direction = 0; // Stable
+        PROCESSED_DATA.alert_level = if SENSOR_DATA.battery_voltage < 3.3 { 1 } else { 0 };
+        PROCESSED_DATA.data_quality_score = 95;
+
+        &raw const PROCESSED_DATA as *const RustProcessedData
     }
-    0
 }
 
-/// Thread-safe function to send sensor data via message queue
+/// Legacy validation (simplified)
+#[no_mangle]
+pub extern "C" fn rust_validate_sensor_data(temp: f32, humidity: f32, pressure: f32) -> i32 {
+    let is_valid = temp >= -50.0 && temp <= 85.0 &&
+                   humidity >= 0.0 && humidity <= 100.0 &&
+                   pressure >= 300.0 && pressure <= 1200.0;
+
+    unsafe {
+        if is_valid {
+            syslog(LOG_INFO, b"[Rust Sensor Validation Service] Result: PASSED\n\0".as_ptr());
+        } else {
+            syslog(LOG_WARNING, b"[Rust Sensor Validation Service] Result: FAILED\n\0".as_ptr());
+        }
+    }
+
+    is_valid as i32
+}
+
+/// Legacy thread-safe functions (simplified stubs)
 #[no_mangle]
 pub extern "C" fn rust_send_sensor_data(temp: f32, humidity: f32, pressure: f32, timestamp: u64, battery: f32) -> i32 {
-    unsafe {
-        if RUST_TO_C_QUEUE < 0 {
-            syslog(LOG_ERR, b"[Rust App Queue Sender] Error: Message queue not initialized\n\0".as_ptr());
-            return -1;
-        }
-
-        // Update local data
-        SENSOR_DATA.temperature = temp;
-        SENSOR_DATA.humidity = humidity;
-        SENSOR_DATA.pressure = pressure;
-        SENSOR_DATA.timestamp = timestamp;
-        SENSOR_DATA.battery_voltage = battery;
-
-        // Update temperature history for trend analysis
-        TEMP_HISTORY[TEMP_INDEX] = temp;
-        TEMP_INDEX = (TEMP_INDEX + 1) % 10;
-
-        // Create message
-        let msg = QueueMessage {
-            msg_type: MessageType::SensorData as u32,
-            timestamp,
-            data: MessageData { sensor: SENSOR_DATA },
-        };
-
-        // Send via message queue
-        let result = mq_send(RUST_TO_C_QUEUE, &msg as *const _ as *const u8,
-                           core::mem::size_of::<QueueMessage>(), 0);
-
-        if result < 0 {
-            syslog(LOG_ERR, b"[Rust App Queue Sender] Failed to send sensor data to queue\n\0".as_ptr());
-            return -1;
-        }
-
-        // Convert floats to fixed-point integers for syslog
-        let temp_fp = (temp * 100.0) as i32;
-        let humidity_fp = (humidity * 100.0) as i32;
-        let pressure_fp = (pressure * 100.0) as i32;
-        let battery_fp = (battery * 100.0) as i32;
-
-        syslog(LOG_INFO, b"[Rust App Queue Sender] Sent sensor data: T=%d.%02d, H=%d.%02d, P=%d.%02d, Bat=%d.%02d\n\0".as_ptr(),
-               temp_fp / 100, temp_fp % 100,
-               humidity_fp / 100, humidity_fp % 100,
-               pressure_fp / 100, pressure_fp % 100,
-               battery_fp / 100, battery_fp % 100);
-    }
-    0
+    rust_store_sensor_data(temp, humidity, pressure, timestamp, battery)
 }
 
-/// Thread-safe function to send processed data via message queue
 #[no_mangle]
 pub extern "C" fn rust_send_processed_data() -> i32 {
     unsafe {
-        if RUST_TO_C_QUEUE < 0 {
-            return -1;
-        }
-
-        // Process data first
-        rust_process_sensor_data();
-
-        // Create message
-        let msg = QueueMessage {
-            msg_type: MessageType::ProcessedData as u32,
-            timestamp: SENSOR_DATA.timestamp,
-            data: MessageData { processed: PROCESSED_DATA },
-        };
-
-        // Send via message queue
-        let result = mq_send(RUST_TO_C_QUEUE, &msg as *const _ as *const u8,
-                           core::mem::size_of::<QueueMessage>(), 0);
-
-        if result < 0 {
-            syslog(LOG_ERR, b"[Rust App Queue Sender] Failed to send processed data to queue\n\0".as_ptr());
-            return -1;
-        }
-
-        // Convert floats to fixed-point integers for syslog
-        let avg_temp_fp = (PROCESSED_DATA.avg_temperature * 100.0) as i32;
-
-        syslog(LOG_INFO, b"[Rust App Queue Sender] Sent processed data: AvgT=%d.%02d, Trend=%d, Alert=%d\n\0".as_ptr(),
-               avg_temp_fp / 100, avg_temp_fp % 100,
-               PROCESSED_DATA.trend_direction, PROCESSED_DATA.alert_level);
+        syslog(LOG_INFO, b"[Rust Data Services] Processed data ready\n\0".as_ptr());
     }
     0
 }
 
-/// Thread-safe function to send health check data via message queue
 #[no_mangle]
 pub extern "C" fn rust_send_health_check() -> i32 {
-    unsafe {
-        if RUST_TO_C_QUEUE < 0 {
-            return -1;
-        }
-
-        let health_result = rust_system_health_check();
-        let health_data = HealthData {
-            score: (health_result >> 16) & 0xFFFF,
-            issues: health_result & 0xFFFF,
-            battery_status: if SENSOR_DATA.battery_voltage < 3.0 { 2 }
-                           else if SENSOR_DATA.battery_voltage < 3.3 { 1 }
-                           else { 0 },
-            temperature_status: if SENSOR_DATA.temperature > 60.0 || SENSOR_DATA.temperature < -20.0 { 2 }
-                               else if SENSOR_DATA.temperature > 35.0 { 1 }
-                               else { 0 },
-        };
-
-        let msg = QueueMessage {
-            msg_type: MessageType::HealthCheck as u32,
-            timestamp: SENSOR_DATA.timestamp,
-            data: MessageData { health: health_data },
-        };
-
-        let result = mq_send(RUST_TO_C_QUEUE, &msg as *const _ as *const u8,
-                           core::mem::size_of::<QueueMessage>(), 0);
-
-        if result < 0 {
-            syslog(LOG_ERR, b"[Rust App Queue Sender] Failed to send health check to queue\n\0".as_ptr());
-            return -1;
-        }
-
-        syslog(LOG_INFO, b"[Rust App Queue Sender] Sent health check: Score=%d, Issues=0x%08X\n\0".as_ptr(),
-               health_data.score, health_data.issues);
-    }
+    let _health = rust_system_health_check();
     0
 }
 
-/// Thread-safe function to receive messages from C thread
 #[no_mangle]
 pub extern "C" fn rust_receive_message() -> i32 {
-    unsafe {
-        if C_TO_RUST_QUEUE < 0 {
-            return -1;
-        }
-
-        let mut msg: QueueMessage = core::mem::zeroed();
-        let mut prio: u32 = 0;
-
-        let result = mq_receive(C_TO_RUST_QUEUE, &mut msg as *mut _ as *mut u8,
-                               core::mem::size_of::<QueueMessage>(), &mut prio);
-
-        if result < 0 {
-            // No message available (non-blocking)
-            return 0;
-        }
-
-        // Process received message
-        match msg.msg_type {
-            1 => { // SensorData message from C
-                syslog(LOG_INFO, b"[Rust App Message Receiver] Received sensor data from C thread\n\0".as_ptr());
-                SENSOR_DATA = msg.data.sensor;
-            },
-            4 => { // String processing request
-                syslog(LOG_INFO, b"[Rust App Message Receiver] Received string processing request from C thread\n\0".as_ptr());
-            },
-            5 => { // Array processing request
-                syslog(LOG_INFO, b"[Rust App Message Receiver] Received array processing request from C thread\n\0".as_ptr());
-            },
-            _ => {
-                syslog(LOG_WARNING, b"[Rust App Message Receiver] Unknown message type received: %d\n\0".as_ptr(), msg.msg_type);
-            }
-        }
-    }
-    1
+    rust_receive_flight_data()
 }

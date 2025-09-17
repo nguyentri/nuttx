@@ -437,7 +437,7 @@ void __start(void)
   ra_gpio_security_init();
 
   /* Phase 4: Low-level Hardware Setup */
-  /* 6. Configure the uart so that we can get debug output as soon as possible */
+  /* 6. Configure the uart pins */
   ra_lowsetup();
 
   /* 7. Perform early serial initialization */
@@ -446,7 +446,7 @@ void __start(void)
   //showprogress('A');
   arm_earlyserialinit();
 #else
-  /* The 'A' character should be displayed if the ra_lowsetup() is responsible for minimal UART setup */
+  /* No early serial initialization - console will be set up later */
   //showprogress('A');
 #endif
 

@@ -249,9 +249,8 @@ void up_putc(int ch)
  * Name: ra_lowsetup
  *
  * Description:
- *   This performs basic initialization of the USART used for the serial
- *   console.  Its purpose is to get the console output available as soon
- *   as possible.
+ *   This performs pin initialization of the serial console.
+ *    * Full UART register configuration will be done in arm_earlyserialinit()
  *
  ****************************************************************************/
 
@@ -263,55 +262,30 @@ void ra_lowsetup(void)
    */
 
   /* Configure GPIO pins for console UART only */
-#if defined(CONFIG_SCI0_SERIAL_CONSOLE)
+#if defined(CONFIG_RA_SCI0_UART)
   ra_configgpio(GPIO_SCI0_RX);
   ra_configgpio(GPIO_SCI0_TX);
-#elif defined(CONFIG_SCI1_SERIAL_CONSOLE)
+#endif
+#if defined(CONFIG_RA_SCI1_UART)
   ra_configgpio(GPIO_SCI1_RX);
   ra_configgpio(GPIO_SCI1_TX);
-#elif defined(CONFIG_SCI2_SERIAL_CONSOLE)
+#endif
+#if defined(CONFIG_RA_SCI2_UART)
   ra_configgpio(GPIO_SCI2_RX);
   ra_configgpio(GPIO_SCI2_TX);
-#elif defined(CONFIG_SCI3_SERIAL_CONSOLE)
+#endif
+#if defined(CONFIG_RA_SCI3_UART)
   /* TODO: Add proper GPIO pin configuration for SCI3 when pins are determined */
   /* ra_configgpio(GPIO_SCI3_RX); */
   /* ra_configgpio(GPIO_SCI3_TX); */
-#elif defined(CONFIG_SCI4_SERIAL_CONSOLE)
+#endif
+#if defined(CONFIG_RA_SCI4_UART)
   /* TODO: Add proper GPIO pin configuration for SCI4 when pins are determined */
   /* ra_configgpio(GPIO_SCI4_RX); */
   /* ra_configgpio(GPIO_SCI4_TX); */
-#elif defined(CONFIG_SCI9_SERIAL_CONSOLE)
+#endif
+#if defined(CONFIG_RA_SCI9_UART)
   ra_configgpio(GPIO_SCI9_RX);
   ra_configgpio(GPIO_SCI9_TX);
-#endif
-
-#if defined(HAVE_CONSOLE)
-  /* Enable module stop control for the console SCI channel only
-   * This is the minimal setup required for early debug output
-   * Full SCI_B register configuration will be done in arm_earlyserialinit()
-   */
-  putreg16((R_SYSTEM_PRCR_PRKEY_VALUE | R_SYSTEM_PRCR_PRC1), R_SYSTEM_PRCR);
-
-  /* Clear the module stop bit for the console SCI channel */
-#if defined(CONFIG_SCI0_SERIAL_CONSOLE)
-  modifyreg32(R_MSTP_MSTPCRB, R_MSTP_MSTPCRB_SCI0, 0);
-#elif defined(CONFIG_SCI1_SERIAL_CONSOLE)
-  modifyreg32(R_MSTP_MSTPCRB, R_MSTP_MSTPCRB_SCI1, 0);
-#elif defined(CONFIG_SCI2_SERIAL_CONSOLE)
-  modifyreg32(R_MSTP_MSTPCRB, R_MSTP_MSTPCRB_SCI2, 0);
-#elif defined(CONFIG_SCI9_SERIAL_CONSOLE)
-  modifyreg32(R_MSTP_MSTPCRB, R_MSTP_MSTPCRB_SCI9, 0);
-#endif
-
-  /* Read back to ensure write completed and add delay */
-  (void)getreg32(R_MSTP_MSTPCRB);
-
-  /* Add a small delay to ensure the module is powered up */
-  for (volatile int i = 0; i < 1000; i++)
-    {
-      /* Wait for module power-up */
-    }
-
-  putreg16(R_SYSTEM_PRCR_PRKEY_VALUE, R_SYSTEM_PRCR);
 #endif
 }

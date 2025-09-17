@@ -466,7 +466,7 @@ pub extern "C" fn rust_calculate_flight_stats() -> i32 {
             let max_pitch_deg = (max_pitch * 180.0 / 3.14159) as i32;
             let avg_conf_percent = (avg_confidence * 100.0) as i32;
 
-            syslog(LOG_INFO, b"[Rust Flight Analytics] Max Roll: %degC, Max Pitch: %ddegC, Avg Confidence: %d%%\n\0".as_ptr(),
+            syslog(LOG_INFO, b"[Rust Flight Analytics] Max Roll: %ddegC, Max Pitch: %ddegC, Avg Confidence: %d%%\n\0".as_ptr(),
                    max_roll_deg, max_pitch_deg, avg_conf_percent);
         }        valid_samples as i32
     }

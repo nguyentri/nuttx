@@ -1,0 +1,1 @@
+JLinkExe -CommandFile jlink_flash_nuttx.jlink

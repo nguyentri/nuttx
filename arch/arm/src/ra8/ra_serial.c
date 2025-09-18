@@ -1112,6 +1112,47 @@ void arm_earlyserialinit(void)
   /* Call up_setup() for console device to handle complete initialization */
   up_setup(&CONSOLE_DEV);
 #endif
+
+  /* Initialize hardware for all non-console UART devices */
+#ifdef TTYS0_DEV
+#ifndef HAVE_CONSOLE
+  /* If no console, or if TTYS0 is not the console, initialize it */
+  up_setup(&TTYS0_DEV);
+#elif !defined(CONFIG_SCI0_SERIAL_CONSOLE) && !defined(CONFIG_SCI1_SERIAL_CONSOLE) && !defined(CONFIG_SCI2_SERIAL_CONSOLE) && !defined(CONFIG_SCI3_SERIAL_CONSOLE) && !defined(CONFIG_SCI4_SERIAL_CONSOLE) && !defined(CONFIG_SCI9_SERIAL_CONSOLE)
+  /* TTYS0 is not the console, initialize it */
+  up_setup(&TTYS0_DEV);
+#endif
+#endif
+
+#ifdef TTYS1_DEV
+#if !defined(HAVE_CONSOLE) || (&TTYS1_DEV != &CONSOLE_DEV)
+  up_setup(&TTYS1_DEV);
+#endif
+#endif
+
+#ifdef TTYS2_DEV
+#if !defined(HAVE_CONSOLE) || (&TTYS2_DEV != &CONSOLE_DEV)
+  up_setup(&TTYS2_DEV);
+#endif
+#endif
+
+#ifdef TTYS3_DEV
+#if !defined(HAVE_CONSOLE) || (&TTYS3_DEV != &CONSOLE_DEV)
+  up_setup(&TTYS3_DEV);
+#endif
+#endif
+
+#ifdef TTYS4_DEV
+#if !defined(HAVE_CONSOLE) || (&TTYS4_DEV != &CONSOLE_DEV)
+  up_setup(&TTYS4_DEV);
+#endif
+#endif
+
+#ifdef TTYS5_DEV
+#if !defined(HAVE_CONSOLE) || (&TTYS5_DEV != &CONSOLE_DEV)
+  up_setup(&TTYS5_DEV);
+#endif
+#endif
 }
 
 /****************************************************************************

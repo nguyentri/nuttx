@@ -1,0 +1,1 @@
+JLinkGDBServer -device R7FA8E1AF -if SWD -speed 4000

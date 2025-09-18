@@ -804,8 +804,9 @@ static void up_detach(struct uart_dev_s *dev)
 static int up_rxinterrupt(int irq, void *context, void *arg)
 {
   struct uart_dev_s *dev = (struct uart_dev_s *)arg;
+  struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
 
-  /* SCI RX interrupt is automatically cleared by reading the data */
+  ra_icu_clear_irq(priv->rxirq);
   uart_recvchars(dev);
   return OK;
 }
@@ -821,8 +822,9 @@ static int up_rxinterrupt(int irq, void *context, void *arg)
 static int up_txinterrupt(int irq, void *context, void *arg)
 {
   struct uart_dev_s *dev = (struct uart_dev_s *)arg;
+  struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
 
-  /* SCI TX interrupt is automatically cleared by writing data */
+  ra_icu_clear_irq(priv->txirq);
   uart_xmitchars(dev);
 
   return OK;
@@ -850,7 +852,7 @@ static int up_txeinterrupt(int irq, void *context, void *arg)
    * For now, we just clear the interrupt by reading the status.
    */
 
-  /* Reading CSR clears the TEI interrupt automatically */
+  ra_icu_clear_irq(priv->txeirq);
   up_serialin(priv, R_SCI_B_CSR_OFFSET);
 
   return OK;
@@ -875,6 +877,9 @@ static int up_erinterrupt(int irq, void *context, void *arg)
   /* Save for error reporting (SCI_B error bits) */
   priv->sr = up_serialin(priv, R_SCI_B_CSR_OFFSET) &
              (R_SCI_B_CSR_PER | R_SCI_B_CSR_FER | R_SCI_B_CSR_ORER);
+
+  /* Clear the interrupt */
+  ra_icu_clear_irq(priv->erirq);
 
   /* Clear error flags - this also clears the interrupt */
   up_serialout(priv, R_SCI_B_CFCLR_OFFSET,
@@ -1045,11 +1050,7 @@ static bool up_txready(struct uart_dev_s *dev)
 {
   struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
 
-  while ((up_serialin(priv, R_SCI_B_CSR_OFFSET) & R_SCI_B_CSR_TDRE) == 0)
-  {
-      /* Wait for TDRE to be set */
-  }
-  return (true); /* TDRE is now set */
+  return ((up_serialin(priv, R_SCI_B_CSR_OFFSET) & R_SCI_B_CSR_TDRE) == R_SCI_B_CSR_TDRE);
 }
 
 /****************************************************************************

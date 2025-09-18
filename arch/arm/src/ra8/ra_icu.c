@@ -360,22 +360,8 @@ void ra_icu_disable_nmi(uint16_t mask)
 
 void ra_icu_clear_irq(int irq)
 {
-  /* For most RA8 interrupts, clearing is handled automatically by:
-   * 1. The peripheral itself (e.g., UART read/write, GPT status clear)
-   * 2. The ICU hardware when the interrupt is acknowledged
-   *
-   * The IR (Interrupt Request) bit in IELSR is automatically cleared
-   * by hardware when the interrupt is acknowledged by the CPU.
-   *
-   * Some specific cases that might need manual clearing:
-   * - External IRQ pins (IRQ0-15) - cleared by writing to IRQCR
-   * - Software interrupts
-   *
-   * For now, we implement a generic approach that works for most cases.
-   */
-
-  /* The IR bit is automatically cleared by hardware for most events.
-   * If specific peripherals need manual clearing, they should handle
-   * it in their own interrupt handlers.
-   */
+  uint32_t regaddr;
+  regaddr = irq - RA_IRQ_FIRST;
+  modifyreg32(R_ICU_IELSR(regaddr), R_ICU_IELSR_IR, 0);
+  getreg32(R_ICU_IELSR(regaddr));
 }

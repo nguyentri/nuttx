@@ -47,12 +47,11 @@
 #include "ra_gpio.h"
 #include "ra_icu.h"
 #include "hardware/ra_spi.h"
-#include "hardware/ra_dtc.h"
+#include "hardware/ra_dmac.h"
 #include "hardware/ra_memorymap.h"
 #include "hardware/ra_icu.h"
 #include "hardware/ra_mstp.h"
 #include "ra_spi.h"
-#include "ra_dtc.h"
 
 #ifdef CONFIG_RA_SPI
 
@@ -68,18 +67,44 @@
 #  define spi_dumpgpio(m)
 #endif
 
-/* DTC timeout */
-#define DTC_TIMEOUT_MS          1000
-
-/* DTC transfer thresholds */
-#define DTC_MIN_TRANSFER_SIZE   4         /* Minimum size for DTC transfer */
+/* DMA timeout */
+#define DMA_TIMEOUT_MS          1000
 
 /* SPI timeout */
 #define SPI_TIMEOUT_MS          1000
 
+/* Maximum SPI frequency */
+#define RA_SPI_MAX_FREQUENCY    10000000
+
+/* Sensor-specific frequency limits */
+#define ICM20948_MAX_FREQ       7000000   /* ICM-20948: =7MHz */
+#define BMP388_MAX_FREQ         10000000  /* BMP388: =10MHz */
+
+/* CS timing delays (in RSPCK cycles) */
+#define CS_SETUP_DELAY          1
+#define CS_HOLD_DELAY           1
+#define CS_NEGATION_DELAY       1
+
+/* DTC transfer modes */
+#define DTC_MODE_NORMAL         0x00
+#define DTC_MODE_REPEAT         0x01
+#define DTC_MODE_BLOCK          0x02
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
+
+/* Chip Select Configuration */
+struct ra_spi_cs_config_s
+{
+  uint32_t gpio_pin;        /* GPIO pin for CS control */
+  bool     use_hardware;    /* Use hardware SS0 or GPIO */
+  uint8_t  ssl_select;      /* SSL select value (0-3) */
+  uint32_t max_frequency;   /* Maximum frequency for this device */
+  uint8_t  setup_delay;     /* CS setup delay */
+  uint8_t  hold_delay;      /* CS hold delay */
+  uint8_t  negation_delay;  /* CS negation delay */
+};
 
 /* SPI Device hardware configuration */
 struct ra_spi_config_s
@@ -104,6 +129,20 @@ struct ra_spi_config_s
   uint32_t mosi_pin;      /* MOSI pin configuration */
   uint32_t cs0_pin;       /* CS0 pin configuration */
   uint32_t cs1_pin;       /* CS1 pin configuration */
+
+  /* CS device configurations */
+  struct ra_spi_cs_config_s cs_configs[4];  /* Up to 4 CS devices */
+};
+
+/* DTC Transfer Information */
+struct ra_spi_dtc_info_s
+{
+  uint32_t mra;           /* Mode Register A */
+  uint32_t mrb;           /* Mode Register B */
+  uint32_t sar;           /* Source Address Register */
+  uint32_t dar;           /* Destination Address Register */
+  uint32_t cra;           /* Transfer Count Register A */
+  uint32_t crb;           /* Transfer Count Register B */
 };
 
 /* SPI Device Private Data */
@@ -121,12 +160,14 @@ struct ra_spi_priv_s
   uint32_t                 actual;     /* Actual clock frequency */
   uint8_t                  mode;       /* Mode 0,1,2,3 */
   uint8_t                  nbits;      /* Width of word in bits (8 or 16) */
+  uint32_t                 current_devid; /* Currently selected device ID */
 
-  /* DTC channels */
+  /* DTC channels and configuration */
   bool                     use_dtc;
-  uint8_t                  dtc_mode;   /* DTC transfer mode */
-  ra_dtc_handle_t          dtc_tx;     /* TX DTC handle */
-  ra_dtc_handle_t          dtc_rx;     /* RX DTC handle */
+  int                      dtc_tx;     /* TX DTC channel */
+  int                      dtc_rx;     /* RX DTC channel */
+  struct ra_spi_dtc_info_s dtc_tx_info; /* TX DTC transfer info */
+  struct ra_spi_dtc_info_s dtc_rx_info; /* RX DTC transfer info */
 
   /* Transfer state */
   sem_t                    waitsem;    /* Wait for transfer completion */
@@ -135,6 +176,7 @@ struct ra_spi_priv_s
   size_t                   ntxwords;   /* Number of words to transfer */
   size_t                   nrxwords;   /* Number of words to receive */
   bool                     error;      /* Transfer error flag */
+  volatile bool            dtc_active; /* DTC transfer in progress */
 
 #ifdef CONFIG_PM
   struct pm_callback_s     pmcb;       /* PM callbacks */
@@ -153,13 +195,19 @@ static uint8_t ra_spi_getreg8(struct ra_spi_priv_s *priv, uint8_t offset);
 static uint16_t ra_spi_getreg16(struct ra_spi_priv_s *priv, uint8_t offset);
 static uint32_t ra_spi_getreg32(struct ra_spi_priv_s *priv, uint8_t offset);
 
+/* CS control functions */
+static void ra_spi_cs_assert(struct ra_spi_priv_s *priv, uint32_t devid);
+static void ra_spi_cs_deassert(struct ra_spi_priv_s *priv, uint32_t devid);
+static void ra_spi_cs_configure(struct ra_spi_priv_s *priv, uint32_t devid);
+static uint32_t ra_spi_get_device_max_freq(uint32_t devid);
+
 /* DTC support */
 static int ra_spi_dtc_setup(struct ra_spi_priv_s *priv);
-static int ra_spi_dtc_start(struct ra_spi_priv_s *priv, const void *txbuffer, 
-                            void *rxbuffer, size_t nwords);
+static void ra_spi_dtc_start(struct ra_spi_priv_s *priv);
 static void ra_spi_dtc_stop(struct ra_spi_priv_s *priv);
-static void ra_spi_dtc_tx_callback(void *handle, int event, void *user_data);
-static void ra_spi_dtc_rx_callback(void *handle, int event, void *user_data);
+static int ra_spi_dtc_configure_transfer(struct ra_spi_priv_s *priv,
+                                         const void *txbuffer, void *rxbuffer,
+                                         size_t nwords);
 
 /* Transfer helpers */
 static void ra_spi_writeword(struct ra_spi_priv_s *priv, uint16_t word);
@@ -225,8 +273,52 @@ static const struct ra_spi_config_s ra_spi0_config =
   .sck_pin     = PIN_SPI0_SCK,     /* P611 */
   .miso_pin    = PIN_SPI0_MISO,    /* P610 */
   .mosi_pin    = PIN_SPI0_MOSI,    /* P609 */
-  .cs0_pin     = PIN_SPI0_CS0,     /* P612 - IMU CS */
-  .cs1_pin     = PIN_SPI0_CS1,     /* P605 - BMP CS */
+  .cs0_pin     = PIN_SPI0_CS0,     /* P612 - Hardware SS0 */
+  .cs1_pin     = PIN_SPI0_CS1,     /* P605 - GPIO CS */
+
+  /* CS device configurations */
+  .cs_configs = {
+    /* CS0: ICM-20948 IMU - Hardware SS0 */
+    {
+      .gpio_pin = PIN_SPI0_CS0,
+      .use_hardware = true,
+      .ssl_select = 0,
+      .max_frequency = ICM20948_MAX_FREQ,
+      .setup_delay = CS_SETUP_DELAY,
+      .hold_delay = CS_HOLD_DELAY,
+      .negation_delay = CS_NEGATION_DELAY,
+    },
+    /* CS1: BMP388 Barometer - GPIO CS */
+    {
+      .gpio_pin = PIN_SPI0_CS1,
+      .use_hardware = false,
+      .ssl_select = 1,
+      .max_frequency = BMP388_MAX_FREQ,
+      .setup_delay = CS_SETUP_DELAY,
+      .hold_delay = CS_HOLD_DELAY,
+      .negation_delay = CS_NEGATION_DELAY,
+    },
+    /* CS2: Reserved */
+    {
+      .gpio_pin = 0,
+      .use_hardware = false,
+      .ssl_select = 2,
+      .max_frequency = RA_SPI_MAX_FREQUENCY,
+      .setup_delay = CS_SETUP_DELAY,
+      .hold_delay = CS_HOLD_DELAY,
+      .negation_delay = CS_NEGATION_DELAY,
+    },
+    /* CS3: Reserved */
+    {
+      .gpio_pin = 0,
+      .use_hardware = false,
+      .ssl_select = 3,
+      .max_frequency = RA_SPI_MAX_FREQUENCY,
+      .setup_delay = CS_SETUP_DELAY,
+      .hold_delay = CS_HOLD_DELAY,
+      .negation_delay = CS_NEGATION_DELAY,
+    },
+  },
 };
 
 static struct ra_spi_priv_s ra_spi0_priv =
@@ -239,6 +331,7 @@ static struct ra_spi_priv_s ra_spi0_priv =
   .refs     = 0,
   .lock     = NXMUTEX_INITIALIZER,
   .waitsem  = SEM_INITIALIZER(0),
+  .current_devid = 0xffffffff,
 };
 #endif
 
@@ -261,6 +354,29 @@ static const struct ra_spi_config_s ra_spi1_config =
   .mosi_pin    = PIN_SPI1_MOSI,
   .cs0_pin     = PIN_SPI1_CS0,
   .cs1_pin     = PIN_SPI1_CS1,
+
+  /* CS device configurations */
+  .cs_configs = {
+    {
+      .gpio_pin = PIN_SPI1_CS0,
+      .use_hardware = true,
+      .ssl_select = 0,
+      .max_frequency = RA_SPI_MAX_FREQUENCY,
+      .setup_delay = CS_SETUP_DELAY,
+      .hold_delay = CS_HOLD_DELAY,
+      .negation_delay = CS_NEGATION_DELAY,
+    },
+    {
+      .gpio_pin = PIN_SPI1_CS1,
+      .use_hardware = false,
+      .ssl_select = 1,
+      .max_frequency = RA_SPI_MAX_FREQUENCY,
+      .setup_delay = CS_SETUP_DELAY,
+      .hold_delay = CS_HOLD_DELAY,
+      .negation_delay = CS_NEGATION_DELAY,
+    },
+    {0}, {0}, /* Reserved CS2, CS3 */
+  },
 };
 
 static struct ra_spi_priv_s ra_spi1_priv =
@@ -273,6 +389,7 @@ static struct ra_spi_priv_s ra_spi1_priv =
   .refs     = 0,
   .lock     = NXMUTEX_INITIALIZER,
   .waitsem  = SEM_INITIALIZER(0),
+  .current_devid = 0xffffffff,
 };
 #endif
 
@@ -360,6 +477,165 @@ static uint32_t ra_spi_getreg32(struct ra_spi_priv_s *priv, uint8_t offset)
 }
 
 /****************************************************************************
+ * Name: ra_spi_get_device_max_freq
+ *
+ * Description:
+ *   Get maximum frequency for a specific device
+ *
+ ****************************************************************************/
+
+static uint32_t ra_spi_get_device_max_freq(uint32_t devid)
+{
+  switch (devid)
+    {
+      case SPIDEV_IMU(0):
+        return ICM20948_MAX_FREQ;
+      case SPIDEV_BAROMETER(0):
+        return BMP388_MAX_FREQ;
+      default:
+        return RA_SPI_MAX_FREQUENCY;
+    }
+}
+
+/****************************************************************************
+ * Name: ra_spi_cs_configure
+ *
+ * Description:
+ *   Configure CS timing and polarity for a specific device
+ *
+ ****************************************************************************/
+
+static void ra_spi_cs_configure(struct ra_spi_priv_s *priv, uint32_t devid)
+{
+  const struct ra_spi_cs_config_s *cs_config = NULL;
+  uint16_t spcmd;
+  uint8_t cs_index;
+
+  /* Determine CS index from device ID */
+  switch (devid)
+    {
+      case SPIDEV_IMU(0):
+        cs_index = 0;
+        break;
+      case SPIDEV_BAROMETER(0):
+        cs_index = 1;
+        break;
+      default:
+        cs_index = 0;
+        break;
+    }
+
+  cs_config = &priv->config->cs_configs[cs_index];
+
+  /* Configure SPCMD register for this CS */
+  spcmd = ra_spi_getreg16(priv, RA_SPI_SPCMD0_OFFSET);
+  
+  /* Clear SSL selection bits */
+  spcmd &= ~RA_SPI_SPCMD_SSLA_MASK;
+  
+  /* Set SSL selection */
+  spcmd |= (cs_config->ssl_select << RA_SPI_SPCMD_SSLA_SHIFT) & RA_SPI_SPCMD_SSLA_MASK;
+  
+  /* Enable timing delays */
+  spcmd |= RA_SPI_SPCMD_SCKDEN | RA_SPI_SPCMD_SLNDEN | RA_SPI_SPCMD_SPNDEN;
+  
+  ra_spi_putreg16(priv, RA_SPI_SPCMD0_OFFSET, spcmd);
+
+  /* Configure timing delays */
+  ra_spi_putreg8(priv, RA_SPI_SPCKD_OFFSET, cs_config->setup_delay);
+  ra_spi_putreg8(priv, RA_SPI_SSLND_OFFSET, cs_config->negation_delay);
+  ra_spi_putreg8(priv, RA_SPI_SPND_OFFSET, cs_config->hold_delay);
+
+  spiinfo("SPI%d CS%d configured: SSL=%d, delays=%d/%d/%d\n",
+          priv->config->bus, cs_index, cs_config->ssl_select,
+          cs_config->setup_delay, cs_config->hold_delay, cs_config->negation_delay);
+}
+
+/****************************************************************************
+ * Name: ra_spi_cs_assert
+ *
+ * Description:
+ *   Assert chip select for a specific device
+ *
+ ****************************************************************************/
+
+static void ra_spi_cs_assert(struct ra_spi_priv_s *priv, uint32_t devid)
+{
+  const struct ra_spi_cs_config_s *cs_config = NULL;
+  uint8_t cs_index;
+
+  /* Determine CS index from device ID */
+  switch (devid)
+    {
+      case SPIDEV_IMU(0):
+        cs_index = 0;
+        break;
+      case SPIDEV_BAROMETER(0):
+        cs_index = 1;
+        break;
+      default:
+        cs_index = 0;
+        break;
+    }
+
+  cs_config = &priv->config->cs_configs[cs_index];
+
+  if (cs_config->use_hardware)
+    {
+      /* Hardware SS0 - controlled by SPI peripheral */
+      spiinfo("SPI%d Hardware CS%d asserted\n", priv->config->bus, cs_index);
+    }
+  else
+    {
+      /* GPIO CS - manually control */
+      ra_gpio_write(cs_config->gpio_pin, false); /* Active low */
+      spiinfo("SPI%d GPIO CS%d asserted\n", priv->config->bus, cs_index);
+    }
+}
+
+/****************************************************************************
+ * Name: ra_spi_cs_deassert
+ *
+ * Description:
+ *   Deassert chip select for a specific device
+ *
+ ****************************************************************************/
+
+static void ra_spi_cs_deassert(struct ra_spi_priv_s *priv, uint32_t devid)
+{
+  const struct ra_spi_cs_config_s *cs_config = NULL;
+  uint8_t cs_index;
+
+  /* Determine CS index from device ID */
+  switch (devid)
+    {
+      case SPIDEV_IMU(0):
+        cs_index = 0;
+        break;
+      case SPIDEV_BAROMETER(0):
+        cs_index = 1;
+        break;
+      default:
+        cs_index = 0;
+        break;
+    }
+
+  cs_config = &priv->config->cs_configs[cs_index];
+
+  if (cs_config->use_hardware)
+    {
+      /* Hardware SS0 - controlled by SPI peripheral */
+      spiinfo("SPI%d Hardware CS%d deasserted\n", priv->config->bus, cs_index);
+    }
+  else
+    {
+      /* GPIO CS - manually control */
+      ra_gpio_write(cs_config->gpio_pin, true); /* Active low */
+      spiinfo("SPI%d GPIO CS%d deasserted\n", priv->config->bus, cs_index);
+    }
+}
+
+/****************************************************************************
  * Name: ra_spi_writeword
  *
  * Description:
@@ -421,130 +697,72 @@ static bool ra_spi_9to16bitmode(struct ra_spi_priv_s *priv)
 }
 
 /****************************************************************************
- * Name: ra_spi_dtc_tx_callback
- *
- * Description:
- *   DTC TX completion callback
- *
- ****************************************************************************/
-
-static void ra_spi_dtc_tx_callback(void *handle, int event, void *user_data)
-{
-  struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)user_data;
-
-  if (event == RA_DTC_EVENT_COMPLETE)
-    {
-      spiinfo("SPI%d DTC TX complete\n", priv->config->bus);
-      
-      /* For TX-only transfers or when RX is also complete, signal completion */
-      if (priv->dtc_mode == RA_SPI_DTC_MODE_TX_ONLY || 
-          (priv->dtc_mode == RA_SPI_DTC_MODE_FULL && priv->nrxwords == 0))
-        {
-          nxsem_post(&priv->waitsem);
-        }
-    }
-  else if (event == RA_DTC_EVENT_ERROR)
-    {
-      spierr("SPI%d DTC TX error\n", priv->config->bus);
-      priv->error = true;
-      nxsem_post(&priv->waitsem);
-    }
-}
-
-/****************************************************************************
- * Name: ra_spi_dtc_rx_callback
- *
- * Description:
- *   DTC RX completion callback
- *
- ****************************************************************************/
-
-static void ra_spi_dtc_rx_callback(void *handle, int event, void *user_data)
-{
-  struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)user_data;
-
-  if (event == RA_DTC_EVENT_COMPLETE)
-    {
-      spiinfo("SPI%d DTC RX complete\n", priv->config->bus);
-      priv->nrxwords = 0;  /* Mark RX as complete */
-      
-      /* For RX-only transfers or when TX is also complete, signal completion */
-      if (priv->dtc_mode == RA_SPI_DTC_MODE_RX_ONLY || 
-          (priv->dtc_mode == RA_SPI_DTC_MODE_FULL && priv->ntxwords == 0))
-        {
-          nxsem_post(&priv->waitsem);
-        }
-    }
-  else if (event == RA_DTC_EVENT_ERROR)
-    {
-      spierr("SPI%d DTC RX error\n", priv->config->bus);
-      priv->error = true;
-      nxsem_post(&priv->waitsem);
-    }
-}
-
-/****************************************************************************
  * Name: ra_spi_dtc_setup
  *
  * Description:
- *   Setup DTC for the SPI based on FSP patterns
+ *   Setup DTC for the SPI
  *
  ****************************************************************************/
 
 static int ra_spi_dtc_setup(struct ra_spi_priv_s *priv)
 {
-  ra_dtc_config_t dtc_config;
-  int ret;
-
   spiinfo("DTC setup for SPI%d\n", priv->config->bus);
 
-  /* Initialize DTC module */
-  ret = ra_dtc_initialize();
-  if (ret < 0)
-    {
-      spierr("Failed to initialize DTC: %d\n", ret);
-      priv->use_dtc = false;
-      return ret;
-    }
+  /* Enable DTC module clock */
+  uint32_t regval = getreg32(R_MSTP_MSTPCRB);
+  regval &= ~R_MSTP_MSTPCRB_DTC;
+  putreg32(regval, R_MSTP_MSTPCRB);
 
-  /* Setup TX DTC channel */
-  memset(&dtc_config, 0, sizeof(dtc_config));
-  dtc_config.mode = RA_DTC_MODE_NORMAL;
-  dtc_config.size = RA_DTC_SIZE_BYTE;  /* Will be updated per transfer */
-  dtc_config.src_addr_mode = RA_DTC_ADDR_INCR;
-  dtc_config.dest_addr_mode = RA_DTC_ADDR_FIXED;
-  dtc_config.software_trigger = false;
-  dtc_config.activation_source = priv->config->el_txi;  /* SPI TX interrupt event */
-  dtc_config.dest_addr = priv->config->base + RA_SPI_SPDR_OFFSET;
-  dtc_config.callback = ra_spi_dtc_tx_callback;
-  dtc_config.user_data = priv;
+  /* Initialize DTC control register */
+  putreg32(0x00000001, R_DTC_BASE + R_DTC_DTCST_OFFSET);
 
-  ret = ra_dtc_open(&priv->dtc_tx, &dtc_config);
-  if (ret < 0)
-    {
-      spierr("Failed to open TX DTC: %d\n", ret);
-      priv->use_dtc = false;
-      return ret;
-    }
-
-  /* Setup RX DTC channel */
-  dtc_config.src_addr_mode = RA_DTC_ADDR_FIXED;
-  dtc_config.dest_addr_mode = RA_DTC_ADDR_INCR;
-  dtc_config.activation_source = priv->config->el_rxi;  /* SPI RX interrupt event */
-  dtc_config.src_addr = priv->config->base + RA_SPI_SPDR_OFFSET;
-  dtc_config.callback = ra_spi_dtc_rx_callback;
-
-  ret = ra_dtc_open(&priv->dtc_rx, &dtc_config);
-  if (ret < 0)
-    {
-      spierr("Failed to open RX DTC: %d\n", ret);
-      ra_dtc_close(priv->dtc_tx);
-      priv->use_dtc = false;
-      return ret;
-    }
+  /* Configure DTC vector base register */
+  putreg32((uint32_t)&priv->dtc_tx_info, R_DTC_BASE + R_DTC_DTCVBR_OFFSET);
 
   priv->use_dtc = true;
-  spiinfo("SPI%d DTC setup complete\n", priv->config->bus);
+  
+  spiinfo("DTC setup completed for SPI%d\n", priv->config->bus);
+  return OK;
+}
+
+/****************************************************************************
+ * Name: ra_spi_dtc_configure_transfer
+ *
+ * Description:
+ *   Configure DTC transfer information
+ *
+ ****************************************************************************/
+
+static int ra_spi_dtc_configure_transfer(struct ra_spi_priv_s *priv,
+                                         const void *txbuffer, void *rxbuffer,
+                                         size_t nwords)
+{
+  /* Configure TX DTC */
+  if (txbuffer)
+    {
+      priv->dtc_tx_info.mra = DTC_MODE_NORMAL | 
+                              (ra_spi_9to16bitmode(priv) ? 
+                               RA_DTC_MRA_SZ_WORD : RA_DTC_MRA_SZ_BYTE);
+      priv->dtc_tx_info.mrb = 0;
+      priv->dtc_tx_info.sar = (uint32_t)txbuffer;
+      priv->dtc_tx_info.dar = priv->config->base + RA_SPI_SPDR_OFFSET;
+      priv->dtc_tx_info.cra = nwords;
+      priv->dtc_tx_info.crb = 0;
+    }
+
+  /* Configure RX DTC */
+  if (rxbuffer)
+    {
+      priv->dtc_rx_info.mra = DTC_MODE_NORMAL | 
+                              (ra_spi_9to16bitmode(priv) ? 
+                               RA_DTC_MRA_SZ_WORD : RA_DTC_MRA_SZ_BYTE);
+      priv->dtc_rx_info.mrb = 0;
+      priv->dtc_rx_info.sar = priv->config->base + RA_SPI_SPDR_OFFSET;
+      priv->dtc_rx_info.dar = (uint32_t)rxbuffer;
+      priv->dtc_rx_info.cra = nwords;
+      priv->dtc_rx_info.crb = 0;
+    }
+
   return OK;
 }
 
@@ -552,94 +770,22 @@ static int ra_spi_dtc_setup(struct ra_spi_priv_s *priv)
  * Name: ra_spi_dtc_start
  *
  * Description:
- *   Start DTC transfer following FSP patterns
+ *   Start DTC transfer
  *
  ****************************************************************************/
 
-static int ra_spi_dtc_start(struct ra_spi_priv_s *priv, const void *txbuffer, 
-                            void *rxbuffer, size_t nwords)
+static void ra_spi_dtc_start(struct ra_spi_priv_s *priv)
 {
-  ra_dtc_size_t dtc_size;
-  int ret;
+  uint8_t spcr;
 
-  /* Determine transfer size based on SPI word size */
-  if (priv->nbits <= 8)
-    {
-      dtc_size = RA_DTC_SIZE_BYTE;
-    }
-  else if (priv->nbits <= 16)
-    {
-      dtc_size = RA_DTC_SIZE_WORD;
-    }
-  else
-    {
-      dtc_size = RA_DTC_SIZE_LONG;
-    }
+  spiinfo("DTC start for SPI%d\n", priv->config->bus);
 
-  /* Determine DTC mode based on buffers */
-  if (txbuffer && rxbuffer)
-    {
-      priv->dtc_mode = RA_SPI_DTC_MODE_FULL;
-    }
-  else if (txbuffer)
-    {
-      priv->dtc_mode = RA_SPI_DTC_MODE_TX_ONLY;
-    }
-  else if (rxbuffer)
-    {
-      priv->dtc_mode = RA_SPI_DTC_MODE_RX_ONLY;
-    }
-  else
-    {
-      return -EINVAL;
-    }
+  priv->dtc_active = true;
 
-  /* Setup TX DTC if needed */
-  if (txbuffer)
-    {
-      ret = ra_dtc_reset(priv->dtc_tx, (uint32_t)txbuffer,
-                         priv->config->base + RA_SPI_SPDR_OFFSET, nwords);
-      if (ret < 0)
-        {
-          return ret;
-        }
-
-      ret = ra_dtc_enable(priv->dtc_tx);
-      if (ret < 0)
-        {
-          return ret;
-        }
-    }
-
-  /* Setup RX DTC if needed */
-  if (rxbuffer)
-    {
-      ret = ra_dtc_reset(priv->dtc_rx, priv->config->base + RA_SPI_SPDR_OFFSET,
-                         (uint32_t)rxbuffer, nwords);
-      if (ret < 0)
-        {
-          if (txbuffer)
-            {
-              ra_dtc_disable(priv->dtc_tx);
-            }
-          return ret;
-        }
-
-      ret = ra_dtc_enable(priv->dtc_rx);
-      if (ret < 0)
-        {
-          if (txbuffer)
-            {
-              ra_dtc_disable(priv->dtc_tx);
-            }
-          return ret;
-        }
-    }
-
-  spiinfo("SPI%d DTC transfer started: mode=%d, nwords=%zu\n", 
-          priv->config->bus, priv->dtc_mode, nwords);
-
-  return OK;
+  /* Enable DTC triggers for SPI TXI and RXI */
+  spcr = ra_spi_getreg8(priv, RA_SPI_SPCR_OFFSET);
+  spcr |= (RA_SPI_SPCR_SPRIE | RA_SPI_SPCR_SPTIE);
+  ra_spi_putreg8(priv, RA_SPI_SPCR_OFFSET, spcr);
 }
 
 /****************************************************************************
@@ -652,12 +798,16 @@ static int ra_spi_dtc_start(struct ra_spi_priv_s *priv, const void *txbuffer,
 
 static void ra_spi_dtc_stop(struct ra_spi_priv_s *priv)
 {
-  if (priv->use_dtc)
-    {
-      ra_dtc_disable(priv->dtc_tx);
-      ra_dtc_disable(priv->dtc_rx);
-      spiinfo("SPI%d DTC transfer stopped\n", priv->config->bus);
-    }
+  uint8_t spcr;
+
+  spiinfo("DTC stop for SPI%d\n", priv->config->bus);
+
+  /* Disable DTC triggers */
+  spcr = ra_spi_getreg8(priv, RA_SPI_SPCR_OFFSET);
+  spcr &= ~(RA_SPI_SPCR_SPRIE | RA_SPI_SPCR_SPTIE);
+  ra_spi_putreg8(priv, RA_SPI_SPCR_OFFSET, spcr);
+
+  priv->dtc_active = false;
 }
 
 /****************************************************************************
@@ -674,6 +824,18 @@ static int ra_spi_rxi_interrupt(int irq, void *context, void *arg)
   uint16_t data;
 
   DEBUGASSERT(priv != NULL);
+
+  if (priv->dtc_active)
+    {
+      /* DTC is handling the transfer, just check for completion */
+      if (priv->dtc_rx_info.cra == 0)
+        {
+          /* DTC transfer complete */
+          ra_spi_dtc_stop(priv);
+          nxsem_post(&priv->waitsem);
+        }
+      return OK;
+    }
 
   /* Read received data */
   data = ra_spi_readword(priv);
@@ -724,6 +886,19 @@ static int ra_spi_txi_interrupt(int irq, void *context, void *arg)
   uint16_t data = 0xffff;
 
   DEBUGASSERT(priv != NULL);
+
+  if (priv->dtc_active)
+    {
+      /* DTC is handling the transfer, just check for completion */
+      if (priv->dtc_tx_info.cra == 0)
+        {
+          /* DTC transfer complete */
+          uint8_t spcr = ra_spi_getreg8(priv, RA_SPI_SPCR_OFFSET);
+          spcr &= ~RA_SPI_SPCR_SPTIE;
+          ra_spi_putreg8(priv, RA_SPI_SPCR_OFFSET, spcr);
+        }
+      return OK;
+    }
 
   /* Get next word to transmit */
   if (priv->txbuffer && priv->ntxwords > 0)
@@ -818,6 +993,10 @@ static int ra_spi_eri_interrupt(int irq, void *context, void *arg)
 
   /* Set error flag and wake up waiting thread */
   priv->error = true;
+  if (priv->dtc_active)
+    {
+      ra_spi_dtc_stop(priv);
+    }
   nxsem_post(&priv->waitsem);
 
   return OK;
@@ -865,7 +1044,7 @@ static int ra_spi_lock(struct spi_dev_s *dev, bool lock)
  * Name: ra_spi_setfrequency
  *
  * Description:
- *   Set the SPI frequency.
+ *   Set the SPI frequency with device-specific limits
  *
  * Input Parameters:
  *   dev -       Device-specific state data
@@ -883,6 +1062,7 @@ static uint32_t ra_spi_setfrequency(struct spi_dev_s *dev, uint32_t frequency)
   uint32_t divisor;
   uint8_t spbr;
   uint8_t brdv = 0;
+  uint32_t max_freq;
 
   spiinfo("SPI%d frequency %d\n", priv->config->bus, frequency);
 
@@ -890,6 +1070,15 @@ static uint32_t ra_spi_setfrequency(struct spi_dev_s *dev, uint32_t frequency)
     {
       /* We are already at this frequency. Return the actual. */
       return priv->actual;
+    }
+
+  /* Apply device-specific frequency limits */
+  max_freq = ra_spi_get_device_max_freq(priv->current_devid);
+  if (frequency > max_freq)
+    {
+      frequency = max_freq;
+      spiinfo("SPI%d frequency limited to %d for device 0x%08x\n",
+              priv->config->bus, frequency, priv->current_devid);
     }
 
   /* Limit to maximum frequency */
@@ -1132,7 +1321,7 @@ static uint32_t ra_spi_send(struct spi_dev_s *dev, uint32_t wd)
  * Name: ra_spi_exchange
  *
  * Description:
- *   Exchange a block of data from SPI.
+ *   Exchange a block of data from SPI with enhanced DTC support
  *
  * Input Parameters:
  *   dev      - Device-specific state data
@@ -1174,25 +1363,22 @@ static void ra_spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
   priv->error = false;
 
   /* Use DTC if enabled and transfer size is large enough */
-  if (priv->use_dtc && nwords >= DTC_MIN_TRANSFER_SIZE)
+  if (priv->use_dtc && nwords >= 4)
     {
-      int ret = ra_spi_dtc_start(priv, txbuffer, rxbuffer, nwords);
-      if (ret == OK)
-        {
-          /* Wait for DTC completion */
-          nxsem_wait_uninterruptible(&priv->waitsem);
-          ra_spi_dtc_stop(priv);
-        }
-      else
-        {
-          spierr("SPI%d DTC start failed: %d, falling back to interrupt mode\n", 
-                 priv->config->bus, ret);
-          goto interrupt_mode;
-        }
+      /* Configure DTC transfer */
+      ra_spi_dtc_configure_transfer(priv, txbuffer, rxbuffer, nwords);
+      
+      /* Start DTC transfer */
+      ra_spi_dtc_start(priv);
+
+      /* Wait for DTC completion */
+      nxsem_wait_uninterruptible(&priv->waitsem);
+
+      /* Stop DTC */
+      ra_spi_dtc_stop(priv);
     }
   else
     {
-interrupt_mode:
       /* Use interrupt-driven transfer */
       flags = enter_critical_section();
 
@@ -1297,7 +1483,7 @@ static int ra_spi_trigger(struct spi_dev_s *dev)
 {
   struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)dev;
 
-  if (!priv->use_dma)
+  if (!priv->use_dtc)
     {
       return -ENOSYS;
     }
@@ -1326,6 +1512,7 @@ static void ra_spi_bus_initialize(struct ra_spi_priv_s *priv)
 {
   uint8_t regval;
   uint16_t regval16;
+  int i;
 
   /* Configure GPIO pins for SPI */
   ra_gpio_config(priv->config->sck_pin);
@@ -1333,6 +1520,20 @@ static void ra_spi_bus_initialize(struct ra_spi_priv_s *priv)
   ra_gpio_config(priv->config->mosi_pin);
   ra_gpio_config(priv->config->cs0_pin);
   ra_gpio_config(priv->config->cs1_pin);
+
+  /* Initialize CS pins */
+  for (i = 0; i < 4; i++)
+    {
+      if (priv->config->cs_configs[i].gpio_pin != 0)
+        {
+          if (!priv->config->cs_configs[i].use_hardware)
+            {
+              /* Configure as GPIO output, initially deasserted (high) */
+              ra_gpio_config(priv->config->cs_configs[i].gpio_pin);
+              ra_gpio_write(priv->config->cs_configs[i].gpio_pin, true);
+            }
+        }
+    }
 
   /* Enable SPI module */
   regval = getreg32(R_MSTP_MSTPCRB);
@@ -1359,9 +1560,9 @@ static void ra_spi_bus_initialize(struct ra_spi_priv_s *priv)
   ra_spi_putreg8(priv, RA_SPI_SPDCR_OFFSET, 0);
 
   /* Set clock delays to 1 RSPCK */
-  ra_spi_putreg8(priv, RA_SPI_SPCKD_OFFSET, 0);
-  ra_spi_putreg8(priv, RA_SPI_SSLND_OFFSET, 0);
-  ra_spi_putreg8(priv, RA_SPI_SPND_OFFSET, 0);
+  ra_spi_putreg8(priv, RA_SPI_SPCKD_OFFSET, CS_SETUP_DELAY);
+  ra_spi_putreg8(priv, RA_SPI_SSLND_OFFSET, CS_NEGATION_DELAY);
+  ra_spi_putreg8(priv, RA_SPI_SPND_OFFSET, CS_HOLD_DELAY);
 
   /* Configure SPCR2 */
   ra_spi_putreg8(priv, RA_SPI_SPCR2_OFFSET, 0);
@@ -1369,7 +1570,10 @@ static void ra_spi_bus_initialize(struct ra_spi_priv_s *priv)
   /* Configure SPCMD0 for default settings */
   regval16 = RA_SPI_SPCMD_SPB_8        |  /* 8-bit data */
              RA_SPI_SPCMD_BRDV_1       |  /* No division */
-             RA_SPI_SPCMD_SSLA_0;         /* Use SSL0 */
+             RA_SPI_SPCMD_SSLA_0       |  /* Use SSL0 */
+             RA_SPI_SPCMD_SCKDEN       |  /* Enable setup delay */
+             RA_SPI_SPCMD_SLNDEN       |  /* Enable negation delay */
+             RA_SPI_SPCMD_SPNDEN;         /* Enable hold delay */
   ra_spi_putreg16(priv, RA_SPI_SPCMD0_OFFSET, regval16);
 
   /* Set default bit rate to 1MHz */
@@ -1388,7 +1592,7 @@ static void ra_spi_bus_initialize(struct ra_spi_priv_s *priv)
   regval |= RA_SPI_SPCR_SPE;
   ra_spi_putreg8(priv, RA_SPI_SPCR_OFFSET, regval);
 
-  spiinfo("SPI%d initialized\n", priv->config->bus);
+  spiinfo("SPI%d initialized with dual CS and DTC support\n", priv->config->bus);
 }
 
 /****************************************************************************
@@ -1456,6 +1660,52 @@ struct spi_dev_s *ra_spibus_initialize(int bus)
   priv->refs++;
 
   return (struct spi_dev_s *)priv;
+}
+
+/****************************************************************************
+ * Name: ra_spi_select_device
+ *
+ * Description:
+ *   Select a specific device and configure CS and frequency accordingly
+ *
+ * Input Parameters:
+ *   dev   - SPI device structure
+ *   devid - Device ID
+ *   selected - true to select, false to deselect
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+void ra_spi_select_device(struct spi_dev_s *dev, uint32_t devid, bool selected)
+{
+  struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)dev;
+
+  DEBUGASSERT(priv != NULL);
+
+  spiinfo("SPI%d devid=0x%08x selected=%d\n", 
+          priv->config->bus, devid, selected);
+
+  if (selected)
+    {
+      /* Configure CS and timing for this device */
+      ra_spi_cs_configure(priv, devid);
+      
+      /* Store current device ID for frequency limiting */
+      priv->current_devid = devid;
+      
+      /* Assert CS */
+      ra_spi_cs_assert(priv, devid);
+    }
+  else
+    {
+      /* Deassert CS */
+      ra_spi_cs_deassert(priv, devid);
+      
+      /* Clear current device ID */
+      priv->current_devid = 0xffffffff;
+    }
 }
 
 #endif /* CONFIG_RA_SPI */

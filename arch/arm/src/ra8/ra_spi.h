@@ -82,25 +82,25 @@ struct ra_spi_priv_s
   uint8_t          irq_eri;  /* Error interrupt number */
   sem_t            exclsem;  /* Holds exclusive access to SPI */
   sem_t            waitsem;  /* Wait for transfer completion */
-  
+
   /* DTC support */
   bool             use_dtc;   /* DTC enabled flag */
   uint8_t          dtc_mode;  /* DTC transfer mode */
   void            *dtc_tx_handle; /* TX DTC handle */
   void            *dtc_rx_handle; /* RX DTC handle */
-  
+
   /* Transfer state */
   const uint8_t   *txbuffer;  /* Source data for SPI output */
   uint8_t         *rxbuffer;  /* Sink for SPI input */
   size_t           ntxwords;  /* Number of words left to transfer */
   size_t           nrxwords;  /* Number of words left to receive */
-  
+
   /* Configuration */
   uint32_t         frequency; /* Requested clock frequency */
   uint32_t         actual;    /* Actual clock frequency */
   uint8_t          mode;      /* Mode 0,1,2,3 */
   uint8_t          nbits;     /* Width of word in bits (4-16) */
-  
+
   /* Debug */
   uint32_t         debug_flags;
 };

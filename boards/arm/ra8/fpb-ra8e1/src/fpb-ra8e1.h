@@ -95,6 +95,19 @@ void board_autoled_off(int led);
 #endif
 
 /****************************************************************************
+ * Name: gy912_register_sensors
+ *
+ * Description:
+ *   Register GY-912 sensors with the sensor framework
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_RA8E1_SPI_GY912_EXAMPLE
+struct spi_dev_s;
+int gy912_register_sensors(FAR struct spi_dev_s *spi);
+#endif
+
+/****************************************************************************
  * Name: ra8e1_gpio_initialize
  *
  * Description:
@@ -111,6 +124,10 @@ int ra8e1_gpio_initialize(void);
 
 #ifdef CONFIG_RTC_DRIVER
 int board_rtc_initialize(void);
+#endif
+
+#ifdef CONFIG_RA_SPI
+int ra8e1_spi_initialize(void);
 #endif
 
 #ifdef CONFIG_RA_SPI_LOOPBACK_EXAMPLE

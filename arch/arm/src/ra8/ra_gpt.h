@@ -99,7 +99,7 @@ struct ra_gpt_channel_s
 };
 
 /* GPT driver configuration */
-struct ra_gpt_config_s
+struct ra_gpt_driver_config_s
 {
   uint8_t nchannels;               /* Number of GPT channels */
   const struct ra_gpt_channel_s *channels; /* GPT channel configurations */
@@ -139,7 +139,7 @@ extern "C"
  *
  ****************************************************************************/
 
-int ra_gpt_initialize(void);
+struct pwm_lowerhalf_s *ra_gpt_initialize(int channel);
 
 /****************************************************************************
  * Name: ra_gpt_pwm_setup

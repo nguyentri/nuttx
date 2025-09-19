@@ -1,6 +1,5 @@
-
 /****************************************************************************
- * boards/arm/ra8/fpb-ra8e1/src/gy912_spi.c
+ * boards/arm/ra8/fpb-ra8e1/src/ra8e1_spi_gy912.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -22,9 +21,10 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
-#ifdef CONFIG_RA8E1_SPI_GY912_EXAMPLE
 
 #include <nuttx/config.h>
+
+#ifdef CONFIG_RA8E1_SPI_GY912_EXAMPLE
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -32,1415 +32,1085 @@
 #include <errno.h>
 #include <string.h>
 #include <assert.h>
+#include <time.h>
 
 #include <nuttx/spi/spi.h>
+#include <nuttx/sensors/sensor.h>
+#include <nuttx/sensors/ioctl.h>
+#include <nuttx/uorb.h>
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
 #include <nuttx/semaphore.h>
+#include <nuttx/kmalloc.h>
 #include <arch/board/board.h>
 
 #include "arm_internal.h"
 #include "chip.h"
 #include "ra_gpio.h"
 #include "board.h"
-#include "ra8e1_log.h"
-
-#ifdef CONFIG_RA_SPI
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* RA8E1 SPI Register Definitions */
-#define RA8E1_SPI0_BASE         0x40072000
-#define RA8E1_SPI_SPCR_OFFSET   0x00    /* SPI Control Register */
-#define RA8E1_SPI_SSLP_OFFSET   0x01    /* SPI Slave Select Polarity Register */
-#define RA8E1_SPI_SPPCR_OFFSET  0x02    /* SPI Pin Control Register */
-#define RA8E1_SPI_SPSR_OFFSET   0x03    /* SPI Status Register */
-#define RA8E1_SPI_SPDR_OFFSET   0x04    /* SPI Data Register */
-#define RA8E1_SPI_SPSCR_OFFSET  0x08    /* SPI Sequence Control Register */
-#define RA8E1_SPI_SPSSR_OFFSET  0x09    /* SPI Sequence Status Register */
-#define RA8E1_SPI_SPBR_OFFSET   0x0A    /* SPI Bit Rate Register */
-#define RA8E1_SPI_SPDCR_OFFSET  0x0B    /* SPI Data Control Register */
-#define RA8E1_SPI_SPCKD_OFFSET  0x0C    /* SPI Clock Delay Register */
-#define RA8E1_SPI_SSLND_OFFSET  0x0D    /* SPI Slave Select Negation Delay Register */
-#define RA8E1_SPI_SPND_OFFSET   0x0E    /* SPI Next-Access Delay Register */
-#define RA8E1_SPI_SPCR2_OFFSET  0x0F    /* SPI Control Register 2 */
-#define RA8E1_SPI_SPCMD0_OFFSET 0x10    /* SPI Command Register 0 */
+/* BMP388 Register Definitions */
+#define BMP388_CHIP_ID_REG      0x00
+#define BMP388_CHIP_ID_VALUE    0x50
+#define BMP388_ERR_REG          0x02
+#define BMP388_STATUS_REG       0x03
+#define BMP388_DATA_0_REG       0x04
+#define BMP388_DATA_1_REG       0x05
+#define BMP388_DATA_2_REG       0x06
+#define BMP388_DATA_3_REG       0x07
+#define BMP388_DATA_4_REG       0x08
+#define BMP388_DATA_5_REG       0x09
+#define BMP388_SENSORTIME_0_REG 0x0C
+#define BMP388_SENSORTIME_1_REG 0x0D
+#define BMP388_SENSORTIME_2_REG 0x0E
+#define BMP388_EVENT_REG        0x10
+#define BMP388_INT_STATUS_REG   0x11
+#define BMP388_FIFO_LENGTH_0_REG 0x12
+#define BMP388_FIFO_LENGTH_1_REG 0x13
+#define BMP388_FIFO_DATA_REG    0x14
+#define BMP388_FIFO_WTM_0_REG   0x15
+#define BMP388_FIFO_WTM_1_REG   0x16
+#define BMP388_FIFO_CONFIG_1_REG 0x17
+#define BMP388_FIFO_CONFIG_2_REG 0x18
+#define BMP388_INT_CTRL_REG     0x19
+#define BMP388_IF_CONF_REG      0x1A
+#define BMP388_PWR_CTRL_REG     0x1B
+#define BMP388_OSR_REG          0x1C
+#define BMP388_ODR_REG          0x1D
+#define BMP388_CONFIG_REG       0x1F
+#define BMP388_CMD_REG          0x7E
 
-/* SPI Control Register (SPCR) bits */
-#define RA8E1_SPI_SPCR_SPRIE    (1 << 7)  /* SPI Receive Interrupt Enable */
-#define RA8E1_SPI_SPCR_SPE      (1 << 6)  /* SPI Function Enable */
-#define RA8E1_SPI_SPCR_SPTIE    (1 << 5)  /* SPI Transmit Interrupt Enable */
-#define RA8E1_SPI_SPCR_SPEIE    (1 << 4)  /* SPI Error Interrupt Enable */
-#define RA8E1_SPI_SPCR_MSTR     (1 << 3)  /* SPI Master/Slave Mode Select */
-#define RA8E1_SPI_SPCR_MODFEN   (1 << 2)  /* Mode Fault Error Detection Enable */
-#define RA8E1_SPI_SPCR_TXMD     (1 << 1)  /* Communications Operating Mode Select */
-#define RA8E1_SPI_SPCR_SPMS     (1 << 0)  /* SPI Mode Select */
+/* BMP388 Commands */
+#define BMP388_CMD_SOFT_RESET   0xB6
+#define BMP388_CMD_FIFO_FLUSH   0xB0
 
-/* SPI Status Register (SPSR) bits */
-#define RA8E1_SPI_SPSR_SPRF     (1 << 7)  /* SPI Receive Buffer Full Flag */
-#define RA8E1_SPI_SPSR_SPTEF    (1 << 5)  /* SPI Transmit Buffer Empty Flag */
-#define RA8E1_SPI_SPSR_PERF     (1 << 3)  /* Parity Error Flag */
-#define RA8E1_SPI_SPSR_MODF     (1 << 2)  /* Mode Fault Error Flag */
-#define RA8E1_SPI_SPSR_IDLNF    (1 << 1)  /* SPI Idle Flag */
-#define RA8E1_SPI_SPSR_OVRF     (1 << 0)  /* Overrun Error Flag */
+/* BMP388 Power Control */
+#define BMP388_PWR_CTRL_PRESS_EN (1 << 0)
+#define BMP388_PWR_CTRL_TEMP_EN  (1 << 1)
+#define BMP388_PWR_CTRL_MODE_MASK (0x03 << 4)
+#define BMP388_PWR_CTRL_MODE_SLEEP (0x00 << 4)
+#define BMP388_PWR_CTRL_MODE_FORCED (0x01 << 4)
+#define BMP388_PWR_CTRL_MODE_NORMAL (0x03 << 4)
 
-/* SPI Command Register (SPCMD0) bits */
-#define RA8E1_SPI_SPCMD_SCKDEN  (1 << 15) /* RSPCK Delay Setting Enable */
-#define RA8E1_SPI_SPCMD_SLNDEN  (1 << 14) /* SSL Negation Delay Setting Enable */
-#define RA8E1_SPI_SPCMD_SPNDEN  (1 << 13) /* SPI Next-Access Delay Enable */
-#define RA8E1_SPI_SPCMD_LSBF    (1 << 12) /* SPI LSB First */
-#define RA8E1_SPI_SPCMD_SPB_MASK (0x0F << 8) /* SPI Data Length Setting */
-#define RA8E1_SPI_SPCMD_SPB_8   (0x07 << 8)  /* 8 bits */
-#define RA8E1_SPI_SPCMD_SPB_16  (0x0F << 8)  /* 16 bits */
-#define RA8E1_SPI_SPCMD_SSLKP   (1 << 7)  /* SSL Signal Level Keeping */
-#define RA8E1_SPI_SPCMD_SSLA_MASK (0x07 << 4) /* SSL Signal Assertion Setting */
-#define RA8E1_SPI_SPCMD_BRDV_MASK (0x03 << 2) /* Bit Rate Division Setting */
-#define RA8E1_SPI_SPCMD_CPOL    (1 << 1)  /* RSPCK Polarity Setting */
-#define RA8E1_SPI_SPCMD_CPHA    (1 << 0)  /* RSPCK Phase Setting */
+/* ICM20948 Register Definitions */
+#define ICM20948_WHO_AM_I       0x00
+#define ICM20948_WHO_AM_I_VALUE 0xEA
+#define ICM20948_USER_CTRL      0x03
+#define ICM20948_LP_CONFIG      0x05
+#define ICM20948_PWR_MGMT_1     0x06
+#define ICM20948_PWR_MGMT_2     0x07
+#define ICM20948_INT_PIN_CFG    0x0F
+#define ICM20948_INT_ENABLE     0x10
+#define ICM20948_INT_ENABLE_1   0x11
+#define ICM20948_INT_ENABLE_2   0x12
+#define ICM20948_INT_ENABLE_3   0x13
+#define ICM20948_I2C_MST_STATUS 0x17
+#define ICM20948_INT_STATUS     0x19
+#define ICM20948_INT_STATUS_1   0x1A
+#define ICM20948_INT_STATUS_2   0x1B
+#define ICM20948_INT_STATUS_3   0x1C
+#define ICM20948_DELAY_TIMEH    0x28
+#define ICM20948_DELAY_TIMEL    0x29
+#define ICM20948_ACCEL_XOUT_H   0x2D
+#define ICM20948_ACCEL_XOUT_L   0x2E
+#define ICM20948_ACCEL_YOUT_H   0x2F
+#define ICM20948_ACCEL_YOUT_L   0x30
+#define ICM20948_ACCEL_ZOUT_H   0x31
+#define ICM20948_ACCEL_ZOUT_L   0x32
+#define ICM20948_GYRO_XOUT_H    0x33
+#define ICM20948_GYRO_XOUT_L    0x34
+#define ICM20948_GYRO_YOUT_H    0x35
+#define ICM20948_GYRO_YOUT_L    0x36
+#define ICM20948_GYRO_ZOUT_H    0x37
+#define ICM20948_GYRO_ZOUT_L    0x38
+#define ICM20948_TEMP_OUT_H     0x39
+#define ICM20948_TEMP_OUT_L     0x3A
 
-/* DTC Register Definitions */
-#define RA8E1_DTC_BASE          0x40005400
-#define RA8E1_DTC_DTCCR_OFFSET  0x00    /* DTC Control Register */
-#define RA8E1_DTC_DTCVBR_OFFSET 0x04    /* DTC Vector Base Register */
-#define RA8E1_DTC_DTCADMOD_OFFSET 0x08  /* DTC Address Mode Register */
-#define RA8E1_DTC_DTCST_OFFSET  0x0C    /* DTC Module Start Register */
+/* ICM20948 Power Management */
+#define ICM20948_PWR_MGMT_1_DEVICE_RESET (1 << 7)
+#define ICM20948_PWR_MGMT_1_SLEEP        (1 << 6)
+#define ICM20948_PWR_MGMT_1_LP_EN        (1 << 5)
+#define ICM20948_PWR_MGMT_1_TEMP_DIS     (1 << 3)
+#define ICM20948_PWR_MGMT_1_CLKSEL_MASK  (0x07 << 0)
+#define ICM20948_PWR_MGMT_1_CLKSEL_AUTO  (0x01 << 0)
 
-/* DTC Transfer Information */
-#define RA8E1_DTC_MRA_SM_MASK   (0x03 << 14) /* Source Address Mode */
-#define RA8E1_DTC_MRA_SZ_MASK   (0x03 << 12) /* Data Transfer Size */
-#define RA8E1_DTC_MRA_SZ_BYTE   (0x00 << 12) /* Byte */
-#define RA8E1_DTC_MRA_SZ_WORD   (0x01 << 12) /* Word */
-#define RA8E1_DTC_MRA_SZ_LONG   (0x02 << 12) /* Long word */
-#define RA8E1_DTC_MRA_MD_MASK   (0x07 << 8)  /* DTC Transfer Mode */
-#define RA8E1_DTC_MRA_MD_NORMAL (0x00 << 8)  /* Normal transfer mode */
+#define ICM20948_PWR_MGMT_2_DISABLE_ACCEL (0x07 << 3)
+#define ICM20948_PWR_MGMT_2_DISABLE_GYRO  (0x07 << 0)
 
-/* Clock and Power Management */
-#define RA8E1_MSTP_SPI0         (1 << 22)    /* SPI0 Module Stop */
-#define RA8E1_MSTP_DTC          (1 << 28)    /* DTC Module Stop */
+/* SPI Device IDs */
+#define GY912_SPI_BMP388_DEVID   0
+#define GY912_SPI_ICM20948_DEVID 1
 
-/* IRQ Numbers */
-#define RA8E1_IRQ_SPI0_RXI      142
-#define RA8E1_IRQ_SPI0_TXI      143
-#define RA8E1_IRQ_SPI0_ERI      144
+/* Sensor update intervals */
+#define GY912_DEFAULT_INTERVAL_US 100000  /* 100ms */
+#define GY912_MIN_INTERVAL_US     1000    /* 1ms */
+#define GY912_MAX_INTERVAL_US     1000000 /* 1s */
 
 /****************************************************************************
  * Private Types
  ****************************************************************************/
 
-/* SPI Device Structure */
-struct gy912_spidev_s
+/* GY-912 sensor device structure */
+struct gy912_sensor_dev_s
 {
-  struct spi_dev_s spidev;     /* Externally visible part of the SPI interface */
-  uint32_t         spibase;    /* SPI controller register base address */
-  uint32_t         frequency;  /* Requested clock frequency */
-  uint32_t         actual;     /* Actual clock frequency */
-  uint8_t          mode;       /* Mode 0,1,2,3 */
-  uint8_t          nbits;      /* Width of word in bits (8 to 16) */
-  bool             initialized; /* Has SPI been initialized? */
-  sem_t            exclsem;    /* Mutual exclusion mutex */
-  uint32_t         txword;     /* Next word to send */
-  uint32_t         rxword;     /* Next word to receive */
-  const void      *txbuffer;   /* Source buffer */
-  void            *rxbuffer;   /* Sink buffer */
-  size_t           ntxwords;   /* Size of TX buffer in words */
-  size_t           nrxwords;   /* Size of RX buffer in words */
-  size_t           nwords;     /* Number of words to be exchanged */
-  volatile bool    dma_active; /* DMA transfer in progress */
-  struct gy912_spi_transfer_s *current_xfer; /* Current transfer context */
-};
+  struct sensor_lowerhalf_s lower;  /* Lower half sensor interface */
+  FAR struct spi_dev_s *spi;        /* SPI device */
+  uint32_t devid;                   /* SPI device ID */
+  uint32_t frequency;               /* SPI frequency */
+  uint32_t interval_us;             /* Sampling interval in microseconds */
+  bool enabled;                     /* Sensor enabled flag */
+  sem_t exclsem;                    /* Mutual exclusion semaphore */
 
-/* DTC Transfer Information Structure */
-struct ra8e1_dtc_info_s
-{
-  uint32_t mra;     /* Mode Register A */
-  uint32_t mrb;     /* Mode Register B */
-  uint32_t sar;     /* Source Address Register */
-  uint32_t dar;     /* Destination Address Register */
-  uint32_t cra;     /* Transfer Count Register A */
-  uint32_t crb;     /* Transfer Count Register B */
+  /* Sensor-specific data */
+  union
+  {
+    struct sensor_baro baro_data;   /* Barometer data */
+    struct sensor_accel accel_data; /* Accelerometer data */
+    struct sensor_gyro gyro_data;   /* Gyroscope data */
+    struct sensor_mag mag_data;     /* Magnetometer data */
+  } data;
 };
 
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
-/* SPI methods */
-static int      gy912_spi_lock(struct spi_dev_s *dev, bool lock);
-static uint32_t gy912_spi_setfrequency(struct spi_dev_s *dev, uint32_t frequency);
-static void     gy912_spi_setmode(struct spi_dev_s *dev, enum spi_mode_e mode);
-static void     gy912_spi_setbits(struct spi_dev_s *dev, int nbits);
-#ifdef CONFIG_SPI_HWFEATURES
-static int      gy912_spi_hwfeatures(struct spi_dev_s *dev, spi_hwfeatures_t features);
-#endif
-static uint32_t gy912_spi_send(struct spi_dev_s *dev, uint32_t wd);
-static void     gy912_spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
-                                   void *rxbuffer, size_t nwords);
-#ifndef CONFIG_SPI_EXCHANGE
-static void     gy912_spi_sndblock(struct spi_dev_s *dev, const void *txbuffer,
-                                   size_t nwords);
-static void     gy912_spi_recvblock(struct spi_dev_s *dev, void *rxbuffer,
-                                    size_t nwords);
-#endif
+/* SPI helper functions */
+static int gy912_spi_read_reg(FAR struct gy912_sensor_dev_s *priv,
+                              uint8_t reg, FAR uint8_t *value);
+static int gy912_spi_write_reg(FAR struct gy912_sensor_dev_s *priv,
+                               uint8_t reg, uint8_t value);
+static int gy912_spi_read_block(FAR struct gy912_sensor_dev_s *priv,
+                                uint8_t reg, FAR uint8_t *buffer, size_t len);
 
-/* Initialization */
-static void     gy912_spi_bus_initialize(struct gy912_spidev_s *priv);
+/* BMP388 functions */
+static int gy912_bmp388_initialize(FAR struct gy912_sensor_dev_s *priv);
+static int gy912_bmp388_read_data(FAR struct gy912_sensor_dev_s *priv);
+static int gy912_bmp388_selftest(FAR struct gy912_sensor_dev_s *priv,
+                                 FAR uint32_t *result);
 
-/* DMA support */
-static int      gy912_spi_dma_setup_transfer(struct gy912_spidev_s *priv,
-                                              struct gy912_spi_transfer_s *xfer);
-static void     gy912_spi_dma_callback(struct gy912_spidev_s *priv, int result);
+/* ICM20948 functions */
+static int gy912_icm20948_initialize(FAR struct gy912_sensor_dev_s *priv);
+static int gy912_icm20948_read_accel(FAR struct gy912_sensor_dev_s *priv);
+static int gy912_icm20948_read_gyro(FAR struct gy912_sensor_dev_s *priv);
+static int gy912_icm20948_read_mag(FAR struct gy912_sensor_dev_s *priv);
+static int gy912_icm20948_selftest(FAR struct gy912_sensor_dev_s *priv,
+                                   FAR uint32_t *result);
 
-/* Register access helpers */
-static inline uint8_t gy912_spi_getreg8(struct gy912_spidev_s *priv, uint8_t offset);
-static inline void gy912_spi_putreg8(struct gy912_spidev_s *priv, uint8_t offset, uint8_t value);
-static inline uint16_t gy912_spi_getreg16(struct gy912_spidev_s *priv, uint8_t offset);
-static inline void gy912_spi_putreg16(struct gy912_spidev_s *priv, uint8_t offset, uint16_t value);
-static inline uint32_t gy912_spi_getreg32(struct gy912_spidev_s *priv, uint8_t offset);
-static inline void gy912_spi_putreg32(struct gy912_spidev_s *priv, uint8_t offset, uint32_t value);
+/* Sensor interface functions */
+static int gy912_sensor_activate(FAR struct sensor_lowerhalf_s *lower,
+                                 FAR struct file *filep, bool enable);
+static int gy912_sensor_set_interval(FAR struct sensor_lowerhalf_s *lower,
+                                     FAR struct file *filep,
+                                     FAR uint32_t *period_us);
+static int gy912_sensor_fetch(FAR struct sensor_lowerhalf_s *lower,
+                             FAR struct file *filep,
+                             FAR char *buffer, size_t buflen);
+static int gy912_sensor_selftest(FAR struct sensor_lowerhalf_s *lower,
+                                FAR struct file *filep,
+                                FAR uint32_t *result);
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
-/* SPI0 driver operations */
-static const struct spi_ops_s g_spi0ops =
+/* Sensor operations structure */
+static const struct sensor_ops_s g_gy912_sensor_ops =
 {
-  .lock              = gy912_spi_lock,
-  .select            = ra_spi0_select,
-  .setfrequency      = gy912_spi_setfrequency,
-  .setmode           = gy912_spi_setmode,
-  .setbits           = gy912_spi_setbits,
-#ifdef CONFIG_SPI_HWFEATURES
-  .hwfeatures        = gy912_spi_hwfeatures,
-#endif
-  .status            = ra_spi0_status,
-  .cmddata           = ra_spi0_cmddata,
-  .send              = gy912_spi_send,
-#ifdef CONFIG_SPI_EXCHANGE
-  .exchange          = gy912_spi_exchange,
-#else
-  .sndblock          = gy912_spi_sndblock,
-  .recvblock         = gy912_spi_recvblock,
-#endif
-  .registercallback  = 0,
+  .activate   = gy912_sensor_activate,
+  .set_interval = gy912_sensor_set_interval,
+  .fetch      = gy912_sensor_fetch,
+  .selftest   = gy912_sensor_selftest,
 };
-
-/* SPI0 device structure */
-static struct gy912_spidev_s g_spi0dev =
-{
-  .spidev   = { &g_spi0ops },
-  .spibase  = RA8E1_SPI0_BASE,
-  .exclsem  = SEM_INITIALIZER(1),
-};
-
-/* DTC transfer information for SPI TX and RX */
-static struct ra8e1_dtc_info_s g_spi_dtc_tx_info;
-static struct ra8e1_dtc_info_s g_spi_dtc_rx_info;
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: gy912_spi_getreg8, gy912_spi_putreg8, etc.
+ * Name: gy912_spi_read_reg
  *
  * Description:
- *   Register access helpers
+ *   Read a single register from the sensor via SPI
  *
  ****************************************************************************/
 
-static inline uint8_t gy912_spi_getreg8(struct gy912_spidev_s *priv, uint8_t offset)
+static int gy912_spi_read_reg(FAR struct gy912_sensor_dev_s *priv,
+                              uint8_t reg, FAR uint8_t *value)
 {
-  return getreg8(priv->spibase + offset);
-}
+  uint8_t txbuf[2];
+  uint8_t rxbuf[2];
+  int ret;
 
-static inline void gy912_spi_putreg8(struct gy912_spidev_s *priv, uint8_t offset, uint8_t value)
-{
-  putreg8(value, priv->spibase + offset);
-}
+  DEBUGASSERT(priv != NULL && value != NULL);
 
-static inline uint16_t gy912_spi_getreg16(struct gy912_spidev_s *priv, uint8_t offset)
-{
-  return getreg16(priv->spibase + offset);
-}
+  /* Lock the SPI bus */
+  SPI_LOCK(priv->spi, true);
 
-static inline void gy912_spi_putreg16(struct gy912_spidev_s *priv, uint8_t offset, uint16_t value)
-{
-  putreg16(value, priv->spibase + offset);
-}
+  /* Select the device */
+  SPI_SELECT(priv->spi, priv->devid, true);
 
-static inline uint32_t gy912_spi_getreg32(struct gy912_spidev_s *priv, uint8_t offset)
-{
-  return getreg32(priv->spibase + offset);
-}
+  /* Set up the transfer */
+  SPI_SETFREQUENCY(priv->spi, priv->frequency);
+  SPI_SETMODE(priv->spi, SPIDEV_MODE3);
+  SPI_SETBITS(priv->spi, 8);
 
-static inline void gy912_spi_putreg32(struct gy912_spidev_s *priv, uint8_t offset, uint32_t value)
-{
-  putreg32(value, priv->spibase + offset);
+  /* Prepare the command (read bit set for most sensors) */
+  txbuf[0] = reg | 0x80;  /* Read command */
+  txbuf[1] = 0x00;        /* Dummy byte */
+
+  /* Perform the transfer */
+  SPI_EXCHANGE(priv->spi, txbuf, rxbuf, 2);
+
+  /* Deselect the device */
+  SPI_SELECT(priv->spi, priv->devid, false);
+
+  /* Unlock the SPI bus */
+  SPI_LOCK(priv->spi, false);
+
+  *value = rxbuf[1];
+  ret = OK;
+
+  return ret;
 }
 
 /****************************************************************************
- * Name: gy912_spi_lock
+ * Name: gy912_spi_write_reg
  *
  * Description:
- *   On SPI buses where there are multiple devices, it will be necessary to
- *   lock SPI to have exclusive access to the buses for a sequence of
- *   transfers.  The bus should be locked before the chip is selected. After
- *   locking the SPI bus, the caller should then also call the setfrequency,
- *   setbits, and setmode methods to make sure that the SPI is properly
- *   configured for the device.  If the SPI bus is being shared, then it
- *   may have been left in an incompatible state.
- *
- * Input Parameters:
- *   dev  - Device-specific state data
- *   lock - true: Lock spi bus, false: unlock SPI bus
- *
- * Returned Value:
- *   None
+ *   Write a single register to the sensor via SPI
  *
  ****************************************************************************/
 
-static int gy912_spi_lock(struct spi_dev_s *dev, bool lock)
+static int gy912_spi_write_reg(FAR struct gy912_sensor_dev_s *priv,
+                               uint8_t reg, uint8_t value)
 {
-  struct gy912_spidev_s *priv = (struct gy912_spidev_s *)dev;
+  uint8_t txbuf[2];
   int ret;
 
-  if (lock)
+  DEBUGASSERT(priv != NULL);
+
+  /* Lock the SPI bus */
+  SPI_LOCK(priv->spi, true);
+
+  /* Select the device */
+  SPI_SELECT(priv->spi, priv->devid, true);
+
+  /* Set up the transfer */
+  SPI_SETFREQUENCY(priv->spi, priv->frequency);
+  SPI_SETMODE(priv->spi, SPIDEV_MODE3);
+  SPI_SETBITS(priv->spi, 8);
+
+  /* Prepare the command (write bit clear) */
+  txbuf[0] = reg & 0x7F;  /* Write command */
+  txbuf[1] = value;
+
+  /* Perform the transfer */
+  SPI_SNDBLOCK(priv->spi, txbuf, 2);
+
+  /* Deselect the device */
+  SPI_SELECT(priv->spi, priv->devid, false);
+
+  /* Unlock the SPI bus */
+  SPI_LOCK(priv->spi, false);
+
+  ret = OK;
+  return ret;
+}
+
+/****************************************************************************
+ * Name: gy912_spi_read_block
+ *
+ * Description:
+ *   Read multiple registers from the sensor via SPI
+ *
+ ****************************************************************************/
+
+static int gy912_spi_read_block(FAR struct gy912_sensor_dev_s *priv,
+                                uint8_t reg, FAR uint8_t *buffer, size_t len)
+{
+  uint8_t *txbuf;
+  uint8_t *rxbuf;
+  int ret;
+  size_t i;
+
+  DEBUGASSERT(priv != NULL && buffer != NULL && len > 0);
+
+  /* Allocate temporary buffers */
+  txbuf = kmm_malloc(len + 1);
+  rxbuf = kmm_malloc(len + 1);
+  if (txbuf == NULL || rxbuf == NULL)
     {
-      ret = nxsem_wait_uninterruptible(&priv->exclsem);
+      ret = -ENOMEM;
+      goto errout;
     }
-  else
+
+  /* Lock the SPI bus */
+  SPI_LOCK(priv->spi, true);
+
+  /* Select the device */
+  SPI_SELECT(priv->spi, priv->devid, true);
+
+  /* Set up the transfer */
+  SPI_SETFREQUENCY(priv->spi, priv->frequency);
+  SPI_SETMODE(priv->spi, SPIDEV_MODE3);
+  SPI_SETBITS(priv->spi, 8);
+
+  /* Prepare the command */
+  txbuf[0] = reg | 0x80;  /* Read command */
+  for (i = 1; i <= len; i++)
     {
-      ret = nxsem_post(&priv->exclsem);
+      txbuf[i] = 0x00;    /* Dummy bytes */
+    }
+
+  /* Perform the transfer */
+  SPI_EXCHANGE(priv->spi, txbuf, rxbuf, len + 1);
+
+  /* Deselect the device */
+  SPI_SELECT(priv->spi, priv->devid, false);
+
+  /* Unlock the SPI bus */
+  SPI_LOCK(priv->spi, false);
+
+  /* Copy the received data (skip the first dummy byte) */
+  memcpy(buffer, &rxbuf[1], len);
+  ret = OK;
+
+errout:
+  if (txbuf != NULL)
+    {
+      kmm_free(txbuf);
+    }
+  if (rxbuf != NULL)
+    {
+      kmm_free(rxbuf);
     }
 
   return ret;
 }
 
 /****************************************************************************
- * Name: gy912_spi_setfrequency
+ * Name: gy912_bmp388_initialize
  *
  * Description:
- *   Set the SPI frequency.
- *
- * Input Parameters:
- *   dev -       Device-specific state data
- *   frequency - The SPI frequency requested
- *
- * Returned Value:
- *   Returns the actual frequency selected
+ *   Initialize the BMP388 sensor
  *
  ****************************************************************************/
 
-static uint32_t gy912_spi_setfrequency(struct spi_dev_s *dev, uint32_t frequency)
+static int gy912_bmp388_initialize(FAR struct gy912_sensor_dev_s *priv)
 {
-  struct gy912_spidev_s *priv = (struct gy912_spidev_s *)dev;
-  uint32_t pclk;
-  uint32_t divisor;
-  uint8_t spbr;
-  uint8_t brdv;
+  uint8_t chip_id;
+  int ret;
 
-  /* Check if frequency is already configured */
-  if (priv->frequency == frequency)
+  sinfo("Initializing BMP388 sensor\n");
+
+  /* Read chip ID to verify communication */
+  ret = gy912_spi_read_reg(priv, BMP388_CHIP_ID_REG, &chip_id);
+  if (ret < 0)
     {
-      return priv->actual;
+      serr("Failed to read BMP388 chip ID: %d\n", ret);
+      return ret;
     }
 
-  /* Get peripheral clock frequency (PCLKA for RA8E1) */
-  pclk = BOARD_PCLKA_FREQUENCY;
-
-  /* Calculate divisor: SPI_CLK = PCLK / (2 * (SPBR + 1) * 2^BRDV) */
-  /* Find best BRDV and SPBR combination */
-  for (brdv = 0; brdv < 4; brdv++)
+  if (chip_id != BMP388_CHIP_ID_VALUE)
     {
-      divisor = (1 << (brdv + 1));
-      spbr = (pclk / (frequency * divisor)) - 1;
-
-      if (spbr <= 255)
-        {
-          break;
-        }
+      serr("Invalid BMP388 chip ID: 0x%02x (expected 0x%02x)\n",
+           chip_id, BMP388_CHIP_ID_VALUE);
+      return -ENODEV;
     }
 
-  /* Limit SPBR to valid range */
-  if (spbr > 255)
+  sinfo("BMP388 chip ID verified: 0x%02x\n", chip_id);
+
+  /* Perform soft reset */
+  ret = gy912_spi_write_reg(priv, BMP388_CMD_REG, BMP388_CMD_SOFT_RESET);
+  if (ret < 0)
     {
-      spbr = 255;
+      serr("Failed to reset BMP388: %d\n", ret);
+      return ret;
     }
 
-  /* Calculate actual frequency */
-  priv->actual = pclk / ((spbr + 1) * (1 << (brdv + 1)));
-  priv->frequency = frequency;
+  /* Wait for reset to complete */
+  usleep(10000);  /* 10ms */
 
-  /* Configure bit rate */
-  gy912_spi_putreg8(priv, RA8E1_SPI_SPBR_OFFSET, spbr);
+  /* Configure power control - enable pressure and temperature */
+  ret = gy912_spi_write_reg(priv, BMP388_PWR_CTRL_REG,
+                           BMP388_PWR_CTRL_PRESS_EN | BMP388_PWR_CTRL_TEMP_EN |
+                           BMP388_PWR_CTRL_MODE_NORMAL);
+  if (ret < 0)
+    {
+      serr("Failed to configure BMP388 power control: %d\n", ret);
+      return ret;
+    }
 
-  /* Update command register with BRDV */
-  uint16_t spcmd = gy912_spi_getreg16(priv, RA8E1_SPI_SPCMD0_OFFSET);
-  spcmd &= ~RA8E1_SPI_SPCMD_BRDV_MASK;
-  spcmd |= (brdv << 2) & RA8E1_SPI_SPCMD_BRDV_MASK;
-  gy912_spi_putreg16(priv, RA8E1_SPI_SPCMD0_OFFSET, spcmd);
+  /* Configure oversampling (default settings) */
+  ret = gy912_spi_write_reg(priv, BMP388_OSR_REG, 0x00);
+  if (ret < 0)
+    {
+      serr("Failed to configure BMP388 oversampling: %d\n", ret);
+      return ret;
+    }
 
-  spiinfo("Frequency %d->%d\n", frequency, priv->actual);
-  return priv->actual;
+  /* Configure output data rate */
+  ret = gy912_spi_write_reg(priv, BMP388_ODR_REG, 0x00);
+  if (ret < 0)
+    {
+      serr("Failed to configure BMP388 ODR: %d\n", ret);
+      return ret;
+    }
+
+  sinfo("BMP388 initialization completed successfully\n");
+  return OK;
 }
 
 /****************************************************************************
- * Name: gy912_spi_setmode
+ * Name: gy912_bmp388_read_data
  *
  * Description:
- *   Set the SPI mode.
- *
- * Input Parameters:
- *   dev  - Device-specific state data
- *   mode - The SPI mode requested
- *
- * Returned Value:
- *   Returns the actual SPI mode selected
+ *   Read pressure and temperature data from BMP388
  *
  ****************************************************************************/
 
-static void gy912_spi_setmode(struct spi_dev_s *dev, enum spi_mode_e mode)
+static int gy912_bmp388_read_data(FAR struct gy912_sensor_dev_s *priv)
 {
-  struct gy912_spidev_s *priv = (struct gy912_spidev_s *)dev;
-  uint16_t spcmd;
+  uint8_t data[6];
+  uint32_t raw_pressure;
+  uint32_t raw_temperature;
+  struct timespec ts;
+  int ret;
 
-  spiinfo("mode=%d\n", mode);
-
-  /* Has the mode changed? */
-  if (mode != priv->mode)
+  /* Read pressure and temperature data */
+  ret = gy912_spi_read_block(priv, BMP388_DATA_0_REG, data, 6);
+  if (ret < 0)
     {
-      /* Configure CPOL and CPHA in SPCMD0 register */
-      spcmd = gy912_spi_getreg16(priv, RA8E1_SPI_SPCMD0_OFFSET);
-      spcmd &= ~(RA8E1_SPI_SPCMD_CPOL | RA8E1_SPI_SPCMD_CPHA);
+      serr("Failed to read BMP388 data: %d\n", ret);
+      return ret;
+    }
 
-      switch (mode)
+  /* Extract raw values */
+  raw_pressure = (uint32_t)data[2] << 16 | (uint32_t)data[1] << 8 | data[0];
+  raw_temperature = (uint32_t)data[5] << 16 | (uint32_t)data[4] << 8 | data[3];
+
+  /* Get current timestamp */
+  clock_gettime(CLOCK_REALTIME, &ts);
+
+  /* Convert and store data (simplified conversion for demo) */
+  priv->data.baro_data.timestamp = (uint64_t)ts.tv_sec * 1000000 + ts.tv_nsec / 1000;
+  priv->data.baro_data.pressure = (float)raw_pressure / 100.0f;  /* Convert to hPa */
+  priv->data.baro_data.temperature = (float)raw_temperature / 100.0f;  /* Convert to °C */
+
+  return OK;
+}
+
+/****************************************************************************
+ * Name: gy912_bmp388_selftest
+ *
+ * Description:
+ *   Perform BMP388 self-test
+ *
+ ****************************************************************************/
+
+static int gy912_bmp388_selftest(FAR struct gy912_sensor_dev_s *priv,
+                                 FAR uint32_t *result)
+{
+  uint8_t chip_id;
+  uint8_t status;
+  int ret;
+
+  *result = 0;
+
+  /* Test 1: Verify chip ID */
+  ret = gy912_spi_read_reg(priv, BMP388_CHIP_ID_REG, &chip_id);
+  if (ret < 0 || chip_id != BMP388_CHIP_ID_VALUE)
+    {
+      *result |= (1 << 0);  /* Chip ID test failed */
+    }
+
+  /* Test 2: Check status register */
+  ret = gy912_spi_read_reg(priv, BMP388_STATUS_REG, &status);
+  if (ret < 0)
+    {
+      *result |= (1 << 1);  /* Status read failed */
+    }
+
+  /* Test 3: Try to read sensor data */
+  ret = gy912_bmp388_read_data(priv);
+  if (ret < 0)
+    {
+      *result |= (1 << 2);  /* Data read failed */
+    }
+
+  return OK;
+}
+
+/****************************************************************************
+ * Name: gy912_icm20948_initialize
+ *
+ * Description:
+ *   Initialize the ICM20948 sensor
+ *
+ ****************************************************************************/
+
+static int gy912_icm20948_initialize(FAR struct gy912_sensor_dev_s *priv)
+{
+  uint8_t who_am_i;
+  int ret;
+
+  sinfo("Initializing ICM20948 sensor\n");
+
+  /* Read WHO_AM_I register to verify communication */
+  ret = gy912_spi_read_reg(priv, ICM20948_WHO_AM_I, &who_am_i);
+  if (ret < 0)
+    {
+      serr("Failed to read ICM20948 WHO_AM_I: %d\n", ret);
+      return ret;
+    }
+
+  if (who_am_i != ICM20948_WHO_AM_I_VALUE)
+    {
+      serr("Invalid ICM20948 WHO_AM_I: 0x%02x (expected 0x%02x)\n",
+           who_am_i, ICM20948_WHO_AM_I_VALUE);
+      return -ENODEV;
+    }
+
+  sinfo("ICM20948 WHO_AM_I verified: 0x%02x\n", who_am_i);
+
+  /* Perform device reset */
+  ret = gy912_spi_write_reg(priv, ICM20948_PWR_MGMT_1,
+                           ICM20948_PWR_MGMT_1_DEVICE_RESET);
+  if (ret < 0)
+    {
+      serr("Failed to reset ICM20948: %d\n", ret);
+      return ret;
+    }
+
+  /* Wait for reset to complete */
+  usleep(100000);  /* 100ms */
+
+  /* Wake up the device and select auto clock */
+  ret = gy912_spi_write_reg(priv, ICM20948_PWR_MGMT_1,
+                           ICM20948_PWR_MGMT_1_CLKSEL_AUTO);
+  if (ret < 0)
+    {
+      serr("Failed to configure ICM20948 power management 1: %d\n", ret);
+      return ret;
+    }
+
+  /* Enable accelerometer and gyroscope */
+  ret = gy912_spi_write_reg(priv, ICM20948_PWR_MGMT_2, 0x00);
+  if (ret < 0)
+    {
+      serr("Failed to configure ICM20948 power management 2: %d\n", ret);
+      return ret;
+    }
+
+  sinfo("ICM20948 initialization completed successfully\n");
+  return OK;
+}
+
+/****************************************************************************
+ * Name: gy912_icm20948_read_accel
+ *
+ * Description:
+ *   Read accelerometer data from ICM20948
+ *
+ ****************************************************************************/
+
+static int gy912_icm20948_read_accel(FAR struct gy912_sensor_dev_s *priv)
+{
+  uint8_t data[6];
+  int16_t raw_x, raw_y, raw_z;
+  struct timespec ts;
+  int ret;
+
+  /* Read accelerometer data */
+  ret = gy912_spi_read_block(priv, ICM20948_ACCEL_XOUT_H, data, 6);
+  if (ret < 0)
+    {
+      serr("Failed to read ICM20948 accelerometer data: %d\n", ret);
+      return ret;
+    }
+
+  /* Extract raw values */
+  raw_x = (int16_t)((uint16_t)data[0] << 8 | data[1]);
+  raw_y = (int16_t)((uint16_t)data[2] << 8 | data[3]);
+  raw_z = (int16_t)((uint16_t)data[4] << 8 | data[5]);
+
+  /* Get current timestamp */
+  clock_gettime(CLOCK_REALTIME, &ts);
+
+  /* Convert and store data (simplified conversion for demo) */
+  priv->data.accel_data.timestamp = (uint64_t)ts.tv_sec * 1000000 + ts.tv_nsec / 1000;
+  priv->data.accel_data.x = (float)raw_x * 9.81f / 16384.0f;  /* Convert to m/s² */
+  priv->data.accel_data.y = (float)raw_y * 9.81f / 16384.0f;
+  priv->data.accel_data.z = (float)raw_z * 9.81f / 16384.0f;
+  priv->data.accel_data.temperature = 25.0f;  /* Placeholder temperature */
+
+  return OK;
+}
+
+/****************************************************************************
+ * Name: gy912_icm20948_read_gyro
+ *
+ * Description:
+ *   Read gyroscope data from ICM20948
+ *
+ ****************************************************************************/
+
+static int gy912_icm20948_read_gyro(FAR struct gy912_sensor_dev_s *priv)
+{
+  uint8_t data[6];
+  int16_t raw_x, raw_y, raw_z;
+  struct timespec ts;
+  int ret;
+
+  /* Read gyroscope data */
+  ret = gy912_spi_read_block(priv, ICM20948_GYRO_XOUT_H, data, 6);
+  if (ret < 0)
+    {
+      serr("Failed to read ICM20948 gyroscope data: %d\n", ret);
+      return ret;
+    }
+
+  /* Extract raw values */
+  raw_x = (int16_t)((uint16_t)data[0] << 8 | data[1]);
+  raw_y = (int16_t)((uint16_t)data[2] << 8 | data[3]);
+  raw_z = (int16_t)((uint16_t)data[4] << 8 | data[5]);
+
+  /* Get current timestamp */
+  clock_gettime(CLOCK_REALTIME, &ts);
+
+  /* Convert and store data (simplified conversion for demo) */
+  priv->data.gyro_data.timestamp = (uint64_t)ts.tv_sec * 1000000 + ts.tv_nsec / 1000;
+  priv->data.gyro_data.x = (float)raw_x * 3.14159f / (180.0f * 131.0f);  /* Convert to rad/s */
+  priv->data.gyro_data.y = (float)raw_y * 3.14159f / (180.0f * 131.0f);
+  priv->data.gyro_data.z = (float)raw_z * 3.14159f / (180.0f * 131.0f);
+  priv->data.gyro_data.temperature = 25.0f;  /* Placeholder temperature */
+
+  return OK;
+}
+
+/****************************************************************************
+ * Name: gy912_icm20948_read_mag
+ *
+ * Description:
+ *   Read magnetometer data from ICM20948 (placeholder implementation)
+ *
+ ****************************************************************************/
+
+static int gy912_icm20948_read_mag(FAR struct gy912_sensor_dev_s *priv)
+{
+  struct timespec ts;
+
+  /* Get current timestamp */
+  clock_gettime(CLOCK_REALTIME, &ts);
+
+  /* Placeholder magnetometer data (ICM20948 magnetometer requires I2C master setup) */
+  priv->data.mag_data.timestamp = (uint64_t)ts.tv_sec * 1000000 + ts.tv_nsec / 1000;
+  priv->data.mag_data.x = 0.0f;
+  priv->data.mag_data.y = 0.0f;
+  priv->data.mag_data.z = 0.0f;
+  priv->data.mag_data.temperature = 25.0f;
+  priv->data.mag_data.status = 0;
+
+  return OK;
+}
+
+/****************************************************************************
+ * Name: gy912_icm20948_selftest
+ *
+ * Description:
+ *   Perform ICM20948 self-test
+ *
+ ****************************************************************************/
+
+static int gy912_icm20948_selftest(FAR struct gy912_sensor_dev_s *priv,
+                                   FAR uint32_t *result)
+{
+  uint8_t who_am_i;
+  int ret;
+
+  *result = 0;
+
+  /* Test 1: Verify WHO_AM_I */
+  ret = gy912_spi_read_reg(priv, ICM20948_WHO_AM_I, &who_am_i);
+  if (ret < 0 || who_am_i != ICM20948_WHO_AM_I_VALUE)
+    {
+      *result |= (1 << 0);  /* WHO_AM_I test failed */
+    }
+
+  /* Test 2: Try to read accelerometer data */
+  ret = gy912_icm20948_read_accel(priv);
+  if (ret < 0)
+    {
+      *result |= (1 << 1);  /* Accelerometer read failed */
+    }
+
+  /* Test 3: Try to read gyroscope data */
+  ret = gy912_icm20948_read_gyro(priv);
+  if (ret < 0)
+    {
+      *result |= (1 << 2);  /* Gyroscope read failed */
+    }
+
+  return OK;
+}
+
+/****************************************************************************
+ * Name: gy912_sensor_activate
+ *
+ * Description:
+ *   Activate or deactivate the sensor
+ *
+ ****************************************************************************/
+
+static int gy912_sensor_activate(FAR struct sensor_lowerhalf_s *lower,
+                                 FAR struct file *filep, bool enable)
+{
+  FAR struct gy912_sensor_dev_s *priv = (FAR struct gy912_sensor_dev_s *)lower;
+  int ret;
+
+  /* Take the semaphore */
+  ret = nxsem_wait(&priv->exclsem);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
+  if (enable && !priv->enabled)
+    {
+      /* Initialize the sensor based on its type */
+      switch (lower->type)
         {
-          case SPIDEV_MODE0: /* CPOL=0; CPHA=0 */
+          case SENSOR_TYPE_BAROMETER:
+            ret = gy912_bmp388_initialize(priv);
             break;
 
-          case SPIDEV_MODE1: /* CPOL=0; CPHA=1 */
-            spcmd |= RA8E1_SPI_SPCMD_CPHA;
-            break;
-
-          case SPIDEV_MODE2: /* CPOL=1; CPHA=0 */
-            spcmd |= RA8E1_SPI_SPCMD_CPOL;
-            break;
-
-          case SPIDEV_MODE3: /* CPOL=1; CPHA=1 */
-            spcmd |= (RA8E1_SPI_SPCMD_CPOL | RA8E1_SPI_SPCMD_CPHA);
+          case SENSOR_TYPE_ACCELEROMETER:
+          case SENSOR_TYPE_GYROSCOPE:
+          case SENSOR_TYPE_MAGNETIC_FIELD:
+            ret = gy912_icm20948_initialize(priv);
             break;
 
           default:
-            return;
+            ret = -EINVAL;
+            break;
         }
 
-      gy912_spi_putreg16(priv, RA8E1_SPI_SPCMD0_OFFSET, spcmd);
-      priv->mode = mode;
+      if (ret == OK)
+        {
+          priv->enabled = true;
+          sinfo("Sensor type %d activated\n", lower->type);
+        }
     }
-}
-
-/****************************************************************************
- * Name: gy912_spi_setbits
- *
- * Description:
- *   Set the number of bits per word.
- *
- * Input Parameters:
- *   dev   - Device-specific state data
- *   nbits - The number of bits requested
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-
-static void gy912_spi_setbits(struct spi_dev_s *dev, int nbits)
-{
-  struct gy912_spidev_s *priv = (struct gy912_spidev_s *)dev;
-  uint16_t spcmd;
-
-  spiinfo("nbits=%d\n", nbits);
-
-  /* Has the number of bits changed? */
-  if (nbits != priv->nbits)
+  else if (!enable && priv->enabled)
     {
-      /* Configure data length in SPCMD0 register */
-      spcmd = gy912_spi_getreg16(priv, RA8E1_SPI_SPCMD0_OFFSET);
-      spcmd &= ~RA8E1_SPI_SPCMD_SPB_MASK;
-
-      if (nbits <= 8)
-        {
-          spcmd |= RA8E1_SPI_SPCMD_SPB_8;
-          priv->nbits = 8;
-        }
-      else if (nbits <= 16)
-        {
-          spcmd |= RA8E1_SPI_SPCMD_SPB_16;
-          priv->nbits = 16;
-        }
-      else
-        {
-          spierr("ERROR: Unsupported nbits: %d\n", nbits);
-          return;
-        }
-
-      gy912_spi_putreg16(priv, RA8E1_SPI_SPCMD0_OFFSET, spcmd);
-    }
-}
-
-#ifdef CONFIG_SPI_HWFEATURES
-/****************************************************************************
- * Name: gy912_spi_hwfeatures
- *
- * Description:
- *   Set hardware-specific feature flags.
- *
- * Input Parameters:
- *   dev      - Device-specific state data
- *   features - H/W feature flags
- *
- * Returned Value:
- *   Zero (OK) if the selected H/W features are enabled; A negated errno
- *   value if any H/W feature is not supportable.
- *
- ****************************************************************************/
-
-static int gy912_spi_hwfeatures(struct spi_dev_s *dev, spi_hwfeatures_t features)
-{
-  /* Other H/W features are not supported */
-  return (features == 0) ? OK : -ENOSYS;
-}
-#endif
-
-/****************************************************************************
- * Name: gy912_spi_send
- *
- * Description:
- *   Exchange one word on SPI
- *
- * Input Parameters:
- *   dev - Device-specific state data
- *   wd  - The word to send.  the size of the data is determined by the
- *         number of bits selected for the SPI interface.
- *
- * Returned Value:
- *   response
- *
- ****************************************************************************/
-
-static uint32_t gy912_spi_send(struct spi_dev_s *dev, uint32_t wd)
-{
-  struct gy912_spidev_s *priv = (struct gy912_spidev_s *)dev;
-  uint32_t regval;
-  uint32_t ret;
-
-  DEBUGASSERT(priv && priv->spibase);
-
-  /* Write the data to transmit to the SPI Data Register */
-  if (priv->nbits <= 8)
-    {
-      gy912_spi_putreg8(priv, RA8E1_SPI_SPDR_OFFSET, (uint8_t)wd);
+      priv->enabled = false;
+      sinfo("Sensor type %d deactivated\n", lower->type);
+      ret = OK;
     }
   else
     {
-      gy912_spi_putreg16(priv, RA8E1_SPI_SPDR_OFFSET, (uint16_t)wd);
+      ret = OK;  /* Already in the requested state */
     }
 
-  /* Wait until the transfer is complete */
-  do
-    {
-      regval = gy912_spi_getreg8(priv, RA8E1_SPI_SPSR_OFFSET);
-    }
-  while ((regval & RA8E1_SPI_SPSR_SPTEF) == 0);
-
-  /* Wait for receive data */
-  do
-    {
-      regval = gy912_spi_getreg8(priv, RA8E1_SPI_SPSR_OFFSET);
-    }
-  while ((regval & RA8E1_SPI_SPSR_SPRF) == 0);
-
-  /* Read the received data */
-  if (priv->nbits <= 8)
-    {
-      ret = gy912_spi_getreg8(priv, RA8E1_SPI_SPDR_OFFSET);
-    }
-  else
-    {
-      ret = gy912_spi_getreg16(priv, RA8E1_SPI_SPDR_OFFSET);
-    }
-
-  spiinfo("Sent: %04x Return: %04x Status: %02x\n", wd, ret, regval);
+  nxsem_post(&priv->exclsem);
   return ret;
 }
 
 /****************************************************************************
- * Name: gy912_spi_exchange
+ * Name: gy912_sensor_set_interval
  *
  * Description:
- *   Exchange a block of data from SPI.
- *
- * Input Parameters:
- *   dev      - Device-specific state data
- *   txbuffer - A pointer to the buffer of data to be sent
- *   rxbuffer - A pointer to the buffer in which to receive data
- *   nwords   - the length of data that to be exchanged in units of words.
- *              The wordsize is determined by the number of bits-per-word
- *              selected for the SPI interface.  If nbits <= 8, the data is
- *              packed into uint8_t's; if nbits >8, the data is packed into
- *              uint16_t's
- *
- * Returned Value:
- *   None
+ *   Set the sensor sampling interval
  *
  ****************************************************************************/
 
-static void gy912_spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
-                               void *rxbuffer, size_t nwords)
+static int gy912_sensor_set_interval(FAR struct sensor_lowerhalf_s *lower,
+                                     FAR struct file *filep,
+                                     FAR uint32_t *period_us)
 {
-  struct gy912_spidev_s *priv = (struct gy912_spidev_s *)dev;
-  struct gy912_spi_transfer_s xfer;
-
-  DEBUGASSERT(priv && priv->spibase);
-
-  spiinfo("txbuffer=%p rxbuffer=%p nwords=%d\n", txbuffer, rxbuffer, nwords);
-
-  /* Set up transfer structure */
-  memset(&xfer, 0, sizeof(xfer));
-  xfer.txbuffer = txbuffer;
-  xfer.rxbuffer = rxbuffer;
-  xfer.nwords = nwords;
-  xfer.width = priv->nbits;
-  xfer.status = RA8E1_SPI_STATUS_IDLE;
-
-  /* Use DMA for large transfers if available */
-  if (nwords > 16 && !priv->dma_active)
-    {
-      if (gy912_spi_transfer_dma(dev, &xfer) == OK)
-        {
-          return;
-        }
-      /* Fall back to polling if DMA fails */
-    }
-
-  /* Use polling mode */
-  gy912_spi_transfer_polling(dev, &xfer);
-}
-
-#ifndef CONFIG_SPI_EXCHANGE
-
-/****************************************************************************
- * Name: gy912_spi_sndblock
- *
- * Description:
- *   Send a block of data on SPI
- *
- * Input Parameters:
- *   dev      - Device-specific state data
- *   txbuffer - A pointer to the buffer of data to be sent
- *   nwords   - the length of data to send from the buffer in number of words.
- *              The wordsize is determined by the number of bits-per-word
- *              selected for the SPI interface.
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-
-static void gy912_spi_sndblock(struct spi_dev_s *dev, const void *txbuffer,
-                               size_t nwords)
-{
-  spiinfo("txbuffer=%p nwords=%d\n", txbuffer, nwords);
-  return gy912_spi_exchange(dev, txbuffer, NULL, nwords);
-}
-
-/****************************************************************************
- * Name: gy912_spi_recvblock
- *
- * Description:
- *   Receive a block of data from SPI
- *
- * Input Parameters:
- *   dev      - Device-specific state data
- *   rxbuffer - A pointer to the buffer in which to receive data
- *   nwords   - the length of data that can be received in the buffer in number
- *              of words.  The wordsize is determined by the number of bits-per-word
- *              selected for the SPI interface.
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-
-static void gy912_spi_recvblock(struct spi_dev_s *dev, void *rxbuffer,
-                                size_t nwords)
-{
-  spiinfo("rxbuffer=%p nwords=%d\n", rxbuffer, nwords);
-  return gy912_spi_exchange(dev, NULL, rxbuffer, nwords);
-}
-
-#endif /* !CONFIG_SPI_EXCHANGE */
-
-/****************************************************************************
- * Name: gy912_spi_bus_initialize
- *
- * Description:
- *   Initialize the selected SPI bus in its default state (Master, 8-bit,
- *   mode 0, etc.)
- *
- * Input Parameters:
- *   priv   - private SPI device structure
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-
-static void gy912_spi_bus_initialize(struct gy912_spidev_s *priv)
-{
-  uint8_t regval;
-  uint16_t spcmd;
-
-  /* Configure the SPI pins */
-  ra_configgpio(GPIO_SPI0_SCK);
-  ra_configgpio(GPIO_SPI0_MOSI);
-  ra_configgpio(GPIO_SPI0_MISO);
-  ra_configgpio(GPIO_SPI0_SS0);
-  ra_configgpio(GPIO_SPI0_BMP_CS);
-
-  /* Enable SPI0 clock */
-  modifyreg32(RA8_SYSTEM_MSTPCRB, RA8E1_MSTP_SPI0, 0);
-
-  /* Disable SPI function */
-  gy912_spi_putreg8(priv, RA8E1_SPI_SPCR_OFFSET, 0);
-
-  /* Configure SPI Control Register */
-  regval = RA8E1_SPI_SPCR_MSTR |    /* Master mode */
-           RA8E1_SPI_SPCR_SPE;      /* SPI function enable */
-  gy912_spi_putreg8(priv, RA8E1_SPI_SPCR_OFFSET, regval);
-
-  /* Configure SPI Command Register 0 */
-  spcmd = RA8E1_SPI_SPCMD_SPB_8 |   /* 8-bit data length */
-          (0 << 4);                 /* SSL0 assertion */
-  gy912_spi_putreg16(priv, RA8E1_SPI_SPCMD0_OFFSET, spcmd);
-
-  /* Set default configuration */
-  priv->frequency = 0;
-  priv->mode = SPIDEV_MODE0;
-  priv->nbits = 8;
-
-  /* Set the initial SPI configuration */
-  gy912_spi_setmode((struct spi_dev_s *)priv, SPIDEV_MODE0);
-  gy912_spi_setbits((struct spi_dev_s *)priv, 8);
-  gy912_spi_setfrequency((struct spi_dev_s *)priv, 400000);
-
-  /* Initialize CS pins to deasserted state */
-  ra_gpiowrite(GPIO_SPI0_SS0, true);
-  ra_gpiowrite(GPIO_SPI0_BMP_CS, true);
-
-  priv->initialized = true;
-}
-
-/****************************************************************************
- * Name: gy912_spi_dma_setup
- *
- * Description:
- *   Setup DMA for SPI transfers
- *
- * Returned Value:
- *   OK on success; a negated errno on failure
- *
- ****************************************************************************/
-
-int gy912_spi_dma_setup(void)
-{
-  /* Enable DTC clock */
-  modifyreg32(RA8_SYSTEM_MSTPCRB, RA8E1_MSTP_DTC, 0);
-
-  /* Initialize DTC */
-  putreg32(0x00000001, RA8E1_DTC_BASE + RA8E1_DTC_DTCST_OFFSET);
-
-  /* TODO: Setup DTC vector table and transfer information */
-  /* This would require detailed DTC vector table setup */
-  /* For now, return OK to indicate basic setup is complete */
-
-  return OK;
-}
-
-/****************************************************************************
- * Name: gy912_spi_transfer_dma
- *
- * Description:
- *   Perform SPI transfer using DMA
- *
- * Input Parameters:
- *   dev  - SPI device structure
- *   xfer - Transfer configuration
- *
- * Returned Value:
- *   OK on success; a negated errno on failure
- *
- ****************************************************************************/
-
-int gy912_spi_transfer_dma(struct spi_dev_s *dev,
-                           struct gy912_spi_transfer_s *xfer)
-{
-  struct gy912_spidev_s *priv = (struct gy912_spidev_s *)dev;
-
-  /* TODO: Implement DMA transfer setup */
-  /* This requires:
-   * 1. Configure DTC transfer information structures
-   * 2. Setup source and destination addresses
-   * 3. Configure transfer count and mode
-   * 4. Enable DTC transfer
-   * 5. Wait for completion or setup interrupt
-   */
-
-  /* For now, fall back to polling mode */
-  return gy912_spi_transfer_polling(dev, xfer);
-}
-
-/****************************************************************************
- * Name: gy912_spi_transfer_polling
- *
- * Description:
- *   Perform SPI transfer using polling mode
- *
- * Input Parameters:
- *   dev  - SPI device structure
- *   xfer - Transfer configuration
- *
- * Returned Value:
- *   OK on success; a negated errno on failure
- *
- ****************************************************************************/
-
-int gy912_spi_transfer_polling(struct spi_dev_s *dev,
-                               struct gy912_spi_transfer_s *xfer)
-{
-  struct gy912_spidev_s *priv = (struct gy912_spidev_s *)dev;
-  const uint8_t *txptr8 = (const uint8_t *)xfer->txbuffer;
-  const uint16_t *txptr16 = (const uint16_t *)xfer->txbuffer;
-  uint8_t *rxptr8 = (uint8_t *)xfer->rxbuffer;
-  uint16_t *rxptr16 = (uint16_t *)xfer->rxbuffer;
-  size_t i;
-  uint32_t txdata;
-  uint32_t rxdata;
-
-  xfer->status = RA8E1_SPI_STATUS_BUSY;
-
-  for (i = 0; i < xfer->nwords; i++)
-    {
-      /* Get transmit data */
-      if (txptr8 || txptr16)
-        {
-          if (priv->nbits <= 8)
-            {
-              txdata = txptr8 ? txptr8[i] : 0xff;
-            }
-          else
-            {
-              txdata = txptr16 ? txptr16[i] : 0xffff;
-            }
-        }
-      else
-        {
-          txdata = (priv->nbits <= 8) ? 0xff : 0xffff;
-        }
-
-      /* Perform the exchange */
-      rxdata = gy912_spi_send(dev, txdata);
-
-      /* Store received data */
-      if (rxptr8 || rxptr16)
-        {
-          if (priv->nbits <= 8)
-            {
-              if (rxptr8)
-                {
-                  rxptr8[i] = (uint8_t)rxdata;
-                }
-            }
-          else
-            {
-              if (rxptr16)
-                {
-                  rxptr16[i] = (uint16_t)rxdata;
-                }
-            }
-        }
-    }
-
-  xfer->status = RA8E1_SPI_STATUS_COMPLETE;
-  xfer->result = OK;
-
-  return OK;
-}
-
-/****************************************************************************
- * Name: gy912_spi_cs_control
- *
- * Description:
- *   Control chip select lines
- *
- * Input Parameters:
- *   devid  - Device ID
- *   select - true to assert CS, false to deassert
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-
-void gy912_spi_cs_control(uint32_t devid, bool select)
-{
-  switch (devid)
-    {
-      case SPIDEV_IMU(0):
-        /* IMU (ICM-20948) on SS0 */
-        ra_gpiowrite(GPIO_SPI0_SS0, !select);
-        break;
-
-      case SPIDEV_BAROMETER(0):
-        /* Barometer (BMP388) on GPIO CS */
-        ra_gpiowrite(GPIO_SPI0_BMP_CS, !select);
-        break;
-
-      default:
-        break;
-    }
-}
-
-/****************************************************************************
- * Name: gy912_spi_interrupt_handler
- *
- * Description:
- *   SPI interrupt handler
- *
- ****************************************************************************/
-
-int gy912_spi_interrupt_handler(int irq, void *context, void *arg)
-{
-  struct gy912_spidev_s *priv = (struct gy912_spidev_s *)arg;
-  uint8_t status;
-
-  /* Read status register */
-  status = gy912_spi_getreg8(priv, RA8E1_SPI_SPSR_OFFSET);
-
-  /* Handle errors */
-  if (status & (RA8E1_SPI_SPSR_OVRF | RA8E1_SPI_SPSR_MODF | RA8E1_SPI_SPSR_PERF))
-    {
-      spierr("SPI Error: status=0x%02x\n", status);
-
-      if (priv->current_xfer)
-        {
-          priv->current_xfer->status = RA8E1_SPI_STATUS_ERROR;
-          priv->current_xfer->result = -EIO;
-        }
-    }
-
-  return OK;
-}
-
-/****************************************************************************
- * Name: gy912_spi_dma_interrupt_handler
- *
- * Description:
- *   DMA interrupt handler for SPI transfers
- *
- ****************************************************************************/
-
-int gy912_spi_dma_interrupt_handler(int irq, void *context, void *arg)
-{
-  struct gy912_spidev_s *priv = (struct gy912_spidev_s *)arg;
-
-  /* TODO: Handle DMA completion interrupt */
-  if (priv->current_xfer)
-    {
-      priv->current_xfer->status = RA8E1_SPI_STATUS_COMPLETE;
-      priv->current_xfer->result = OK;
-      priv->dma_active = false;
-    }
-
-  return OK;
-}
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: gy912_spi_ spi_initialize
- *
- * Description:
- *   Initialize SPI driver and register the /dev/spiN devices.
- *
- ****************************************************************************/
-
-void gy912_spi_ spi_initialize(void)
-{
-  struct spi_dev_s *spi;
-
-  /* Initialize SPI0 */
-  gy912_spi_bus_initialize(&g_spi0dev);
-
-  /* Setup DMA if available */
-  gy912_spi_dma_setup();
-
-  /* Get the SPI0 port interface */
-  spi = (struct spi_dev_s *)&g_spi0dev;
-
-  /* Register the SPI driver */
-  spi_register(spi, 0);
-
-  spiinfo("SPI0 initialized with DMA support\n");
-}
-
-/****************************************************************************
- * Name: ra_spi0_select, ra_spi0_status, and ra_spi0_cmddata
- *
- * Description:
- *   These external functions must be provided by board-specific logic.
- *   They are implementations of the select, status, and cmddata methods
- *   of the SPI interface defined by struct spi_ops_s (see include/nuttx/spi/spi.h).
- *   All other methods including ra_spibus_initialize()) are provided by
- *   common RA8 logic.
- *
- ****************************************************************************/
-
-void ra_spi0_select(struct spi_dev_s *dev, uint32_t devid, bool selected)
-{
-  spiinfo("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
-  gy912_spi_cs_control(devid, selected);
-}
-
-uint8_t ra_spi0_status(struct spi_dev_s *dev, uint32_t devid)
-{
-  uint8_t status = 0;
-
-  switch (devid)
-    {
-      case SPIDEV_IMU(0):
-      case SPIDEV_BAROMETER(0):
-        status |= SPI_STATUS_PRESENT;
-        break;
-
-      default:
-        break;
-    }
-
-  return status;
-}
-
-#ifdef CONFIG_SPI_CMDDATA
-int ra_spi0_cmddata(struct spi_dev_s *dev, uint32_t devid, bool cmd)
-{
-  /* SPI sensors typically don't use command/data distinction */
-  return OK;
-}
-#endif
-
-#endif /* CONFIG_RA_SPI */
-
-#if CONFIG_SPI_GY912_SAMPLE
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-#define GY912_HELP \
-  "Usage: gy912_test [OPTIONS]\n" \
-  "\n" \
-  "OPTIONS:\n" \
-  "  -h, --help     Show this help message\n" \
-  "  -s, --single   Perform single reading\n" \
-  "  -r, --run      Run continuous demonstration\n" \
-  "  -t, --test     Run self-test only\n" \
-  "  -i, --init     Initialize sensors only\n" \
-  "\n" \
-  "Examples:\n" \
-  "  gy912_test -s      # Single sensor reading\n" \
-  "  gy912_test -r      # Run continuous demo\n" \
-  "  gy912_test -t      # Run self-test\n"
-
-/****************************************************************************
- * External Functions
- ****************************************************************************/
-
-/* These functions should be declared in a header file, but for simplicity
- * we declare them here. In a real implementation, they would be in
- * include/nuttx/sensors/gy912.h or similar.
- */
-
-extern int gy912_spi_initialize(void);
-extern int gy912_run(void);
-extern int gy912_single_read(void);
-extern int gy912_self_test(void);
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: show_help
- *
- * Description:
- *   Show help message
- *
- ****************************************************************************/
-
-static void show_help(void)
-{
-  printf(GY912_HELP);
-}
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: ra8e1_spi_gy912_init
- *
- * Description:
- *   Initialize the SPI GY-912 demo
- *
- ****************************************************************************/
-
-int ra8e1_spi_gy912_init(void)
-{
-  /* Initialize GY-912 sensor module */
-  return gy912_spi_initialize();
-}
-
-/****************************************************************************
- * Name: ra8e1_spi_gy912_main
- *
- * Description:
- *   GY-912 SPI demo main function
- *
- ****************************************************************************/
-
-int ra8e1_spi_gy912_main(int argc, FAR char *argv[])
-{
-  int ret = OK;
-  bool help = false;
-  bool single = false;
-  bool run = false;
-  bool test = false;
-  bool init_only = false;
-  int i;
-
-  printf("GY-912 10DOF Sensor Test Application\n");
-  printf("====================================\n\n");
-
-  /* Parse command line arguments */
-  for (i = 1; i < argc; i++)
-    {
-      if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0)
-        {
-          help = true;
-        }
-      else if (strcmp(argv[i], "-s") == 0 || strcmp(argv[i], "--single") == 0)
-        {
-          single = true;
-        }
-      else if (strcmp(argv[i], "-r") == 0 || strcmp(argv[i], "--run") == 0)
-        {
-          run = true;
-        }
-      else if (strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--test") == 0)
-        {
-          test = true;
-        }
-      else if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--init") == 0)
-        {
-          init_only = true;
-        }
-      else
-        {
-          printf("Unknown option: %s\n\n", argv[i]);
-          show_help();
-          return EXIT_FAILURE;
-        }
-    }
-
-  if (help)
-    {
-      show_help();
-      return EXIT_SUCCESS;
-    }
-
-  /* If no specific action requested, show help */
-  if (!single && !run && !test && !init_only)
-    {
-      printf("No action specified. Available actions:\n\n");
-      show_help();
-      return EXIT_SUCCESS;
-    }
-
-  /* Initialize sensors */
-  printf("Initializing GY-912 sensors...\n");
-  ret = gy912_spi_initialize();
-  if (ret < 0)
-    {
-      printf("ERROR: Failed to initialize GY-912 sensors: %d\n", ret);
-      return EXIT_FAILURE;
-    }
-
-  printf("GY-912 sensors initialized successfully!\n\n");
-
-  if (init_only)
-    {
-      printf("Initialization complete.\n");
-      return EXIT_SUCCESS;
-    }
-
-  /* Perform requested action */
-  if (test)
-    {
-      printf("Running self-test...\n");
-      ret = gy912_self_test();
-      if (ret < 0)
-        {
-          printf("ERROR: Self-test failed: %d\n", ret);
-          return EXIT_FAILURE;
-        }
-      printf("Self-test completed successfully!\n\n");
-    }
-
-  if (single)
-    {
-      printf("Performing single sensor reading...\n");
-      ret = gy912_single_read();
-      if (ret < 0)
-        {
-          printf("ERROR: Single reading failed: %d\n", ret);
-          return EXIT_FAILURE;
-        }
-      printf("Single reading completed!\n\n");
-    }
-
-  if (run)
-    {
-      printf("Starting continuous demonstration...\n");
-      printf("Press Ctrl+C to stop.\n\n");
-      ret = gy912_run();
-      if (ret < 0)
-        {
-          printf("ERROR: Demonstration failed: %d\n", ret);
-          return EXIT_FAILURE;
-        }
-      printf("Demonstration completed!\n\n");
-    }
-
-  return EXIT_SUCCESS;
-}
-
-#endif /* CONFIG_SPI_GY912_SAMPLE */
-
-
-/****************************************************************************
- * Name: ra8e1_spi_initialize
- *
- * Description:
- *   Initialize SPI buses for the FPB-RA8E1 board
- *   This function initializes both SPI0 and SPI1 for loopback demo
- *
- ****************************************************************************/
-
-int ra8e1_spi_initialize(void)
-{
-#ifdef CONFIG_RA_SPI
-  struct spi_dev_s *spi0;
-  struct spi_dev_s *spi1;
+  FAR struct gy912_sensor_dev_s *priv = (FAR struct gy912_sensor_dev_s *)lower;
   int ret;
 
-  /* Initialize SPI0 (Master) */
-  spi0 = ra_spibus_initialize(0);
-  if (!spi0)
+  /* Validate the interval */
+  if (*period_us < GY912_MIN_INTERVAL_US)
     {
-      syslog(LOG_ERR, "ERROR: Failed to initialize SPI0 (Master)\n");
-      return -ENODEV;
+      *period_us = GY912_MIN_INTERVAL_US;
+    }
+  else if (*period_us > GY912_MAX_INTERVAL_US)
+    {
+      *period_us = GY912_MAX_INTERVAL_US;
     }
 
-  /* Register SPI0 device */
-  spi_register(spi0, 0);
-  syslog(LOG_INFO, "SPI0 (Master) initialized successfully\n");
-
-#ifdef CONFIG_RA_SPI1
-  /* Initialize SPI1 (Slave) */
-  spi1 = ra_spibus_initialize(1);
-  if (!spi1)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to initialize SPI1 (Slave)\n");
-      return -ENODEV;
-    }
-
-  /* Register SPI1 device */
-  spi_register(spi1, 1);
-  syslog(LOG_INFO, "SPI1 (Slave) initialized successfully\n");
-#endif
-
-#ifdef CONFIG_SPI_DRIVER
-  /* Register SPI character drivers */
-  ret = spi_register_driver("/dev/spi0", spi0);
+  /* Take the semaphore */
+  ret = nxsem_wait(&priv->exclsem);
   if (ret < 0)
     {
-      syslog(LOG_ERR, "ERROR: Failed to register SPI0 driver: %d\n", ret);
       return ret;
     }
 
-#ifdef CONFIG_RA_SPI1
-  ret = spi_register_driver("/dev/spi1", spi1);
+  priv->interval_us = *period_us;
+  sinfo("Sensor type %d interval set to %u us\n", lower->type, *period_us);
+
+  nxsem_post(&priv->exclsem);
+  return OK;
+}
+
+/****************************************************************************
+ * Name: gy912_sensor_fetch
+ *
+ * Description:
+ *   Fetch sensor data
+ *
+ ****************************************************************************/
+
+static int gy912_sensor_fetch(FAR struct sensor_lowerhalf_s *lower,
+                             FAR struct file *filep,
+                             FAR char *buffer, size_t buflen)
+{
+  FAR struct gy912_sensor_dev_s *priv = (FAR struct gy912_sensor_dev_s *)lower;
+  int ret;
+  size_t data_size;
+
+  if (!priv->enabled)
+    {
+      return -ENODEV;
+    }
+
+  /* Take the semaphore */
+  ret = nxsem_wait(&priv->exclsem);
   if (ret < 0)
     {
-      syslog(LOG_ERR, "ERROR: Failed to register SPI1 driver: %d\n", ret);
       return ret;
     }
-#endif
-#endif
 
-  syslog(LOG_INFO, "All SPI interfaces initialized for loopback demo\n");
-
-#endif /* CONFIG_RA_SPI */
-
-  return 0;
-}
-
-/****************************************************************************
- * Name: ra_spi0select
- *
- * Description:
- *   Select or deselect the SPI device specified by 'devid' for SPI0
- *
- ****************************************************************************/
-
-#ifdef CONFIG_RA_SPI
-void ra_spi0select(FAR struct spi_dev_s *dev, uint32_t devid,
-                     bool selected)
-{
-  spiinfo("SPI0 devid: %" PRIu32 " CS: %s\n",
-          devid, selected ? "assert" : "de-assert");
-
-  /* Handle device selection based on device ID */
-  switch (devid)
+  /* Read sensor data based on type */
+  switch (lower->type)
     {
-#ifdef CONFIG_RA_SPI_GY912
-      case SPIDEV_GY912(0):
-        /* Handle GY-912 sensor chip select on SPI0 */
-        /* Implementation would go here based on hardware pinout */
+      case SENSOR_TYPE_BAROMETER:
+        ret = gy912_bmp388_read_data(priv);
+        data_size = sizeof(struct sensor_baro);
         break;
-#endif
 
-#ifdef CONFIG_RA_SPI_LOOPBACK_EXAMPLE
-      case SPIDEV_USER(0):
-        /* Handle loopback demo device selection */
-        /* For loopback demo, CS handling may be simplified */
+      case SENSOR_TYPE_ACCELEROMETER:
+        ret = gy912_icm20948_read_accel(priv);
+        data_size = sizeof(struct sensor_accel);
         break;
-#endif
+
+      case SENSOR_TYPE_GYROSCOPE:
+        ret = gy912_icm20948_read_gyro(priv);
+        data_size = sizeof(struct sensor_gyro);
+        break;
+
+      case SENSOR_TYPE_MAGNETIC_FIELD:
+        ret = gy912_icm20948_read_mag(priv);
+        data_size = sizeof(struct sensor_mag);
+        break;
 
       default:
-        break;
-    }
-}
-
-/****************************************************************************
- * Name: ra_spi1select
- *
- * Description:
- *   Select or deselect the SPI device specified by 'devid' for SPI1
- *
- ****************************************************************************/
-
-#ifdef CONFIG_RA_SPI1
-void ra_spi1select(FAR struct spi_dev_s *dev, uint32_t devid,
-                     bool selected)
-{
-  spiinfo("SPI1 devid: %" PRIu32 " CS: %s\n",
-          devid, selected ? "assert" : "de-assert");
-
-  /* Handle device selection based on device ID */
-  switch (devid)
-    {
-#ifdef CONFIG_RA_SPI_LOOPBACK_EXAMPLE
-      case SPIDEV_USER(1):
-        /* Handle loopback demo device selection for SPI1 */
-        /* For loopback demo between SPI0 and SPI1 */
-        break;
-#endif
-
-      default:
-        break;
-    }
-}
-#endif
-
-/****************************************************************************
- * Name: ra_spi0status
- *
- * Description:
- *   Return status information associated with the SPI0 device.
- *
- ****************************************************************************/
-
-uint8_t ra_spi0status(FAR struct spi_dev_s *dev, uint32_t devid)
-{
-  uint8_t status = 0;
-
-  switch (devid)
-    {
-#ifdef CONFIG_RA_SPI_GY912
-      case SPIDEV_GY912(0):
-        /* Return status for GY-912 sensor */
-        status = SPI_STATUS_PRESENT;
-        break;
-#endif
-
-#ifdef CONFIG_RA_SPI_LOOPBACK_EXAMPLE
-      case SPIDEV_USER(0):
-        /* Return status for loopback demo */
-        status = SPI_STATUS_PRESENT;
-        break;
-#endif
-
-      default:
+        ret = -EINVAL;
+        data_size = 0;
         break;
     }
 
-  return status;
+  if (ret == OK && buflen >= data_size)
+    {
+      memcpy(buffer, &priv->data, data_size);
+      ret = data_size;
+    }
+  else if (ret == OK)
+    {
+      ret = -ENOBUFS;
+    }
+
+  nxsem_post(&priv->exclsem);
+  return ret;
 }
 
 /****************************************************************************
- * Name: ra_spi1status
+ * Name: gy912_sensor_selftest
  *
  * Description:
- *   Return status information associated with the SPI1 device.
+ *   Perform sensor self-test
  *
  ****************************************************************************/
 
-#ifdef CONFIG_RA_SPI1
-uint8_t ra_spi1status(FAR struct spi_dev_s *dev, uint32_t devid)
+static int gy912_sensor_selftest(FAR struct sensor_lowerhalf_s *lower,
+                                FAR struct file *filep,
+                                FAR uint32_t *result)
 {
-  uint8_t status = 0;
+  FAR struct gy912_sensor_dev_s *priv = (FAR struct gy912_sensor_dev_s *)lower;
+  int ret;
 
-  switch (devid)
+  /* Take the semaphore */
+  ret = nxsem_wait(&priv->exclsem);
+  if (ret < 0)
     {
-#ifdef CONFIG_RA_SPI_LOOPBACK_EXAMPLE
-      case SPIDEV_USER(1):
-        /* Return status for loopback demo */
-        status = SPI_STATUS_PRESENT;
+      return ret;
+    }
+
+  /* Perform self-test based on sensor type */
+  switch (lower->type)
+    {
+      case SENSOR_TYPE_BAROMETER:
+        ret = gy912_bmp388_selftest(priv, result);
         break;
-#endif
+
+      case SENSOR_TYPE_ACCELEROMETER:
+      case SENSOR_TYPE_GYROSCOPE:
+      case SENSOR_TYPE_MAGNETIC_FIELD:
+        ret = gy912_icm20948_selftest(priv, result);
+        break;
 
       default:
+        ret = -EINVAL;
+        *result = 0xFFFFFFFF;
         break;
     }
 
-  return status;
+  nxsem_post(&priv->exclsem);
+  return ret;
 }
-#endif
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: gy912_register_sensors
+ *
+ * Description:
+ *   Register GY-912 sensors with the sensor framework
+ *
+ ****************************************************************************/
+
+int gy912_register_sensors(FAR struct spi_dev_s *spi)
+{
+  FAR struct gy912_sensor_dev_s *bmp388_dev;
+  FAR struct gy912_sensor_dev_s *accel_dev;
+  FAR struct gy912_sensor_dev_s *gyro_dev;
+  FAR struct gy912_sensor_dev_s *mag_dev;
+  int ret;
+
+  DEBUGASSERT(spi != NULL);
+
+  /* Register BMP388 barometer */
+  bmp388_dev = kmm_zalloc(sizeof(struct gy912_sensor_dev_s));
+  if (bmp388_dev == NULL)
+    {
+      serr("Failed to allocate BMP388 device structure\n");
+      return -ENOMEM;
+    }
+
+  bmp388_dev->lower.ops = &g_gy912_sensor_ops;
+  bmp388_dev->lower.type = SENSOR_TYPE_BAROMETER;
+  bmp388_dev->lower.nbuffer = 1;
+  bmp388_dev->spi = spi;
+  bmp388_dev->devid = GY912_SPI_BMP388_DEVID;
+  bmp388_dev->frequency = 1000000;  /* 1 MHz */
+  bmp388_dev->interval_us = GY912_DEFAULT_INTERVAL_US;
+  bmp388_dev->enabled = false;
+  nxsem_init(&bmp388_dev->exclsem, 0, 1);
+
+  ret = sensor_register(&bmp388_dev->lower, 0);
+  if (ret < 0)
+    {
+      serr("Failed to register BMP388 sensor: %d\n", ret);
+      kmm_free(bmp388_dev);
+      return ret;
+    }
+
+  sinfo("BMP388 barometer registered successfully\n");
+
+  /* Register ICM20948 accelerometer */
+  accel_dev = kmm_zalloc(sizeof(struct gy912_sensor_dev_s));
+  if (accel_dev == NULL)
+    {
+      serr("Failed to allocate ICM20948 accelerometer device structure\n");
+      return -ENOMEM;
+    }
+
+  accel_dev->lower.ops = &g_gy912_sensor_ops;
+  accel_dev->lower.type = SENSOR_TYPE_ACCELEROMETER;
+  accel_dev->lower.nbuffer = 1;
+  accel_dev->spi = spi;
+  accel_dev->devid = GY912_SPI_ICM20948_DEVID;
+  accel_dev->frequency = 1000000;  /* 1 MHz */
+  accel_dev->interval_us = GY912_DEFAULT_INTERVAL_US;
+  accel_dev->enabled = false;
+  nxsem_init(&accel_dev->exclsem, 0, 1);
+
+  ret = sensor_register(&accel_dev->lower, 0);
+  if (ret < 0)
+    {
+      serr("Failed to register ICM20948 accelerometer: %d\n", ret);
+      kmm_free(accel_dev);
+      return ret;
+    }
+
+  sinfo("ICM20948 accelerometer registered successfully\n");
+
+  /* Register ICM20948 gyroscope */
+  gyro_dev = kmm_zalloc(sizeof(struct gy912_sensor_dev_s));
+  if (gyro_dev == NULL)
+    {
+      serr("Failed to allocate ICM20948 gyroscope device structure\n");
+      return -ENOMEM;
+    }
+
+  gyro_dev->lower.ops = &g_gy912_sensor_ops;
+  gyro_dev->lower.type = SENSOR_TYPE_GYROSCOPE;
+  gyro_dev->lower.nbuffer = 1;
+  gyro_dev->spi = spi;
+  gyro_dev->devid = GY912_SPI_ICM20948_DEVID;
+  gyro_dev->frequency = 1000000;  /* 1 MHz */
+  gyro_dev->interval_us = GY912_DEFAULT_INTERVAL_US;
+  gyro_dev->enabled = false;
+  nxsem_init(&gyro_dev->exclsem, 0, 1);
+
+  ret = sensor_register(&gyro_dev->lower, 0);
+  if (ret < 0)
+    {
+      serr("Failed to register ICM20948 gyroscope: %d\n", ret);
+      kmm_free(gyro_dev);
+      return ret;
+    }
+
+  sinfo("ICM20948 gyroscope registered successfully\n");
+
+  /* Register ICM20948 magnetometer */
+  mag_dev = kmm_zalloc(sizeof(struct gy912_sensor_dev_s));
+  if (mag_dev == NULL)
+    {
+      serr("Failed to allocate ICM20948 magnetometer device structure\n");
+      return -ENOMEM;
+    }
+
+  mag_dev->lower.ops = &g_gy912_sensor_ops;
+  mag_dev->lower.type = SENSOR_TYPE_MAGNETIC_FIELD;
+  mag_dev->lower.nbuffer = 1;
+  mag_dev->spi = spi;
+  mag_dev->devid = GY912_SPI_ICM20948_DEVID;
+  mag_dev->frequency = 1000000;  /* 1 MHz */
+  mag_dev->interval_us = GY912_DEFAULT_INTERVAL_US;
+  mag_dev->enabled = false;
+  nxsem_init(&mag_dev->exclsem, 0, 1);
+
+  ret = sensor_register(&mag_dev->lower, 0);
+  if (ret < 0)
+    {
+      serr("Failed to register ICM20948 magnetometer: %d\n", ret);
+      kmm_free(mag_dev);
+      return ret;
+    }
+
+  sinfo("ICM20948 magnetometer registered successfully\n");
+
+  return OK;
+}
 
 #endif /* CONFIG_RA8E1_SPI_GY912_EXAMPLE */

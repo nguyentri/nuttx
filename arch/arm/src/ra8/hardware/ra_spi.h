@@ -56,6 +56,12 @@
 #define RA_SPI_SPCMD7_OFFSET     0x1E    /* SPI Command Register 7 */
 #define RA_SPI_SPDCR2_OFFSET     0x20    /* SPI Data Control Register 2 */
 
+/* DTC Register Offsets */
+#define R_DTC_DTCST_OFFSET       0x00    /* DTC Module Start Register */
+#define R_DTC_DTCVBR_OFFSET      0x04    /* DTC Vector Base Register */
+#define R_DTC_DTCADMOD_OFFSET    0x08    /* DTC Address Mode Register */
+#define R_DTC_DTCCR_OFFSET       0x0C    /* DTC Control Register */
+
 /* SPI Control Register (SPCR) */
 #define RA_SPI_SPCR_SPRIE        (1 << 7)  /* SPI Receive Interrupt Enable */
 #define RA_SPI_SPCR_SPE          (1 << 6)  /* SPI Function Enable */
@@ -145,6 +151,35 @@
 #define RA_SPI_SPCMD_SLNDEN      (1 << 14) /* SSL Negation Delay Setting Enable */
 #define RA_SPI_SPCMD_SCKDEN      (1 << 15) /* RSPCK Delay Setting Enable */
 
+/* DTC Transfer Mode Register A (MRA) bits */
+#define RA_DTC_MRA_MD_SHIFT      (14)      /* DTC Transfer Mode */
+#define RA_DTC_MRA_MD_MASK       (0x03 << RA_DTC_MRA_MD_SHIFT)
+#define RA_DTC_MRA_MD_NORMAL     (0x00 << RA_DTC_MRA_MD_SHIFT)
+#define RA_DTC_MRA_MD_REPEAT     (0x01 << RA_DTC_MRA_MD_SHIFT)
+#define RA_DTC_MRA_MD_BLOCK      (0x02 << RA_DTC_MRA_MD_SHIFT)
+
+#define RA_DTC_MRA_SZ_SHIFT      (12)      /* Data Transfer Size */
+#define RA_DTC_MRA_SZ_MASK       (0x03 << RA_DTC_MRA_SZ_SHIFT)
+#define RA_DTC_MRA_SZ_BYTE       (0x00 << RA_DTC_MRA_SZ_SHIFT)
+#define RA_DTC_MRA_SZ_WORD       (0x01 << RA_DTC_MRA_SZ_SHIFT)
+#define RA_DTC_MRA_SZ_LONG       (0x02 << RA_DTC_MRA_SZ_SHIFT)
+
+#define RA_DTC_MRA_SM_SHIFT      (10)      /* Source Address Mode */
+#define RA_DTC_MRA_SM_MASK       (0x03 << RA_DTC_MRA_SM_SHIFT)
+#define RA_DTC_MRA_SM_FIXED      (0x00 << RA_DTC_MRA_SM_SHIFT)
+#define RA_DTC_MRA_SM_INCR       (0x01 << RA_DTC_MRA_SM_SHIFT)
+#define RA_DTC_MRA_SM_DECR       (0x02 << RA_DTC_MRA_SM_SHIFT)
+
+#define RA_DTC_MRA_DM_SHIFT      (8)       /* Destination Address Mode */
+#define RA_DTC_MRA_DM_MASK       (0x03 << RA_DTC_MRA_DM_SHIFT)
+#define RA_DTC_MRA_DM_FIXED      (0x00 << RA_DTC_MRA_DM_SHIFT)
+#define RA_DTC_MRA_DM_INCR       (0x01 << RA_DTC_MRA_DM_SHIFT)
+#define RA_DTC_MRA_DM_DECR       (0x02 << RA_DTC_MRA_DM_SHIFT)
+
+/* DTC Control Register bits */
+#define RA_DTC_DTCCR_RRS         (1 << 4)  /* DTC Transfer Information Read Skip Enable */
+#define RA_DTC_DTCCR_ACT         (1 << 0)  /* DTC Module Activation Enable */
+
 /* Register Addresses */
 #define RA_SPI_SPCR(n)           (RA_SPI_BASE(n) + RA_SPI_SPCR_OFFSET)
 #define RA_SPI_SSLP(n)           (RA_SPI_BASE(n) + RA_SPI_SSLP_OFFSET)
@@ -169,6 +204,13 @@
 #define RA_SPI_SPCMD7(n)         (RA_SPI_BASE(n) + RA_SPI_SPCMD7_OFFSET)
 #define RA_SPI_SPDCR2(n)         (RA_SPI_BASE(n) + RA_SPI_SPDCR2_OFFSET)
 
+/* DTC Register Addresses */
+#define R_DTC_BASE               0x40005400
+#define R_DTC_DTCST              (R_DTC_BASE + R_DTC_DTCST_OFFSET)
+#define R_DTC_DTCVBR             (R_DTC_BASE + R_DTC_DTCVBR_OFFSET)
+#define R_DTC_DTCADMOD           (R_DTC_BASE + R_DTC_DTCADMOD_OFFSET)
+#define R_DTC_DTCCR              (R_DTC_BASE + R_DTC_DTCCR_OFFSET)
+
 /* SPI Base Addresses */
 #ifdef CONFIG_RA_SPI0
 #define RA_SPI0_BASE             R_SPI0_BASE
@@ -179,5 +221,8 @@
 
 /* Helper macros */
 #define RA_SPI_BASE(n)           ((n == 0) ? R_SPI0_BASE : R_SPI1_BASE)
+
+/* Module Stop Control Register bits */
+#define R_MSTP_MSTPCRB_DTC       (1 << 28)  /* DTC Module Stop */
 
 #endif /* __ARCH_ARM_SRC_RA8_HARDWARE_RA_SPI_H */

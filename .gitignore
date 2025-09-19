@@ -117,3 +117,4 @@ boards/arm/ra8/fpb-ra8e1/rust_lib/target/thumbv8m.main-none-eabihf/release/build
 boards/arm/ra8/fpb-ra8e1/rust_lib/target/thumbv8m.main-none-eabihf/release/build/libm-3c4b0651c9060503/stderr
 boards/arm/ra8/fpb-ra8e1/rust_lib/target/thumbv8m.main-none-eabihf/release/deps/liblibm-eefef506113bfc8a.rlib
 boards/arm/ra8/fpb-ra8e1/rust_lib/target/thumbv8m.main-none-eabihf/release/deps/liblibm-eefef506113bfc8a.rmeta
+include/nuttx/coresight/coresight_funnel.h

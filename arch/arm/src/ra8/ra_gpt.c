@@ -78,7 +78,7 @@
  ****************************************************************************/
 
 /* GPT channel configuration structure */
-struct ra_gpt_config_s
+struct ra_gpt_channel_config_s
 {
   uint32_t base;                   /* GPT peripheral base address */
   uint32_t pclkd_freq;            /* PCLKD frequency */
@@ -93,7 +93,7 @@ struct ra_gpt_s
 {
   const struct pwm_ops_s *ops;     /* PWM operations */
   const struct timer_ops_s *timer_ops; /* Timer operations */
-  const struct ra_gpt_config_s *config; /* GPT configuration */
+  const struct ra_gpt_channel_config_s *config; /* GPT configuration */
   uint32_t frequency;             /* Current frequency */
   uint32_t period;                /* Period in timer counts */
   uint32_t prescaler;             /* Current prescaler setting */
@@ -184,7 +184,7 @@ static const struct pwm_ops_s g_gpt_ops =
 };
 
 /* GPT device configurations */
-static const struct ra_gpt_config_s g_gpt_configs[] =
+static const struct ra_gpt_channel_config_s g_gpt_configs[] =
 {
 #ifdef CONFIG_RA_GPT0_PWM
   {
@@ -239,7 +239,7 @@ static const struct ra_gpt_config_s g_gpt_configs[] =
 /* Add more channels as needed */
 };
 
-#define NGPT_CONFIGS (sizeof(g_gpt_configs) / sizeof(struct ra_gpt_config_s))
+#define NGPT_CONFIGS (sizeof(g_gpt_configs) / sizeof(struct ra_gpt_channel_config_s))
 
 /* GPT device instances */
 static struct ra_gpt_s g_gpt_devs[NGPT_CONFIGS];

@@ -1,5 +1,6 @@
+
 /****************************************************************************
- * boards/arm/ra8/fpb-ra8e1/src/ra8e1_spi_initialize.c
+ * boards/arm/ra8/fpb-ra8e1/src/ra8e1_spi.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -34,10 +35,16 @@
 #include <nuttx/spi/spi_transfer.h>
 
 #include <arch/board/board.h>
+#include "ra_gpio.h"
+#include "ra_spi.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
+/* SPI Device IDs for GY-912 sensors */
+#define SPIDEV_IMU(n)        (SPIDEV_USER(n) + 0)  /* ICM-20948 IMU */
+#define SPIDEV_BAROMETER(n)  (SPIDEV_USER(n) + 1)  /* BMP388 Barometer */
 
 /****************************************************************************
  * Public Functions
@@ -47,8 +54,7 @@
  * Name: ra8e1_spi_initialize
  *
  * Description:
- *   Initialize SPI buses for the FPB-RA8E1 board
- *   This function initializes both SPI0 and SPI1 for loopback demo
+ *   Initialize SPI buses for the FPB-RA8E1 board with dual CS support
  *
  ****************************************************************************/
 
@@ -56,55 +62,31 @@ int ra8e1_spi_initialize(void)
 {
 #ifdef CONFIG_RA_SPI
   struct spi_dev_s *spi0;
-  struct spi_dev_s *spi1;
   int ret;
 
-  /* Initialize SPI0 (Master) */
+  /* Initialize SPI0 with dual CS support */
   spi0 = ra_spibus_initialize(0);
   if (!spi0)
     {
-      syslog(LOG_ERR, "ERROR: Failed to initialize SPI0 (Master)\n");
+      syslog(LOG_ERR, "ERROR: Failed to initialize SPI0\n");
       return -ENODEV;
     }
 
   /* Register SPI0 device */
   spi_register(spi0, 0);
-  syslog(LOG_INFO, "SPI0 (Master) initialized successfully\n");
-
-#ifdef CONFIG_RA_SPI1
-  /* Initialize SPI1 (Slave) */
-  spi1 = ra_spibus_initialize(1);
-  if (!spi1)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to initialize SPI1 (Slave)\n");
-      return -ENODEV;
-    }
-
-  /* Register SPI1 device */
-  spi_register(spi1, 1);
-  syslog(LOG_INFO, "SPI1 (Slave) initialized successfully\n");
-#endif
+  syslog(LOG_INFO, "SPI0 initialized with dual CS support\n");
 
 #ifdef CONFIG_SPI_DRIVER
-  /* Register SPI character drivers */
+  /* Register SPI character driver */
   ret = spi_register_driver("/dev/spi0", spi0);
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: Failed to register SPI0 driver: %d\n", ret);
       return ret;
     }
-
-#ifdef CONFIG_RA_SPI1
-  ret = spi_register_driver("/dev/spi1", spi1);
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to register SPI1 driver: %d\n", ret);
-      return ret;
-    }
-#endif
 #endif
 
-  syslog(LOG_INFO, "All SPI interfaces initialized for loopback demo\n");
+  syslog(LOG_INFO, "SPI interfaces initialized for GY-912 sensors\n");
 
 #endif /* CONFIG_RA_SPI */
 
@@ -116,74 +98,27 @@ int ra8e1_spi_initialize(void)
  *
  * Description:
  *   Select or deselect the SPI device specified by 'devid' for SPI0
+ *   Enhanced with dual CS support for GY-912 sensors
  *
  ****************************************************************************/
 
 #ifdef CONFIG_RA_SPI
 void ra_spi0select(FAR struct spi_dev_s *dev, uint32_t devid,
-                     bool selected)
+                   bool selected)
 {
   spiinfo("SPI0 devid: %" PRIu32 " CS: %s\n",
           devid, selected ? "assert" : "de-assert");
 
-  /* Handle device selection based on device ID */
-  switch (devid)
-    {
-#ifdef CONFIG_RA_SPI_GY912
-      case SPIDEV_GY912(0):
-        /* Handle GY-912 sensor chip select on SPI0 */
-        /* Implementation would go here based on hardware pinout */
-        break;
-#endif
-
-#ifdef CONFIG_RA_SPI_LOOPBACK_EXAMPLE
-      case SPIDEV_USER(0):
-        /* Handle loopback demo device selection */
-        /* For loopback demo, CS handling may be simplified */
-        break;
-#endif
-
-      default:
-        break;
-    }
+  /* Use the enhanced dual CS selection function */
+  ra_spi_select_device(dev, devid, selected);
 }
-
-/****************************************************************************
- * Name: ra_spi1select
- *
- * Description:
- *   Select or deselect the SPI device specified by 'devid' for SPI1
- *
- ****************************************************************************/
-
-#ifdef CONFIG_RA_SPI1
-void ra_spi1select(FAR struct spi_dev_s *dev, uint32_t devid,
-                     bool selected)
-{
-  spiinfo("SPI1 devid: %" PRIu32 " CS: %s\n",
-          devid, selected ? "assert" : "de-assert");
-
-  /* Handle device selection based on device ID */
-  switch (devid)
-    {
-#ifdef CONFIG_RA_SPI_LOOPBACK_EXAMPLE
-      case SPIDEV_USER(1):
-        /* Handle loopback demo device selection for SPI1 */
-        /* For loopback demo between SPI0 and SPI1 */
-        break;
-#endif
-
-      default:
-        break;
-    }
-}
-#endif
 
 /****************************************************************************
  * Name: ra_spi0status
  *
  * Description:
  *   Return status information associated with the SPI0 device.
+ *   Enhanced for GY-912 sensor support
  *
  ****************************************************************************/
 
@@ -193,21 +128,20 @@ uint8_t ra_spi0status(FAR struct spi_dev_s *dev, uint32_t devid)
 
   switch (devid)
     {
-#ifdef CONFIG_RA_SPI_GY912
-      case SPIDEV_GY912(0):
-        /* Return status for GY-912 sensor */
+      case SPIDEV_IMU(0):
+        /* ICM-20948 IMU sensor */
         status = SPI_STATUS_PRESENT;
+        spiinfo("SPI0 IMU sensor status: present\n");
         break;
-#endif
 
-#ifdef CONFIG_RA_SPI_LOOPBACK_EXAMPLE
-      case SPIDEV_USER(0):
-        /* Return status for loopback demo */
+      case SPIDEV_BAROMETER(0):
+        /* BMP388 Barometer sensor */
         status = SPI_STATUS_PRESENT;
+        spiinfo("SPI0 Barometer sensor status: present\n");
         break;
-#endif
 
       default:
+        spiinfo("SPI0 unknown device: %" PRIu32 "\n", devid);
         break;
     }
 
@@ -215,32 +149,29 @@ uint8_t ra_spi0status(FAR struct spi_dev_s *dev, uint32_t devid)
 }
 
 /****************************************************************************
- * Name: ra_spi1status
+ * Name: ra_spi0cmddata
  *
  * Description:
- *   Return status information associated with the SPI1 device.
+ *   Some SPI devices require an additional control to determine if the SPI
+ *   data being sent is a command or is data. This is typically used for
+ *   displays where the first byte is a command and subsequent bytes are data.
+ *   For GY-912 sensors, this is typically not used.
  *
  ****************************************************************************/
 
-#ifdef CONFIG_RA_SPI1
-uint8_t ra_spi1status(FAR struct spi_dev_s *dev, uint32_t devid)
+#ifdef CONFIG_SPI_CMDDATA
+int ra_spi0cmddata(FAR struct spi_dev_s *dev, uint32_t devid, bool cmd)
 {
-  uint8_t status = 0;
-
   switch (devid)
     {
-#ifdef CONFIG_RA_SPI_LOOPBACK_EXAMPLE
-      case SPIDEV_USER(1):
-        /* Return status for loopback demo */
-        status = SPI_STATUS_PRESENT;
-        break;
-#endif
+      case SPIDEV_IMU(0):
+      case SPIDEV_BAROMETER(0):
+        /* GY-912 sensors don't typically use command/data distinction */
+        return OK;
 
       default:
-        break;
+        return -ENODEV;
     }
-
-  return status;
 }
 #endif
 

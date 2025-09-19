@@ -47,11 +47,12 @@
 #include "ra_gpio.h"
 #include "ra_icu.h"
 #include "hardware/ra_spi.h"
-#include "hardware/ra_dmac.h"
+#include "hardware/ra_dtc.h"
 #include "hardware/ra_memorymap.h"
 #include "hardware/ra_icu.h"
 #include "hardware/ra_mstp.h"
 #include "ra_spi.h"
+#include "ra_dtc.h"
 
 #ifdef CONFIG_RA_SPI
 
@@ -67,8 +68,11 @@
 #  define spi_dumpgpio(m)
 #endif
 
-/* DMA timeout */
-#define DMA_TIMEOUT_MS          1000
+/* DTC timeout */
+#define DTC_TIMEOUT_MS          1000
+
+/* DTC transfer thresholds */
+#define DTC_MIN_TRANSFER_SIZE   4         /* Minimum size for DTC transfer */
 
 /* SPI timeout */
 #define SPI_TIMEOUT_MS          1000
@@ -118,10 +122,11 @@ struct ra_spi_priv_s
   uint8_t                  mode;       /* Mode 0,1,2,3 */
   uint8_t                  nbits;      /* Width of word in bits (8 or 16) */
 
-  /* DMA channels */
-  bool                     use_dma;
-  int                      dma_tx;     /* TX DMA channel */
-  int                      dma_rx;     /* RX DMA channel */
+  /* DTC channels */
+  bool                     use_dtc;
+  uint8_t                  dtc_mode;   /* DTC transfer mode */
+  ra_dtc_handle_t          dtc_tx;     /* TX DTC handle */
+  ra_dtc_handle_t          dtc_rx;     /* RX DTC handle */
 
   /* Transfer state */
   sem_t                    waitsem;    /* Wait for transfer completion */
@@ -148,10 +153,13 @@ static uint8_t ra_spi_getreg8(struct ra_spi_priv_s *priv, uint8_t offset);
 static uint16_t ra_spi_getreg16(struct ra_spi_priv_s *priv, uint8_t offset);
 static uint32_t ra_spi_getreg32(struct ra_spi_priv_s *priv, uint8_t offset);
 
-/* DMA support */
-static int ra_spi_dma_setup(struct ra_spi_priv_s *priv);
-static void ra_spi_dma_start(struct ra_spi_priv_s *priv);
-static void ra_spi_dma_stop(struct ra_spi_priv_s *priv);
+/* DTC support */
+static int ra_spi_dtc_setup(struct ra_spi_priv_s *priv);
+static int ra_spi_dtc_start(struct ra_spi_priv_s *priv, const void *txbuffer, 
+                            void *rxbuffer, size_t nwords);
+static void ra_spi_dtc_stop(struct ra_spi_priv_s *priv);
+static void ra_spi_dtc_tx_callback(void *handle, int event, void *user_data);
+static void ra_spi_dtc_rx_callback(void *handle, int event, void *user_data);
 
 /* Transfer helpers */
 static void ra_spi_writeword(struct ra_spi_priv_s *priv, uint16_t word);
@@ -413,48 +421,243 @@ static bool ra_spi_9to16bitmode(struct ra_spi_priv_s *priv)
 }
 
 /****************************************************************************
- * Name: ra_spi_dma_setup
+ * Name: ra_spi_dtc_tx_callback
  *
  * Description:
- *   Setup DMA for the SPI
+ *   DTC TX completion callback
  *
  ****************************************************************************/
 
-static int ra_spi_dma_setup(struct ra_spi_priv_s *priv)
+static void ra_spi_dtc_tx_callback(void *handle, int event, void *user_data)
 {
-  /* TODO: Implement DMA setup */
-  spiinfo("DMA setup for SPI%d\n", priv->config->bus);
+  struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)user_data;
 
-  priv->use_dma = false;  /* Disable DMA for now */
+  if (event == RA_DTC_EVENT_COMPLETE)
+    {
+      spiinfo("SPI%d DTC TX complete\n", priv->config->bus);
+      
+      /* For TX-only transfers or when RX is also complete, signal completion */
+      if (priv->dtc_mode == RA_SPI_DTC_MODE_TX_ONLY || 
+          (priv->dtc_mode == RA_SPI_DTC_MODE_FULL && priv->nrxwords == 0))
+        {
+          nxsem_post(&priv->waitsem);
+        }
+    }
+  else if (event == RA_DTC_EVENT_ERROR)
+    {
+      spierr("SPI%d DTC TX error\n", priv->config->bus);
+      priv->error = true;
+      nxsem_post(&priv->waitsem);
+    }
+}
+
+/****************************************************************************
+ * Name: ra_spi_dtc_rx_callback
+ *
+ * Description:
+ *   DTC RX completion callback
+ *
+ ****************************************************************************/
+
+static void ra_spi_dtc_rx_callback(void *handle, int event, void *user_data)
+{
+  struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)user_data;
+
+  if (event == RA_DTC_EVENT_COMPLETE)
+    {
+      spiinfo("SPI%d DTC RX complete\n", priv->config->bus);
+      priv->nrxwords = 0;  /* Mark RX as complete */
+      
+      /* For RX-only transfers or when TX is also complete, signal completion */
+      if (priv->dtc_mode == RA_SPI_DTC_MODE_RX_ONLY || 
+          (priv->dtc_mode == RA_SPI_DTC_MODE_FULL && priv->ntxwords == 0))
+        {
+          nxsem_post(&priv->waitsem);
+        }
+    }
+  else if (event == RA_DTC_EVENT_ERROR)
+    {
+      spierr("SPI%d DTC RX error\n", priv->config->bus);
+      priv->error = true;
+      nxsem_post(&priv->waitsem);
+    }
+}
+
+/****************************************************************************
+ * Name: ra_spi_dtc_setup
+ *
+ * Description:
+ *   Setup DTC for the SPI based on FSP patterns
+ *
+ ****************************************************************************/
+
+static int ra_spi_dtc_setup(struct ra_spi_priv_s *priv)
+{
+  ra_dtc_config_t dtc_config;
+  int ret;
+
+  spiinfo("DTC setup for SPI%d\n", priv->config->bus);
+
+  /* Initialize DTC module */
+  ret = ra_dtc_initialize();
+  if (ret < 0)
+    {
+      spierr("Failed to initialize DTC: %d\n", ret);
+      priv->use_dtc = false;
+      return ret;
+    }
+
+  /* Setup TX DTC channel */
+  memset(&dtc_config, 0, sizeof(dtc_config));
+  dtc_config.mode = RA_DTC_MODE_NORMAL;
+  dtc_config.size = RA_DTC_SIZE_BYTE;  /* Will be updated per transfer */
+  dtc_config.src_addr_mode = RA_DTC_ADDR_INCR;
+  dtc_config.dest_addr_mode = RA_DTC_ADDR_FIXED;
+  dtc_config.software_trigger = false;
+  dtc_config.activation_source = priv->config->el_txi;  /* SPI TX interrupt event */
+  dtc_config.dest_addr = priv->config->base + RA_SPI_SPDR_OFFSET;
+  dtc_config.callback = ra_spi_dtc_tx_callback;
+  dtc_config.user_data = priv;
+
+  ret = ra_dtc_open(&priv->dtc_tx, &dtc_config);
+  if (ret < 0)
+    {
+      spierr("Failed to open TX DTC: %d\n", ret);
+      priv->use_dtc = false;
+      return ret;
+    }
+
+  /* Setup RX DTC channel */
+  dtc_config.src_addr_mode = RA_DTC_ADDR_FIXED;
+  dtc_config.dest_addr_mode = RA_DTC_ADDR_INCR;
+  dtc_config.activation_source = priv->config->el_rxi;  /* SPI RX interrupt event */
+  dtc_config.src_addr = priv->config->base + RA_SPI_SPDR_OFFSET;
+  dtc_config.callback = ra_spi_dtc_rx_callback;
+
+  ret = ra_dtc_open(&priv->dtc_rx, &dtc_config);
+  if (ret < 0)
+    {
+      spierr("Failed to open RX DTC: %d\n", ret);
+      ra_dtc_close(priv->dtc_tx);
+      priv->use_dtc = false;
+      return ret;
+    }
+
+  priv->use_dtc = true;
+  spiinfo("SPI%d DTC setup complete\n", priv->config->bus);
   return OK;
 }
 
 /****************************************************************************
- * Name: ra_spi_dma_start
+ * Name: ra_spi_dtc_start
  *
  * Description:
- *   Start DMA transfer
+ *   Start DTC transfer following FSP patterns
  *
  ****************************************************************************/
 
-static void ra_spi_dma_start(struct ra_spi_priv_s *priv)
+static int ra_spi_dtc_start(struct ra_spi_priv_s *priv, const void *txbuffer, 
+                            void *rxbuffer, size_t nwords)
 {
-  /* TODO: Implement DMA start */
-  spiinfo("DMA start for SPI%d\n", priv->config->bus);
+  ra_dtc_size_t dtc_size;
+  int ret;
+
+  /* Determine transfer size based on SPI word size */
+  if (priv->nbits <= 8)
+    {
+      dtc_size = RA_DTC_SIZE_BYTE;
+    }
+  else if (priv->nbits <= 16)
+    {
+      dtc_size = RA_DTC_SIZE_WORD;
+    }
+  else
+    {
+      dtc_size = RA_DTC_SIZE_LONG;
+    }
+
+  /* Determine DTC mode based on buffers */
+  if (txbuffer && rxbuffer)
+    {
+      priv->dtc_mode = RA_SPI_DTC_MODE_FULL;
+    }
+  else if (txbuffer)
+    {
+      priv->dtc_mode = RA_SPI_DTC_MODE_TX_ONLY;
+    }
+  else if (rxbuffer)
+    {
+      priv->dtc_mode = RA_SPI_DTC_MODE_RX_ONLY;
+    }
+  else
+    {
+      return -EINVAL;
+    }
+
+  /* Setup TX DTC if needed */
+  if (txbuffer)
+    {
+      ret = ra_dtc_reset(priv->dtc_tx, (uint32_t)txbuffer,
+                         priv->config->base + RA_SPI_SPDR_OFFSET, nwords);
+      if (ret < 0)
+        {
+          return ret;
+        }
+
+      ret = ra_dtc_enable(priv->dtc_tx);
+      if (ret < 0)
+        {
+          return ret;
+        }
+    }
+
+  /* Setup RX DTC if needed */
+  if (rxbuffer)
+    {
+      ret = ra_dtc_reset(priv->dtc_rx, priv->config->base + RA_SPI_SPDR_OFFSET,
+                         (uint32_t)rxbuffer, nwords);
+      if (ret < 0)
+        {
+          if (txbuffer)
+            {
+              ra_dtc_disable(priv->dtc_tx);
+            }
+          return ret;
+        }
+
+      ret = ra_dtc_enable(priv->dtc_rx);
+      if (ret < 0)
+        {
+          if (txbuffer)
+            {
+              ra_dtc_disable(priv->dtc_tx);
+            }
+          return ret;
+        }
+    }
+
+  spiinfo("SPI%d DTC transfer started: mode=%d, nwords=%zu\n", 
+          priv->config->bus, priv->dtc_mode, nwords);
+
+  return OK;
 }
 
 /****************************************************************************
- * Name: ra_spi_dma_stop
+ * Name: ra_spi_dtc_stop
  *
  * Description:
- *   Stop DMA transfer
+ *   Stop DTC transfer
  *
  ****************************************************************************/
 
-static void ra_spi_dma_stop(struct ra_spi_priv_s *priv)
+static void ra_spi_dtc_stop(struct ra_spi_priv_s *priv)
 {
-  /* TODO: Implement DMA stop */
-  spiinfo("DMA stop for SPI%d\n", priv->config->bus);
+  if (priv->use_dtc)
+    {
+      ra_dtc_disable(priv->dtc_tx);
+      ra_dtc_disable(priv->dtc_rx);
+      spiinfo("SPI%d DTC transfer stopped\n", priv->config->bus);
+    }
 }
 
 /****************************************************************************
@@ -970,18 +1173,26 @@ static void ra_spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
   priv->nrxwords = nwords;
   priv->error = false;
 
-  /* Use DMA if enabled and transfer size is large enough */
-  if (priv->use_dma && nwords >= 4)
+  /* Use DTC if enabled and transfer size is large enough */
+  if (priv->use_dtc && nwords >= DTC_MIN_TRANSFER_SIZE)
     {
-      ra_spi_dma_start(priv);
-
-      /* Wait for DMA completion */
-      nxsem_wait_uninterruptible(&priv->waitsem);
-
-      ra_spi_dma_stop(priv);
+      int ret = ra_spi_dtc_start(priv, txbuffer, rxbuffer, nwords);
+      if (ret == OK)
+        {
+          /* Wait for DTC completion */
+          nxsem_wait_uninterruptible(&priv->waitsem);
+          ra_spi_dtc_stop(priv);
+        }
+      else
+        {
+          spierr("SPI%d DTC start failed: %d, falling back to interrupt mode\n", 
+                 priv->config->bus, ret);
+          goto interrupt_mode;
+        }
     }
   else
     {
+interrupt_mode:
       /* Use interrupt-driven transfer */
       flags = enter_critical_section();
 
@@ -1169,8 +1380,8 @@ static void ra_spi_bus_initialize(struct ra_spi_priv_s *priv)
   priv->nbits = 8;
   priv->frequency = 1000000;
 
-  /* Setup DMA if configured */
-  ra_spi_dma_setup(priv);
+  /* Setup DTC if configured */
+  ra_spi_dtc_setup(priv);
 
   /* Enable SPI function */
   regval = ra_spi_getreg8(priv, RA_SPI_SPCR_OFFSET);

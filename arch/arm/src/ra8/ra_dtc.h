@@ -44,6 +44,17 @@
 #define RA_DTC_MAX_BLOCK_COUNT        (0x100)    /* Maximum block count */
 #define RA_DTC_MAX_CONTEXTS           (32)       /* Maximum DTC contexts */
 
+/* Event Link definitions for SPI DTC triggers */
+#define ELC_EVENT_SPI0_RXI            (0x1C)     /* SPI0 RX interrupt event */
+#define ELC_EVENT_SPI0_TXI            (0x1D)     /* SPI0 TX interrupt event */
+#define ELC_EVENT_SPI0_TEI            (0x1E)     /* SPI0 Transfer end interrupt event */
+#define ELC_EVENT_SPI0_ERI            (0x1F)     /* SPI0 Error interrupt event */
+#define ELC_EVENT_SPI1_RXI            (0x20)     /* SPI1 RX interrupt event */
+#define ELC_EVENT_SPI1_TXI            (0x21)     /* SPI1 TX interrupt event */
+#define ELC_EVENT_SPI1_TEI            (0x22)     /* SPI1 Transfer end interrupt event */
+#define ELC_EVENT_SPI1_ERI            (0x23)     /* SPI1 Error interrupt event */
+#define RA_EL_DTC_COMPLETE            (0x30)     /* DTC completion event */
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/

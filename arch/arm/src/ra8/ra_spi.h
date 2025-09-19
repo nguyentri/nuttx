@@ -45,9 +45,15 @@
 #define RA_SPI_CS_IMU            0        /* P612 - ICM20948 IMU */
 #define RA_SPI_CS_BMP            1        /* P605 - BMP388 pressure sensor */
 
-/* DMA Channel assignments */
-#define RA_SPI_DMA_TX_CHANNEL    0        /* TX DMA channel */
-#define RA_SPI_DMA_RX_CHANNEL    1        /* RX DMA channel */
+/* DTC Channel assignments for SPI transfers */
+#define RA_SPI_DTC_TX_CHANNEL    0        /* TX DTC channel */
+#define RA_SPI_DTC_RX_CHANNEL    1        /* RX DTC channel */
+
+/* DTC transfer modes for SPI */
+#define RA_SPI_DTC_MODE_DISABLED 0        /* DTC disabled */
+#define RA_SPI_DTC_MODE_TX_ONLY  1        /* TX only DTC */
+#define RA_SPI_DTC_MODE_RX_ONLY  2        /* RX only DTC */
+#define RA_SPI_DTC_MODE_FULL     3        /* Full duplex DTC */
 
 /****************************************************************************
  * Public Types
@@ -77,10 +83,11 @@ struct ra_spi_priv_s
   sem_t            exclsem;  /* Holds exclusive access to SPI */
   sem_t            waitsem;  /* Wait for transfer completion */
   
-  /* DMA support */
-  bool             use_dma;   /* DMA enabled flag */
-  uint8_t          dma_tx_ch; /* TX DMA channel */
-  uint8_t          dma_rx_ch; /* RX DMA channel */
+  /* DTC support */
+  bool             use_dtc;   /* DTC enabled flag */
+  uint8_t          dtc_mode;  /* DTC transfer mode */
+  void            *dtc_tx_handle; /* TX DTC handle */
+  void            *dtc_rx_handle; /* RX DTC handle */
   
   /* Transfer state */
   const uint8_t   *txbuffer;  /* Source data for SPI output */

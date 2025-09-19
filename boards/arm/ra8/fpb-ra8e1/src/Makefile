@@ -21,13 +21,7 @@
 include $(TOPDIR)/Make.defs
 
 # Core board initialization files
-CSRCS = ra8e1_boot.c ra8e1_bringup.c ra8e1_app_init.c
-CSRCS += fpb_ra8e1_boardinitialize.c
-
-# Application initialization
-ifeq ($(CONFIG_BOARDCTL),y)
-CSRCS += ra8e1_appinit.c
-endif
+CSRCS = ra8e1_boot.c ra8e1_bringup.c
 
 # LED support
 ifeq ($(CONFIG_ARCH_LEDS),y)

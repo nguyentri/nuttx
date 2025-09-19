@@ -66,10 +66,45 @@ void ra_board_initialize(void)
  *
  ****************************************************************************/
 
-// Late initialization will call ra8e1_bringup if enabled
 #ifdef CONFIG_BOARD_LATE_INITIALIZE
 void board_late_initialize(void)
 {
   ra8e1_bringup();
 }
 #endif
+
+/****************************************************************************
+ * Name: board_app_initialize
+ *
+ * Description:
+ *   If CONFIG_BOARDCTL is selected, then an additional application
+ *   initialization call will be performed in the boot-up sequence to a
+ *   function called board_app_initialize().  board_app_initialize() will be
+ *   called after up_initialize() and board_late_initialize() and just
+ *   before the initial application is started.  This additional
+ *   initialization phase may be used, for example, to initialize
+ *   board-specific device drivers.
+ *
+ * Input Parameters:
+ *   arg - The argument is passed to the board_app_initialize() implementation
+ *         using the argument provided to the boardctl() call.  The
+ *         meaning of the argument is up to the implementation;  the
+ *         common usage is to pass a pointer to board-specific data
+ *         provided by the user of the boardctl() interface.
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; A negated errno value is returned on
+ *   any failure.
+ *
+ ****************************************************************************/
+
+int board_app_initialize(uintptr_t arg)
+{
+#ifdef CONFIG_BOARD_LATE_INITIALIZE
+  /* Board initialization already performed by board_late_initialize() */
+  return OK;
+#else
+  /* Perform board-specific initialization */
+  return ra8e1_bringup();
+#endif
+}

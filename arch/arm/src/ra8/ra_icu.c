@@ -52,7 +52,7 @@
  ****************************************************************************/
 
 typedef struct {
-  int el; /* Event Link number - use hardcoded size for now */
+  int el; /* Event Link number */
   xcpt_t handler; /* Handler function */
   void *arg; /* Argument for handler */
 } ra_icu_handler_t;

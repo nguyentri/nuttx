@@ -238,16 +238,16 @@ struct up_dev_s
   uint32_t mstp;            /* Module Stop Control Register */
   uint32_t baud;            /* Configured baud */
   uint32_t sr;              /* Saved status bits */
-  int rxirq;               /* RX IRQ number assigned by ICU */
-  int txirq;               /* TX IRQ number assigned by ICU */
-  int txeirq;              /* TX End IRQ number assigned by ICU */
-  int erirq;               /* Error IRQ number assigned by ICU */
-  uint32_t rxel;           /* RX event link for ICU configuration */
-  uint32_t txel;           /* TX event link for ICU configuration */
-  uint32_t txeel;          /* TX End event link for ICU configuration */
-  uint32_t erel;           /* Error event link for ICU configuration */
-  uint32_t parity;          /* 0=none, 1=odd, 2=even */
-  uint32_t bits;            /* Number of bits (5-9) */
+  int irq_rx;               /* RX IRQ number assigned by ICU */
+  int irq_tx;               /* TX IRQ number assigned by ICU */
+  int irq_txe;              /* TX End IRQ number assigned by ICU */
+  int irq_err;              /* Error IRQ number assigned by ICU */
+  int el_rx;                /* RX event link for ICU configuration */
+  int el_tx;                /* TX event link for ICU configuration */
+  int el_txe;               /* TX End event link for ICU configuration */
+  int el_err;               /* Error event link for ICU configuration */
+  int parity;               /* 0=none, 1=odd, 2=even */
+  int bits;                 /* Number of bits (5-9) */
   bool stopbits2;           /* true: Configure with 2 stop bits instead of 1 */
 };
 
@@ -303,14 +303,14 @@ static struct up_dev_s  g_uart0priv =
 {
   .scibase      = R_SCI0_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI0,
-  .rxirq        = -1,               /* Will be assigned by ICU */
-  .txirq        = -1,               /* Will be assigned by ICU */
-  .txeirq       = -1,               /* Will be assigned by ICU */
-  .erirq        = -1,               /* Will be assigned by ICU */
-  .rxel         = RA_EL_SCI0_RXI,
-  .txel         = RA_EL_SCI0_TXI,
-  .txeel        = RA_EL_SCI0_TEI,
-  .erel         = RA_EL_SCI0_ERI,
+  .irq_rx       = -1,               /* Will be assigned by ICU */
+  .irq_tx       = -1,               /* Will be assigned by ICU */
+  .irq_txe      = -1,               /* Will be assigned by ICU */
+  .irq_err      = -1,               /* Will be assigned by ICU */
+  .el_rx        = RA_EL_SCI0_RXI,
+  .el_tx        = RA_EL_SCI0_TXI,
+  .el_txe       = RA_EL_SCI0_TEI,
+  .el_err       = RA_EL_SCI0_ERI,
   .baud         = CONFIG_SCI0_BAUD,
   .parity       = CONFIG_SCI0_PARITY,
   .bits         = CONFIG_SCI0_BITS,
@@ -339,14 +339,14 @@ static struct up_dev_s  g_uart1priv =
 {
   .scibase      = R_SCI1_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI1,
-  .rxirq        = -1,               /* Will be assigned by ICU */
-  .txirq        = -1,               /* Will be assigned by ICU */
-  .txeirq       = -1,               /* Will be assigned by ICU */
-  .erirq        = -1,               /* Will be assigned by ICU */
-  .rxel         = RA_EL_SCI1_RXI,
-  .txel         = RA_EL_SCI1_TXI,
-  .txeel        = RA_EL_SCI1_TEI,
-  .erel         = RA_EL_SCI1_ERI,
+  .irq_rx       = -1,               /* Will be assigned by ICU */
+  .irq_tx       = -1,               /* Will be assigned by ICU */
+  .irq_txe      = -1,               /* Will be assigned by ICU */
+  .irq_err      = -1,               /* Will be assigned by ICU */
+  .el_rx        = RA_EL_SCI1_RXI,
+  .el_tx        = RA_EL_SCI1_TXI,
+  .el_txe       = RA_EL_SCI1_TEI,
+  .el_err       = RA_EL_SCI1_ERI,
   .baud         = CONFIG_SCI1_BAUD,
   .parity       = CONFIG_SCI1_PARITY,
   .bits         = CONFIG_SCI1_BITS,
@@ -375,14 +375,14 @@ static struct up_dev_s  g_uart2priv =
 {
   .scibase      = R_SCI2_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI2,
-  .rxirq        = -1,               /* Will be assigned by ICU */
-  .txirq        = -1,               /* Will be assigned by ICU */
-  .txeirq       = -1,               /* Will be assigned by ICU */
-  .erirq        = -1,               /* Will be assigned by ICU */
-  .rxel         = RA_EL_SCI2_RXI,
-  .txel         = RA_EL_SCI2_TXI,
-  .txeel        = RA_EL_SCI2_TEI,
-  .erel         = RA_EL_SCI2_ERI,
+  .irq_rx       = -1,               /* Will be assigned by ICU */
+  .irq_tx       = -1,               /* Will be assigned by ICU */
+  .irq_txe      = -1,               /* Will be assigned by ICU */
+  .irq_err      = -1,               /* Will be assigned by ICU */
+  .el_rx        = RA_EL_SCI2_RXI,
+  .el_tx        = RA_EL_SCI2_TXI,
+  .el_txe       = RA_EL_SCI2_TEI,
+  .el_err       = RA_EL_SCI2_ERI,
   .baud         = CONFIG_SCI2_BAUD,
   .parity       = CONFIG_SCI2_PARITY,
   .bits         = CONFIG_SCI2_BITS,
@@ -411,14 +411,14 @@ static struct up_dev_s  g_uart3priv =
 {
   .scibase      = R_SCI3_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI3,
-  .rxirq        = -1,               /* Will be assigned by ICU */
-  .txirq        = -1,               /* Will be assigned by ICU */
-  .txeirq       = -1,               /* Will be assigned by ICU */
-  .erirq        = -1,               /* Will be assigned by ICU */
-  .rxel         = RA_EL_SCI3_RXI,
-  .txel         = RA_EL_SCI3_TXI,
-  .txeel        = RA_EL_SCI3_TEI,
-  .erel         = RA_EL_SCI3_ERI,
+  .irq_rx       = -1,               /* Will be assigned by ICU */
+  .irq_tx       = -1,               /* Will be assigned by ICU */
+  .irq_txe      = -1,               /* Will be assigned by ICU */
+  .irq_err      = -1,               /* Will be assigned by ICU */
+  .el_rx        = RA_EL_SCI3_RXI,
+  .el_tx        = RA_EL_SCI3_TXI,
+  .el_txe       = RA_EL_SCI3_TEI,
+  .el_err       = RA_EL_SCI3_ERI,
   .baud         = CONFIG_SCI3_BAUD,
   .parity       = CONFIG_SCI3_PARITY,
   .bits         = CONFIG_SCI3_BITS,
@@ -447,14 +447,14 @@ static struct up_dev_s  g_uart4priv =
 {
   .scibase      = R_SCI4_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI4,
-  .rxirq        = -1,               /* Will be assigned by ICU */
-  .txirq        = -1,               /* Will be assigned by ICU */
-  .txeirq       = -1,               /* Will be assigned by ICU */
-  .erirq        = -1,               /* Will be assigned by ICU */
-  .rxel         = RA_EL_SCI4_RXI,
-  .txel         = RA_EL_SCI4_TXI,
-  .txeel        = RA_EL_SCI4_TEI,
-  .erel         = RA_EL_SCI4_ERI,
+  .irq_rx       = -1,               /* Will be assigned by ICU */
+  .irq_tx       = -1,               /* Will be assigned by ICU */
+  .irq_txe      = -1,               /* Will be assigned by ICU */
+  .irq_err      = -1,               /* Will be assigned by ICU */
+  .el_rx        = RA_EL_SCI4_RXI,   /* RX event link for ICU configuration */
+  .el_tx        = RA_EL_SCI4_TXI,
+  .el_txe       = RA_EL_SCI4_TEI,
+  .el_err       = RA_EL_SCI4_ERI,
   .baud         = CONFIG_SCI4_BAUD,
   .parity       = CONFIG_SCI4_PARITY,
   .bits         = CONFIG_SCI4_BITS,
@@ -483,14 +483,14 @@ static struct up_dev_s  g_uart9priv =
 {
   .scibase      = R_SCI9_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI9,
-  .rxirq        = -1,               /* Will be assigned by ICU */
-  .txirq        = -1,               /* Will be assigned by ICU */
-  .txeirq       = -1,               /* Will be assigned by ICU */
-  .erirq        = -1,               /* Will be assigned by ICU */
-  .rxel         = RA_EL_SCI9_RXI,
-  .txel         = RA_EL_SCI9_TXI,
-  .txeel        = RA_EL_SCI9_TEI,
-  .erel         = RA_EL_SCI9_ERI,
+  .irq_rx       = -1,               /* Will be assigned by ICU */
+  .irq_tx       = -1,               /* Will be assigned by ICU */
+  .irq_txe      = -1,               /* Will be assigned by ICU */
+  .irq_err      = -1,               /* Will be assigned by ICU */
+  .el_rx        = RA_EL_SCI9_RXI,
+  .el_tx        = RA_EL_SCI9_TXI,
+  .el_txe       = RA_EL_SCI9_TEI,
+  .el_err       = RA_EL_SCI9_ERI,
   .baud         = CONFIG_SCI9_BAUD,
   .parity       = CONFIG_SCI9_PARITY,
   .bits         = CONFIG_SCI9_BITS,
@@ -746,39 +746,39 @@ static int up_attach(struct uart_dev_s *dev)
 
   /* Attach and enable the IRQ using the ICU API */
 
-  ret = ra_icu_attach(priv->rxel, up_rxinterrupt, dev);
+  ret = ra_icu_attach(priv->el_rx, up_rxinterrupt, dev);
   if (ret < 0)
     {
       return ret;
     }
-  priv->rxirq = ret; /* Store the assigned IRQ number */
+  priv->irq_rx = ret; /* Store the assigned IRQ number */
 
-  ret = ra_icu_attach(priv->txel, up_txinterrupt, dev);
+  ret = ra_icu_attach(priv->el_tx, up_txinterrupt, dev);
   if (ret < 0)
     {
-      ra_icu_detach(priv->rxirq);
+      ra_icu_detach(priv->irq_rx);
       return ret;
     }
-  priv->txirq = ret; /* Store the assigned IRQ number */
+  priv->irq_tx = ret; /* Store the assigned IRQ number */
 
-  ret = ra_icu_attach(priv->txeel, up_txeinterrupt, dev);
+  ret = ra_icu_attach(priv->el_txe, up_txeinterrupt, dev);
   if (ret < 0)
     {
-      ra_icu_detach(priv->rxirq);
-      ra_icu_detach(priv->txirq);
+      ra_icu_detach(priv->irq_rx);
+      ra_icu_detach(priv->irq_tx);
       return ret;
     }
-  priv->txeirq = ret; /* Store the assigned IRQ number */
+  priv->irq_txe = ret; /* Store the assigned IRQ number */
 
-  ret = ra_icu_attach(priv->erel, up_erinterrupt, dev);
+  ret = ra_icu_attach(priv->el_err, up_erinterrupt, dev);
   if (ret < 0)
     {
-      ra_icu_detach(priv->rxirq);
-      ra_icu_detach(priv->txirq);
-      ra_icu_detach(priv->txeirq);
+      ra_icu_detach(priv->irq_rx);
+      ra_icu_detach(priv->irq_tx);
+      ra_icu_detach(priv->irq_txe);
       return ret;
     }
-  priv->erirq = ret; /* Store the assigned IRQ number */
+  priv->irq_err = ret; /* Store the assigned IRQ number */
 
   return OK;
 }
@@ -787,10 +787,10 @@ static void up_detach(struct uart_dev_s *dev)
 {
   struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
 
-  ra_icu_detach(priv->rxirq);
-  ra_icu_detach(priv->txirq);
-  ra_icu_detach(priv->txeirq);
-  ra_icu_detach(priv->erirq);
+  ra_icu_detach(priv->irq_rx);
+  ra_icu_detach(priv->irq_tx);
+  ra_icu_detach(priv->irq_txe);
+  ra_icu_detach(priv->irq_err);
 }
 
 /****************************************************************************
@@ -806,7 +806,7 @@ static int up_rxinterrupt(int irq, void *context, void *arg)
   struct uart_dev_s *dev = (struct uart_dev_s *)arg;
   struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
 
-  ra_icu_clear_irq(priv->rxirq);
+  ra_icu_clear_irq(priv->irq_rx);
   uart_recvchars(dev);
   return OK;
 }
@@ -824,7 +824,7 @@ static int up_txinterrupt(int irq, void *context, void *arg)
   struct uart_dev_s *dev = (struct uart_dev_s *)arg;
   struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
 
-  ra_icu_clear_irq(priv->txirq);
+  ra_icu_clear_irq(priv->irq_tx);
   uart_xmitchars(dev);
 
   return OK;
@@ -852,7 +852,7 @@ static int up_txeinterrupt(int irq, void *context, void *arg)
    * For now, we just clear the interrupt by reading the status.
    */
 
-  ra_icu_clear_irq(priv->txeirq);
+  ra_icu_clear_irq(priv->irq_txe);
   up_serialin(priv, R_SCI_B_CSR_OFFSET);
 
   return OK;
@@ -879,7 +879,7 @@ static int up_erinterrupt(int irq, void *context, void *arg)
              (R_SCI_B_CSR_PER | R_SCI_B_CSR_FER | R_SCI_B_CSR_ORER);
 
   /* Clear the interrupt */
-  ra_icu_clear_irq(priv->erirq);
+  ra_icu_clear_irq(priv->irq_err);
 
   /* Clear error flags - this also clears the interrupt */
   up_serialout(priv, R_SCI_B_CFCLR_OFFSET,

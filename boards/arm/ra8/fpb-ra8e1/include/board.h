@@ -52,11 +52,17 @@
 #define GPIO_SCI9_RX   GPIO_RXD9_MISO9_SCL9_1  /* P110 */
 #define GPIO_SCI9_TX   GPIO_TXD9_MOSI9_SDA9_1  /* P109 */
 
-/* SPI0 Pin Definitions (IMU/Barometer on Pmod 1) */
+/* SPI0 Pin Definitions (IMU/Barometer on Pmod 1) - Master */
 #define GPIO_SPI0_SCK   GPIO_SCK0_C            /* P611 - SPI Clock */
 #define GPIO_SPI0_MOSI  GPIO_MOSI0_TXD0_SDA0_C /* P609 - SPI MOSI */
 #define GPIO_SPI0_MISO  GPIO_MISO0_RXD0_SCL0_C /* P610 - SPI MISO */
 #define GPIO_SPI0_SS0   GPIO_SS0_CTS_RTS0_C    /* P612 - IMU CS (ICM20948) */
+
+/* SPI1 Pin Definitions (Expansion/Loopback) - Slave */
+#define GPIO_SPI1_SCK   GPIO_SCK1_A            /* P500 - SPI1 Clock */
+#define GPIO_SPI1_MOSI  GPIO_MOSI1_TXD1_SDA1_A /* P501 - SPI1 MOSI */
+#define GPIO_SPI1_MISO  GPIO_MISO1_RXD1_SCL1_A /* P502 - SPI1 MISO */
+#define GPIO_SPI1_SS0   GPIO_SS1_CTS_RTS1_A    /* P503 - SPI1 CS */
 
 /* PWM/GPT Timer Pin Definitions for ESC Control */
 #define GPIO_GPT0_A     GPIO_GTIOC0A_2         /* P415 - ESC 2 PWM */

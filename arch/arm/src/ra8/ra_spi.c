@@ -84,10 +84,14 @@ struct ra_spi_config_s
   uint32_t clk_src;       /* Clock source */
   uint32_t clk_freq;      /* Clock frequency */
   uint8_t  bus;           /* SPI bus number */
-  uint8_t  irq_rxi;       /* RX interrupt */
-  uint8_t  irq_txi;       /* TX interrupt */
-  uint8_t  irq_tei;       /* Transfer end interrupt */
-  uint8_t  irq_eri;       /* Error interrupt */
+  int  irq_rxi;           /* RX interrupt */
+  int  irq_txi;           /* TX interrupt */
+  int  irq_tei;           /* Transfer end interrupt */
+  int  irq_eri;           /* Error interrupt */
+  int  el_rxi;            /* Even Link for RX interrupt */
+  int  el_txi;            /* Even Link for TX interrupt */
+  int  el_tei;            /* Even Link for Transfer end interrupt */
+  int  el_eri;            /* Even Link for Error interrupt */
   uint32_t mstpcrb_bit;   /* Module stop control bit */
 
   /* Pin configuration */
@@ -196,10 +200,17 @@ static const struct ra_spi_config_s ra_spi0_config =
   .clk_src     = RA_PCKB_FREQUENCY,
   .clk_freq    = RA_PCKB_FREQUENCY,
   .bus         = 0,
-  .irq_rxi     = R_ICU_VECT(EVENT_SPI0_RXI),
-  .irq_txi     = R_ICU_VECT(EVENT_SPI0_TXI),
-  .irq_tei     = R_ICU_VECT(EVENT_SPI0_TEI),
-  .irq_eri     = R_ICU_VECT(EVENT_SPI0_ERI),
+
+  .irq_rxi     = -1, // Will be assigned by ICU
+  .irq_txi     = -1, // Will be assigned by ICU
+  .irq_tei     = -1, // Will be assigned by ICU
+  .irq_eri     = -1, // Will be assigned by ICU
+
+  .el_rxi       = ELC_EVENT_SPI0_RXI,
+  .el_txi       = ELC_EVENT_SPI0_TXI,
+  .el_tei       = ELC_EVENT_SPI0_TEI,
+  .el_eri       = ELC_EVENT_SPI0_ERI,
+
   .mstpcrb_bit = R_MSTP_MSTPCRB_SPI0,
 
   /* Pin configuration for FPB-RA8E1 */

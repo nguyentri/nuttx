@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/ra8/fpb-ra8e1/src/ra8e1_adc_demo.c
+ * boards/arm/ra8/fpb-ra8e1/src/ra8e1_adc.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -22,7 +22,7 @@
  * Included Files
  ****************************************************************************/
  
-#ifdef RA8E1_ADC_BMS_DEMO
+#ifdef RA8E1_ADC_BMS_EXAMPLE
 
 #include <nuttx/config.h>
 
@@ -42,7 +42,7 @@
 #include "chip.h"
 #include "ra_gpio.h"
 #include "board.h"
-#include "ra8e1_demo_log.h"
+#include "ra8e1_log.h"
 
 
 /****************************************************************************
@@ -751,7 +751,7 @@ int ra8e1_get_battery_status(struct battery_status_s *status)
 }
 
 /****************************************************************************
- * Name: ra8e1_adc_sample_demo
+ * Name: ra8e1_adc_sample
  *
  * Description:
  *   Demonstration function showing ADC usage for battery monitoring
@@ -764,13 +764,13 @@ int ra8e1_get_battery_status(struct battery_status_s *status)
  *
  ****************************************************************************/
 
-int ra8e1_adc_sample_demo(void)
+int ra8e1_adc_sample(void)
 {
   struct battery_status_s status;
   int ret;
   int sample_count = 10;
 
-  demoprintf("\n=== FPB-RA8E1 ADC Battery Monitoring Demo ===\n");
+  printf("\n=== FPB-RA8E1 ADC Battery Monitoring Demo ===\n");
 
   /* Initialize ADC if not already done */
 
@@ -779,31 +779,31 @@ int ra8e1_adc_sample_demo(void)
       ra8e1_adc_initialize();
     }
 
-  demoprintf("Taking %d battery measurements...\n\n", sample_count);
+  printf("Taking %d battery measurements...\n\n", sample_count);
 
   for (int i = 0; i < sample_count; i++)
     {
       ret = ra8e1_get_battery_status(&status);
       if (ret < 0)
         {
-          demoprintf("Sample %d: ERROR reading battery status (%d)\n", i + 1, ret);
+          printf("Sample %d: ERROR reading battery status (%d)\n", i + 1, ret);
           continue;
         }
 
-      demoprintf("Sample %d:\n", i + 1);
-      demoprintf("  Voltage:    %lu mV\n", status.voltage_mv);
-      demoprintf("  Current:    %ld mA %s\n", abs(status.current_ma),
+      printf("Sample %d:\n", i + 1);
+      printf("  Voltage:    %lu mV\n", status.voltage_mv);
+      printf("  Current:    %ld mA %s\n", abs(status.current_ma),
              status.is_charging ? "(Charging)" : "(Discharging)");
-      demoprintf("  Power:      %lu mW\n", status.power_mw);
-      demoprintf("  Percentage: %d%%\n", status.percentage);
-      demoprintf("  Status:     %s\n\n", status.is_valid ? "Valid" : "Invalid");
+      printf("  Power:      %lu mW\n", status.power_mw);
+      printf("  Percentage: %d%%\n", status.percentage);
+      printf("  Status:     %s\n\n", status.is_valid ? "Valid" : "Invalid");
 
       /* Wait between samples */
 
       usleep(500000);  /* 500ms delay */
     }
 
-  demoprintf("=== Demo Complete ===\n");
+  printf("=== Demo Complete ===\n");
   return OK;
 }
 
@@ -811,7 +811,7 @@ int ra8e1_adc_sample_demo(void)
 
 
 
-#ifdef CONFIG_RA8E1_ADC_BMS_DEMO
+#ifdef CONFIG_RA8E1_ADC_BMS_EXAMPLE
 #include <arch/board/board.h>
 
 /****************************************************************************
@@ -832,18 +832,18 @@ int ra8e1_adc_sample_demo(void)
 
 static void show_usage(FAR const char *progname, int exitcode)
 {
-  demoprintf("USAGE: %s [OPTIONS]\n", progname);
-  demoprintf("\nWhere OPTIONS include:\n");
-  demoprintf("  -h      Show this help message and exit\n");
-  demoprintf("  -c <n>  Number of samples to take (default: 10)\n");
-  demoprintf("  -d <ms> Delay between samples in milliseconds (default: 1000)\n");
-  demoprintf("  -v      Verbose output\n");
-  demoprintf("  -s      Single sample mode\n");
-  demoprintf("  -m      Continuous monitoring mode\n");
-  demoprintf("\nExamples:\n");
-  demoprintf("  %s -c 5 -d 500    Take 5 samples with 500ms delay\n", progname);
-  demoprintf("  %s -s             Take a single sample\n", progname);
-  demoprintf("  %s -m             Continuous monitoring (Ctrl+C to stop)\n", progname);
+  printf("USAGE: %s [OPTIONS]\n", progname);
+  printf("\nWhere OPTIONS include:\n");
+  printf("  -h      Show this help message and exit\n");
+  printf("  -c <n>  Number of samples to take (default: 10)\n");
+  printf("  -d <ms> Delay between samples in milliseconds (default: 1000)\n");
+  printf("  -v      Verbose output\n");
+  printf("  -s      Single sample mode\n");
+  printf("  -m      Continuous monitoring mode\n");
+  printf("\nExamples:\n");
+  printf("  %s -c 5 -d 500    Take 5 samples with 500ms delay\n", progname);
+  printf("  %s -s             Take a single sample\n", progname);
+  printf("  %s -m             Continuous monitoring (Ctrl+C to stop)\n", progname);
   exit(exitcode);
 }
 
@@ -877,20 +877,20 @@ static void print_battery_status(FAR struct battery_status_s *status, bool verbo
 
   if (verbose)
     {
-      demoprintf("=== Battery Status ===\n");
-      demoprintf("Voltage:     %lu mV\n", status->voltage_mv);
-      demoprintf("Current:     %ld mA (%s)\n", 
+      printf("=== Battery Status ===\n");
+      printf("Voltage:     %lu mV\n", status->voltage_mv);
+      printf("Current:     %ld mA (%s)\n", 
              abs(status->current_ma),
              status->is_charging ? "Charging" : "Discharging");
-      demoprintf("Power:       %lu mW\n", status->power_mw);
-      demoprintf("Charge:      %d%% (%s)\n", status->percentage, charge_level);
-      demoprintf("Status:      %s\n", status->is_valid ? "Valid" : "Invalid");
-      demoprintf("Charging:    %s\n", status->is_charging ? "Yes" : "No");
-      demoprintf("======================\n");
+      printf("Power:       %lu mW\n", status->power_mw);
+      printf("Charge:      %d%% (%s)\n", status->percentage, charge_level);
+      printf("Status:      %s\n", status->is_valid ? "Valid" : "Invalid");
+      printf("Charging:    %s\n", status->is_charging ? "Yes" : "No");
+      printf("======================\n");
     }
   else
     {
-      demoprintf("%lu mV | %ld mA | %lu mW | %d%% | %s\n",
+      printf("%lu mV | %ld mA | %lu mW | %d%% | %s\n",
              status->voltage_mv, status->current_ma, status->power_mw,
              status->percentage, status->is_charging ? "CHG" : "DIS");
     }
@@ -902,28 +902,28 @@ static void print_battery_status(FAR struct battery_status_s *status, bool verbo
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ra8e1_adc_bms_demo_init
+ * Name: ra8e1_adc_bms_init
  *
  * Description:
  *   Initialize the ADC BMS demo
  *
  ****************************************************************************/
 
-int ra8e1_adc_bms_demo_init(void)
+int ra8e1_adc_bms_init(void)
 {
   /* Initialize ADC for battery monitoring */
   return battery_adc_initialize();
 }
 
 /****************************************************************************
- * Name: ra8e1_adc_bms_demo_main
+ * Name: ra8e1_adc_bms_main
  *
  * Description:
  *   ADC Battery Monitoring Demo main function
  *
  ****************************************************************************/
 
-int ra8e1_adc_bms_demo_main(int argc, FAR char *argv[])
+int ra8e1_adc_bms_main(int argc, FAR char *argv[])
 {
 #ifdef CONFIG_RA_ADC_BATTERY_MONITOR
   struct battery_status_s status;
@@ -950,7 +950,7 @@ int ra8e1_adc_bms_demo_main(int argc, FAR char *argv[])
             sample_count = atoi(optarg);
             if (sample_count <= 0)
               {
-                fdemoprintf(stderr, "Error: Sample count must be positive\n");
+                fprintf(stderr, "Error: Sample count must be positive\n");
                 show_usage(argv[0], EXIT_FAILURE);
               }
             break;
@@ -959,7 +959,7 @@ int ra8e1_adc_bms_demo_main(int argc, FAR char *argv[])
             delay_ms = atoi(optarg);
             if (delay_ms < 0)
               {
-                fdemoprintf(stderr, "Error: Delay must be non-negative\n");
+                fprintf(stderr, "Error: Delay must be non-negative\n");
                 show_usage(argv[0], EXIT_FAILURE);
               }
             break;
@@ -978,7 +978,7 @@ int ra8e1_adc_bms_demo_main(int argc, FAR char *argv[])
 
           case '?':
           default:
-            fdemoprintf(stderr, "Error: Unknown option\n");
+            fprintf(stderr, "Error: Unknown option\n");
             show_usage(argv[0], EXIT_FAILURE);
             break;
         }
@@ -988,12 +988,12 @@ int ra8e1_adc_bms_demo_main(int argc, FAR char *argv[])
 
   if (single_mode && continuous_mode)
     {
-      fdemoprintf(stderr, "Error: Cannot use both single and continuous mode\n");
+      fprintf(stderr, "Error: Cannot use both single and continuous mode\n");
       show_usage(argv[0], EXIT_FAILURE);
     }
 
-  demoprintf("FPB-RA8E1 ADC Battery Monitor\n");
-  demoprintf("=====================================\n");
+  printf("FPB-RA8E1 ADC Battery Monitor\n");
+  printf("=====================================\n");
 
   /* Initialize ADC */
 
@@ -1003,11 +1003,11 @@ int ra8e1_adc_bms_demo_main(int argc, FAR char *argv[])
     {
       /* Single sample mode */
 
-      demoprintf("Taking single battery measurement...\n");
+      printf("Taking single battery measurement...\n");
       ret = ra8e1_get_battery_status(&status);
       if (ret < 0)
         {
-          fdemoprintf(stderr, "Error: Failed to read battery status: %d\n", ret);
+          fprintf(stderr, "Error: Failed to read battery status: %d\n", ret);
           return EXIT_FAILURE;
         }
 
@@ -1017,11 +1017,11 @@ int ra8e1_adc_bms_demo_main(int argc, FAR char *argv[])
     {
       /* Continuous monitoring mode */
 
-      demoprintf("Continuous monitoring mode (Ctrl+C to stop)\n");
+      printf("Continuous monitoring mode (Ctrl+C to stop)\n");
       if (!verbose)
         {
-          demoprintf("Format: Voltage | Current | Power | Charge | Status\n");
-          demoprintf("--------|--------|-------|-------|--------\n");
+          printf("Format: Voltage | Current | Power | Charge | Status\n");
+          printf("--------|--------|-------|-------|--------\n");
         }
 
       i = 0;
@@ -1030,18 +1030,18 @@ int ra8e1_adc_bms_demo_main(int argc, FAR char *argv[])
           ret = ra8e1_get_battery_status(&status);
           if (ret < 0)
             {
-              fdemoprintf(stderr, "Error: Failed to read battery status: %d\n", ret);
+              fprintf(stderr, "Error: Failed to read battery status: %d\n", ret);
               usleep(delay_ms * 1000);
               continue;
             }
 
           if (verbose)
             {
-              demoprintf("\n--- Sample %d ---\n", ++i);
+              printf("\n--- Sample %d ---\n", ++i);
             }
           else
             {
-              demoprintf("%3d: ", ++i);
+              printf("%3d: ", ++i);
             }
 
           print_battery_status(&status, verbose);
@@ -1053,13 +1053,13 @@ int ra8e1_adc_bms_demo_main(int argc, FAR char *argv[])
     {
       /* Multiple sample mode */
 
-      demoprintf("Taking %d battery measurements with %dms delay...\n", 
+      printf("Taking %d battery measurements with %dms delay...\n", 
              sample_count, delay_ms);
 
       if (!verbose)
         {
-          demoprintf("Sample | Voltage | Current | Power | Charge | Status\n");
-          demoprintf("-------|---------|---------|-------|--------|--------\n");
+          printf("Sample | Voltage | Current | Power | Charge | Status\n");
+          printf("-------|---------|---------|-------|--------|--------\n");
         }
 
       for (i = 0; i < sample_count; i++)
@@ -1067,18 +1067,18 @@ int ra8e1_adc_bms_demo_main(int argc, FAR char *argv[])
           ret = ra8e1_get_battery_status(&status);
           if (ret < 0)
             {
-              fdemoprintf(stderr, "Sample %d: Failed to read battery status: %d\n", 
+              fprintf(stderr, "Sample %d: Failed to read battery status: %d\n", 
                       i + 1, ret);
               continue;
             }
 
           if (verbose)
             {
-              demoprintf("\n--- Sample %d of %d ---\n", i + 1, sample_count);
+              printf("\n--- Sample %d of %d ---\n", i + 1, sample_count);
             }
           else
             {
-              demoprintf("%3d:   ", i + 1);
+              printf("%3d:   ", i + 1);
             }
 
           print_battery_status(&status, verbose);
@@ -1090,14 +1090,14 @@ int ra8e1_adc_bms_demo_main(int argc, FAR char *argv[])
         }
     }
 
-  demoprintf("\nBattery monitoring complete.\n");
+  printf("\nBattery monitoring complete.\n");
   return EXIT_SUCCESS;
 
 #else
-  demoprintf("Error: ADC battery monitoring not enabled in configuration\n");
-  demoprintf("Please enable CONFIG_RA_ADC_BATTERY_MONITOR\n");
+  printf("Error: ADC battery monitoring not enabled in configuration\n");
+  printf("Please enable CONFIG_RA_ADC_BATTERY_MONITOR\n");
   return EXIT_FAILURE;
 #endif
 }
 
-#endif /* CONFIG_RA8E1_ADC_BMS_DEMO */
+#endif /* CONFIG_RA8E1_ADC_BMS_EXAMPLE */

@@ -21,7 +21,7 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
-#ifdef CONFIG_RA8E1_I2C_GY912_DEMO
+#ifdef CONFIG_RA8E1_I2C_GY912_EXAMPLE
 
 #include <nuttx/config.h>
 
@@ -43,9 +43,9 @@
 #include "ra_i2c.h"
 #include "gy912.h"
 
-#include "ra8e1_demo_log.h"
+#include "ra8e1_log.h"
 
-#define I2C_GY912_DEMO_VERSION        "1.0.0"
+#define I2C_GY912_EXAMPLE_VERSION        "1.0.0"
 #define I2C_GY912_BUFFER_SIZE         64
 #define I2C_GY912_MAX_CHANNELS        2
 
@@ -579,16 +579,16 @@ void ra8e1_gy912_print_data(const struct gy912_data_s *data)
       return;
     }
 
-  demoprintf("GY-912 Sensor Data:\n");
-  demoprintf("  ICM-20948 IMU:\n");
-  demoprintf("    Accel: X=%6d, Y=%6d, Z=%6d\n", 
+  printf("GY-912 Sensor Data:\n");
+  printf("  ICM-20948 IMU:\n");
+  printf("    Accel: X=%6d, Y=%6d, Z=%6d\n", 
          data->accel_x, data->accel_y, data->accel_z);
-  demoprintf("    Gyro:  X=%6d, Y=%6d, Z=%6d\n", 
+  printf("    Gyro:  X=%6d, Y=%6d, Z=%6d\n", 
          data->gyro_x, data->gyro_y, data->gyro_z);
-  demoprintf("    Temp:  %d\n", data->temperature_imu);
-  demoprintf("  BMP388 Pressure Sensor:\n");
-  demoprintf("    Pressure: %lu\n", (unsigned long)data->pressure);
-  demoprintf("    Temp:     %ld\n", (long)data->temperature_bmp);
+  printf("    Temp:  %d\n", data->temperature_imu);
+  printf("  BMP388 Pressure Sensor:\n");
+  printf("    Pressure: %lu\n", (unsigned long)data->pressure);
+  printf("    Temp:     %ld\n", (long)data->temperature_bmp);
 }
 
 /****************************************************************************
@@ -599,7 +599,7 @@ void ra8e1_gy912_print_data(const struct gy912_data_s *data)
  *
  ****************************************************************************/
 
-int ra8e1_i2c_gy912_demo_test(void)
+int ra8e1_i2c_gy912_test(void)
 {
   struct gy912_data_s data;
   int ret;
@@ -625,7 +625,7 @@ int ra8e1_i2c_gy912_demo_test(void)
           return ret;
         }
 
-      demoprintf("\n--- Sample %d ---\n", i + 1);
+      printf("\n--- Sample %d ---\n", i + 1);
       ra8e1_gy912_print_data(&data);
 
       /* Wait 500ms between readings */
@@ -637,32 +637,32 @@ int ra8e1_i2c_gy912_demo_test(void)
 }
 
 /****************************************************************************
- * Name: ra8e1_i2c_gy912_demo_init
+ * Name: ra8e1_i2c_gy912_init
  *
  * Description:
  *   Initialize the I2C GY-912 demo
  *
  ****************************************************************************/
 
-int ra8e1_i2c_gy912_demo_init(void)
+int ra8e1_i2c_gy912_init(void)
 {
   /* I2C GY-912 demo initialization is done within main function */
   return 0;
 }
 
 /****************************************************************************
- * Name: ra8e1_i2c_gy912_demo_main
+ * Name: ra8e1_i2c_gy912_main
  *
  * Description:
  *   Main entry point for I2C GY-912 demo
  *
  ****************************************************************************/
 
-int ra8e1_i2c_gy912_demo_main(int argc, char *argv[])
+int ra8e1_i2c_gy912_main(int argc, char *argv[])
 {
-  return ra8e1_i2c_gy912_demo_test();
+  return ra8e1_i2c_gy912_test();
 }
 
 #endif /* CONFIG_RA_I2C */
 
-#endif /* CONFIG_RA8E1_I2C_GY912_DEMO */
+#endif /* CONFIG_RA8E1_I2C_GY912_EXAMPLE */

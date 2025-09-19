@@ -64,7 +64,7 @@
 /****************************************************************************
  * Flight Control Data Structures (Real-time C types)
  ****************************************************************************/
-#ifdef CONFIG_RA8E1_RUST_DEMO
+#ifdef CONFIG_RA8E1_RUST_EXAMPLE
 
 /* Hardware IMU data structure */
 typedef struct {

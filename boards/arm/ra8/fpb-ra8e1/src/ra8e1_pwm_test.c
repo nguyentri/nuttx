@@ -32,7 +32,7 @@
 
 /* PWM driver definitions */
 #define PWMIOC_SETCHARACTERISTICS  1
-#define PWMIOC_START              2  
+#define PWMIOC_START              2
 #define PWMIOC_STOP               3
 
 /* PWM info structure */
@@ -102,12 +102,12 @@ static int test_pwm_device(const char *devpath, int channel)
   for (int i = 0; i < num_tests; i++)
     {
       uint32_t pulse_us = pulse_widths[i];
-      
+
       /* Calculate duty cycle from pulse width */
       /* duty = (pulse_us * 65536) / (1000000 / frequency) */
       uint32_t period_us = 1000000 / PWM_FREQUENCY; /* Period in microseconds */
       uint32_t duty = (pulse_us * 65536) / period_us;
-      
+
       info.frequency = PWM_FREQUENCY;
       info.duty = duty;
 
@@ -126,7 +126,7 @@ static int test_pwm_device(const char *devpath, int channel)
           break;
         }
 
-      printf("  Pulse width: %u us, Duty: %u/65536 (%u%%) - ACTIVE\n", 
+      printf("  Pulse width: %u us, Duty: %u/65536 (%u%%) - ACTIVE\n",
              pulse_us, duty, (duty * 100) / 65536);
 
       /* Keep this setting for 2 seconds */
@@ -167,10 +167,10 @@ int ra8e1_pwm_test_main(int argc, char *argv[])
 
   printf("RA8E1 PWM ESC Test Application\n");
   printf("==============================\n\n");
-  
+
   printf("Testing ESC PWM channels:\n");
   printf("ESC1: /dev/pwm3 (P300/GPT3A)\n");
-  printf("ESC2: /dev/pwm0 (P415/GPT0A)\n"); 
+  printf("ESC2: /dev/pwm0 (P415/GPT0A)\n");
   printf("ESC3: /dev/pwm2 (P114/GPT2B)\n");
   printf("ESC4: /dev/pwm4 (P302/GPT4A)\n\n");
 
@@ -214,7 +214,7 @@ int ra8e1_pwm_test_main(int argc, char *argv[])
     }
 
   printf("All PWM ESC tests completed successfully!\n");
-  printf("You can now use the interactive ESC demo: ra8e1_pwm_escs_demo\n");
+  printf("You can now use the interactive ESC demo: ra8e1_pwm_escs\n");
 
   return OK;
 }

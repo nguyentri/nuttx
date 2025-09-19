@@ -38,61 +38,61 @@ endif
 ############################################################################
 # Application specific support CONFIG_BOARDCTL
 ############################################################################
-ifeq ($(CONFIG_RA8E1_ADC_BMS_DEMO),y)
-CSRCS += ra8e1_adc_bms_demo.c
+ifeq ($(CONFIG_RA8E1_ADC_BMS_EXAMPLE),y)
+CSRCS += ra8e1_adc_bms.c
 endif
 
-ifeq ($(CONFIG_RA8E1_CODE_FLASH_DEMO),y)
-CSRCS += ra8e1_code_flash_demo.c
+ifeq ($(CONFIG_RA8E1_CODE_FLASH_EXAMPLE),y)
+CSRCS += ra8e1_code_flash.c
 endif
 
-ifeq ($(CONFIG_RA8E1_DATA_FLASH_DEMO),y)
-CSRCS += ra8e1_data_flash_demo.c
+ifeq ($(CONFIG_RA8E1_DATA_FLASH_EXAMPLE),y)
+CSRCS += ra8e1_data_flash.c
 endif
 
-ifeq ($(CONFIG_RA8E1_GPS_DEMO),y)
-CSRCS += ra8e1_gps_demo.c
+ifeq ($(CONFIG_RA8E1_GPS_EXAMPLE),y)
+CSRCS += ra8e1_uart_gps.c
 endif
 
-ifeq ($(CONFIG_RA8E1_SBUS_DEMO),y)
-CSRCS += ra8e1_sbus_demo.c
+ifeq ($(CONFIG_RA8E1_SBUS_EXAMPLE),y)
+CSRCS += ra8e1_uart_sbus.c
 endif
 
-ifeq ($(CONFIG_RA8E1_I2C_GY912_DEMO),y)
-CSRCS += ra8e1_i2c_gy912_demo.c
+ifeq ($(CONFIG_RA8E1_I2C_GY912_EXAMPLE),y)
+CSRCS += ra8e1_i2c_gy912.c
 endif
 
 ifeq ($(CONFIG_RA8E1_I2C_TEST),y)
 CSRCS += ra8e1_i2c_test.c
 endif
 
-ifeq ($(CONFIG_RA8E1_I2C_ACCEL_DEMO),y)
-CSRCS += ra8e1_i2c_acc_demo.c
+ifeq ($(CONFIG_RA8E1_I2C_ACCEL_EXAMPLE),y)
+CSRCS += ra8e1_i2c_acc.c
 endif
 
-ifeq ($(CONFIG_RA8E1_PWM_ESCS_DEMO),y)
-CSRCS += ra8e1_pwm_escs_demo.c
+ifeq ($(CONFIG_RA8E1_PWM_ESCS_EXAMPLE),y)
+CSRCS += ra8e1_pwm_escs.c
 endif
 
 # Data Flash Demo Support
-ifeq ($(CONFIG_RA8E1_DATA_FLASH_DEMO),y)
-CSRCS += ra8e1_data_flash_demo.c
+ifeq ($(CONFIG_RA8E1_DATA_FLASH_EXAMPLE),y)
+CSRCS += ra8e1_df.c
 endif
 
 # Code Flash Demo Support
-ifeq ($(CONFIG_RA8E1_CODE_FLASH_DEMO),y)
-CSRCS += ra8e1_code_flash_demo.c
+ifeq ($(CONFIG_RA8E1_CODE_FLASH_EXAMPLE),y)
+CSRCS += ra8e1_cf.c
 endif
 
 
 # SPI Loopback Demo
-ifeq ($(CONFIG_RA8E1_SPI_LOOPBACK_DEMO),y)
-CSRCS += ra8e1_spi_loopback_demo.c
+ifeq ($(CONFIG_RA8E1_SPI_LOOPBACK_EXAMPLE),y)
+CSRCS += ra8e1_spi_loopback.c
 endif
 
 # GY-912 sensor support
-ifeq ($(CONFIG_RA8E1_SPI_GY912_DEMO),y)
-CSRCS += ra8e1_spi_gy912_demo.c
+ifeq ($(CONFIG_RA8E1_SPI_GY912_EXAMPLE),y)
+CSRCS += ra8e1_spi_gy912.c
 endif
 
 # RTC driver support
@@ -101,7 +101,7 @@ CSRCS += ra8e1_rtc.c
 endif
 
 # Rust Demo Support
-ifeq ($(CONFIG_RA8E1_RUST_DEMO),y)
+ifeq ($(CONFIG_RA8E1_RUST_EXAMPLE),y)
 CSRCS += ra8e1_rust.c
 # Rust library integration
 RUST_LIB_DIR = $(TOPDIR)/boards/arm/ra8/fpb-ra8e1/rust_lib

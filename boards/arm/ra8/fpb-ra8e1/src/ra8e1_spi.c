@@ -44,7 +44,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: fpb_ra8e1_spi_initialize
+ * Name: ra8e1_spi_initialize
  *
  * Description:
  *   Initialize SPI buses for the FPB-RA8E1 board
@@ -52,7 +52,7 @@
  *
  ****************************************************************************/
 
-int fpb_ra8e1_spi_initialize(void)
+int ra8e1_spi_initialize(void)
 {
 #ifdef CONFIG_RA_SPI
   struct spi_dev_s *spi0;
@@ -60,7 +60,7 @@ int fpb_ra8e1_spi_initialize(void)
   int ret;
 
   /* Initialize SPI0 (Master) */
-  spi0 = ra8_spibus_initialize(0);
+  spi0 = ra_spibus_initialize(0);
   if (!spi0)
     {
       syslog(LOG_ERR, "ERROR: Failed to initialize SPI0 (Master)\n");
@@ -73,7 +73,7 @@ int fpb_ra8e1_spi_initialize(void)
 
 #ifdef CONFIG_RA_SPI1
   /* Initialize SPI1 (Slave) */
-  spi1 = ra8_spibus_initialize(1);
+  spi1 = ra_spibus_initialize(1);
   if (!spi1)
     {
       syslog(LOG_ERR, "ERROR: Failed to initialize SPI1 (Slave)\n");
@@ -112,7 +112,7 @@ int fpb_ra8e1_spi_initialize(void)
 }
 
 /****************************************************************************
- * Name: ra8_spi0select
+ * Name: ra_spi0select
  *
  * Description:
  *   Select or deselect the SPI device specified by 'devid' for SPI0
@@ -120,7 +120,7 @@ int fpb_ra8e1_spi_initialize(void)
  ****************************************************************************/
 
 #ifdef CONFIG_RA_SPI
-void ra8_spi0select(FAR struct spi_dev_s *dev, uint32_t devid,
+void ra_spi0select(FAR struct spi_dev_s *dev, uint32_t devid,
                      bool selected)
 {
   spiinfo("SPI0 devid: %" PRIu32 " CS: %s\n",
@@ -136,7 +136,7 @@ void ra8_spi0select(FAR struct spi_dev_s *dev, uint32_t devid,
         break;
 #endif
 
-#ifdef CONFIG_RA_SPI_LOOPBACK_DEMO
+#ifdef CONFIG_RA_SPI_LOOPBACK_EXAMPLE
       case SPIDEV_USER(0):
         /* Handle loopback demo device selection */
         /* For loopback demo, CS handling may be simplified */
@@ -149,7 +149,7 @@ void ra8_spi0select(FAR struct spi_dev_s *dev, uint32_t devid,
 }
 
 /****************************************************************************
- * Name: ra8_spi1select
+ * Name: ra_spi1select
  *
  * Description:
  *   Select or deselect the SPI device specified by 'devid' for SPI1
@@ -157,7 +157,7 @@ void ra8_spi0select(FAR struct spi_dev_s *dev, uint32_t devid,
  ****************************************************************************/
 
 #ifdef CONFIG_RA_SPI1
-void ra8_spi1select(FAR struct spi_dev_s *dev, uint32_t devid,
+void ra_spi1select(FAR struct spi_dev_s *dev, uint32_t devid,
                      bool selected)
 {
   spiinfo("SPI1 devid: %" PRIu32 " CS: %s\n",
@@ -166,7 +166,7 @@ void ra8_spi1select(FAR struct spi_dev_s *dev, uint32_t devid,
   /* Handle device selection based on device ID */
   switch (devid)
     {
-#ifdef CONFIG_RA_SPI_LOOPBACK_DEMO
+#ifdef CONFIG_RA_SPI_LOOPBACK_EXAMPLE
       case SPIDEV_USER(1):
         /* Handle loopback demo device selection for SPI1 */
         /* For loopback demo between SPI0 and SPI1 */
@@ -180,14 +180,14 @@ void ra8_spi1select(FAR struct spi_dev_s *dev, uint32_t devid,
 #endif
 
 /****************************************************************************
- * Name: ra8_spi0status
+ * Name: ra_spi0status
  *
  * Description:
  *   Return status information associated with the SPI0 device.
  *
  ****************************************************************************/
 
-uint8_t ra8_spi0status(FAR struct spi_dev_s *dev, uint32_t devid)
+uint8_t ra_spi0status(FAR struct spi_dev_s *dev, uint32_t devid)
 {
   uint8_t status = 0;
 
@@ -200,7 +200,7 @@ uint8_t ra8_spi0status(FAR struct spi_dev_s *dev, uint32_t devid)
         break;
 #endif
 
-#ifdef CONFIG_RA_SPI_LOOPBACK_DEMO
+#ifdef CONFIG_RA_SPI_LOOPBACK_EXAMPLE
       case SPIDEV_USER(0):
         /* Return status for loopback demo */
         status = SPI_STATUS_PRESENT;
@@ -215,7 +215,7 @@ uint8_t ra8_spi0status(FAR struct spi_dev_s *dev, uint32_t devid)
 }
 
 /****************************************************************************
- * Name: ra8_spi1status
+ * Name: ra_spi1status
  *
  * Description:
  *   Return status information associated with the SPI1 device.
@@ -223,13 +223,13 @@ uint8_t ra8_spi0status(FAR struct spi_dev_s *dev, uint32_t devid)
  ****************************************************************************/
 
 #ifdef CONFIG_RA_SPI1
-uint8_t ra8_spi1status(FAR struct spi_dev_s *dev, uint32_t devid)
+uint8_t ra_spi1status(FAR struct spi_dev_s *dev, uint32_t devid)
 {
   uint8_t status = 0;
 
   switch (devid)
     {
-#ifdef CONFIG_RA_SPI_LOOPBACK_DEMO
+#ifdef CONFIG_RA_SPI_LOOPBACK_EXAMPLE
       case SPIDEV_USER(1):
         /* Return status for loopback demo */
         status = SPI_STATUS_PRESENT;

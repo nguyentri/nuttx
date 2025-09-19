@@ -22,7 +22,7 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
-#ifdef CONFIG_RA8E1_SPI_GY912_DEMO
+#ifdef CONFIG_RA8E1_SPI_GY912_EXAMPLE
 
 #include <nuttx/config.h>
 
@@ -43,7 +43,7 @@
 #include "chip.h"
 #include "ra_gpio.h"
 #include "board.h"
-#include "ra8e1_demo_log.h"
+#include "ra8e1_log.h"
 
 #ifdef CONFIG_RA_SPI
 
@@ -357,7 +357,7 @@ static uint32_t gy912_spi_setfrequency(struct spi_dev_s *dev, uint32_t frequency
     {
       divisor = (1 << (brdv + 1));
       spbr = (pclk / (frequency * divisor)) - 1;
-      
+
       if (spbr <= 255)
         {
           break;
@@ -934,7 +934,7 @@ int gy912_spi_interrupt_handler(int irq, void *context, void *arg)
   if (status & (RA8E1_SPI_SPSR_OVRF | RA8E1_SPI_SPSR_MODF | RA8E1_SPI_SPSR_PERF))
     {
       spierr("SPI Error: status=0x%02x\n", status);
-      
+
       if (priv->current_xfer)
         {
           priv->current_xfer->status = RA8E1_SPI_STATUS_ERROR;
@@ -1076,8 +1076,8 @@ int ra_spi0_cmddata(struct spi_dev_s *dev, uint32_t devid, bool cmd)
  */
 
 extern int gy912_spi_initialize(void);
-extern int gy912_demo_run(void);
-extern int gy912_demo_single_read(void);
+extern int gy912_run(void);
+extern int gy912_single_read(void);
 extern int gy912_self_test(void);
 
 /****************************************************************************
@@ -1094,7 +1094,7 @@ extern int gy912_self_test(void);
 
 static void show_help(void)
 {
-  demoprintf(GY912_HELP);
+  printf(GY912_HELP);
 }
 
 /****************************************************************************
@@ -1102,28 +1102,28 @@ static void show_help(void)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ra8e1_spi_gy912_demo_init
+ * Name: ra8e1_spi_gy912_init
  *
  * Description:
  *   Initialize the SPI GY-912 demo
  *
  ****************************************************************************/
 
-int ra8e1_spi_gy912_demo_init(void)
+int ra8e1_spi_gy912_init(void)
 {
   /* Initialize GY-912 sensor module */
   return gy912_spi_initialize();
 }
 
 /****************************************************************************
- * Name: ra8e1_spi_gy912_demo_main
+ * Name: ra8e1_spi_gy912_main
  *
  * Description:
  *   GY-912 SPI demo main function
  *
  ****************************************************************************/
 
-int ra8e1_spi_gy912_demo_main(int argc, FAR char *argv[])
+int ra8e1_spi_gy912_main(int argc, FAR char *argv[])
 {
   int ret = OK;
   bool help = false;
@@ -1132,10 +1132,10 @@ int ra8e1_spi_gy912_demo_main(int argc, FAR char *argv[])
   bool test = false;
   bool init_only = false;
   int i;
-  
-  demoprintf("GY-912 10DOF Sensor Test Application\n");
-  demoprintf("====================================\n\n");
-  
+
+  printf("GY-912 10DOF Sensor Test Application\n");
+  printf("====================================\n\n");
+
   /* Parse command line arguments */
   for (i = 1; i < argc; i++)
     {
@@ -1161,84 +1161,286 @@ int ra8e1_spi_gy912_demo_main(int argc, FAR char *argv[])
         }
       else
         {
-          demoprintf("Unknown option: %s\n\n", argv[i]);
+          printf("Unknown option: %s\n\n", argv[i]);
           show_help();
           return EXIT_FAILURE;
         }
     }
-  
+
   if (help)
     {
       show_help();
       return EXIT_SUCCESS;
     }
-  
+
   /* If no specific action requested, show help */
   if (!single && !run && !test && !init_only)
     {
-      demoprintf("No action specified. Available actions:\n\n");
+      printf("No action specified. Available actions:\n\n");
       show_help();
       return EXIT_SUCCESS;
     }
-  
+
   /* Initialize sensors */
-  demoprintf("Initializing GY-912 sensors...\n");
+  printf("Initializing GY-912 sensors...\n");
   ret = gy912_spi_initialize();
   if (ret < 0)
     {
-      demoprintf("ERROR: Failed to initialize GY-912 sensors: %d\n", ret);
+      printf("ERROR: Failed to initialize GY-912 sensors: %d\n", ret);
       return EXIT_FAILURE;
     }
-  
-  demoprintf("GY-912 sensors initialized successfully!\n\n");
-  
+
+  printf("GY-912 sensors initialized successfully!\n\n");
+
   if (init_only)
     {
-      demoprintf("Initialization complete.\n");
+      printf("Initialization complete.\n");
       return EXIT_SUCCESS;
     }
-  
+
   /* Perform requested action */
   if (test)
     {
-      demoprintf("Running self-test...\n");
+      printf("Running self-test...\n");
       ret = gy912_self_test();
       if (ret < 0)
         {
-          demoprintf("ERROR: Self-test failed: %d\n", ret);
+          printf("ERROR: Self-test failed: %d\n", ret);
           return EXIT_FAILURE;
         }
-      demoprintf("Self-test completed successfully!\n\n");
+      printf("Self-test completed successfully!\n\n");
     }
-  
+
   if (single)
     {
-      demoprintf("Performing single sensor reading...\n");
-      ret = gy912_demo_single_read();
+      printf("Performing single sensor reading...\n");
+      ret = gy912_single_read();
       if (ret < 0)
         {
-          demoprintf("ERROR: Single reading failed: %d\n", ret);
+          printf("ERROR: Single reading failed: %d\n", ret);
           return EXIT_FAILURE;
         }
-      demoprintf("Single reading completed!\n\n");
+      printf("Single reading completed!\n\n");
     }
-  
+
   if (run)
     {
-      demoprintf("Starting continuous demonstration...\n");
-      demoprintf("Press Ctrl+C to stop.\n\n");
-      ret = gy912_demo_run();
+      printf("Starting continuous demonstration...\n");
+      printf("Press Ctrl+C to stop.\n\n");
+      ret = gy912_run();
       if (ret < 0)
         {
-          demoprintf("ERROR: Demonstration failed: %d\n", ret);
+          printf("ERROR: Demonstration failed: %d\n", ret);
           return EXIT_FAILURE;
         }
-      demoprintf("Demonstration completed!\n\n");
+      printf("Demonstration completed!\n\n");
     }
-  
+
   return EXIT_SUCCESS;
 }
 
 #endif /* CONFIG_SPI_GY912_SAMPLE */
 
-#endif /* CONFIG_RA8E1_SPI_GY912_DEMO */
+
+/****************************************************************************
+ * Name: ra8e1_spi_initialize
+ *
+ * Description:
+ *   Initialize SPI buses for the FPB-RA8E1 board
+ *   This function initializes both SPI0 and SPI1 for loopback demo
+ *
+ ****************************************************************************/
+
+int ra8e1_spi_initialize(void)
+{
+#ifdef CONFIG_RA_SPI
+  struct spi_dev_s *spi0;
+  struct spi_dev_s *spi1;
+  int ret;
+
+  /* Initialize SPI0 (Master) */
+  spi0 = ra_spibus_initialize(0);
+  if (!spi0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize SPI0 (Master)\n");
+      return -ENODEV;
+    }
+
+  /* Register SPI0 device */
+  spi_register(spi0, 0);
+  syslog(LOG_INFO, "SPI0 (Master) initialized successfully\n");
+
+#ifdef CONFIG_RA_SPI1
+  /* Initialize SPI1 (Slave) */
+  spi1 = ra_spibus_initialize(1);
+  if (!spi1)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize SPI1 (Slave)\n");
+      return -ENODEV;
+    }
+
+  /* Register SPI1 device */
+  spi_register(spi1, 1);
+  syslog(LOG_INFO, "SPI1 (Slave) initialized successfully\n");
+#endif
+
+#ifdef CONFIG_SPI_DRIVER
+  /* Register SPI character drivers */
+  ret = spi_register_driver("/dev/spi0", spi0);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to register SPI0 driver: %d\n", ret);
+      return ret;
+    }
+
+#ifdef CONFIG_RA_SPI1
+  ret = spi_register_driver("/dev/spi1", spi1);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to register SPI1 driver: %d\n", ret);
+      return ret;
+    }
+#endif
+#endif
+
+  syslog(LOG_INFO, "All SPI interfaces initialized for loopback demo\n");
+
+#endif /* CONFIG_RA_SPI */
+
+  return 0;
+}
+
+/****************************************************************************
+ * Name: ra_spi0select
+ *
+ * Description:
+ *   Select or deselect the SPI device specified by 'devid' for SPI0
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_RA_SPI
+void ra_spi0select(FAR struct spi_dev_s *dev, uint32_t devid,
+                     bool selected)
+{
+  spiinfo("SPI0 devid: %" PRIu32 " CS: %s\n",
+          devid, selected ? "assert" : "de-assert");
+
+  /* Handle device selection based on device ID */
+  switch (devid)
+    {
+#ifdef CONFIG_RA_SPI_GY912
+      case SPIDEV_GY912(0):
+        /* Handle GY-912 sensor chip select on SPI0 */
+        /* Implementation would go here based on hardware pinout */
+        break;
+#endif
+
+#ifdef CONFIG_RA_SPI_LOOPBACK_EXAMPLE
+      case SPIDEV_USER(0):
+        /* Handle loopback demo device selection */
+        /* For loopback demo, CS handling may be simplified */
+        break;
+#endif
+
+      default:
+        break;
+    }
+}
+
+/****************************************************************************
+ * Name: ra_spi1select
+ *
+ * Description:
+ *   Select or deselect the SPI device specified by 'devid' for SPI1
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_RA_SPI1
+void ra_spi1select(FAR struct spi_dev_s *dev, uint32_t devid,
+                     bool selected)
+{
+  spiinfo("SPI1 devid: %" PRIu32 " CS: %s\n",
+          devid, selected ? "assert" : "de-assert");
+
+  /* Handle device selection based on device ID */
+  switch (devid)
+    {
+#ifdef CONFIG_RA_SPI_LOOPBACK_EXAMPLE
+      case SPIDEV_USER(1):
+        /* Handle loopback demo device selection for SPI1 */
+        /* For loopback demo between SPI0 and SPI1 */
+        break;
+#endif
+
+      default:
+        break;
+    }
+}
+#endif
+
+/****************************************************************************
+ * Name: ra_spi0status
+ *
+ * Description:
+ *   Return status information associated with the SPI0 device.
+ *
+ ****************************************************************************/
+
+uint8_t ra_spi0status(FAR struct spi_dev_s *dev, uint32_t devid)
+{
+  uint8_t status = 0;
+
+  switch (devid)
+    {
+#ifdef CONFIG_RA_SPI_GY912
+      case SPIDEV_GY912(0):
+        /* Return status for GY-912 sensor */
+        status = SPI_STATUS_PRESENT;
+        break;
+#endif
+
+#ifdef CONFIG_RA_SPI_LOOPBACK_EXAMPLE
+      case SPIDEV_USER(0):
+        /* Return status for loopback demo */
+        status = SPI_STATUS_PRESENT;
+        break;
+#endif
+
+      default:
+        break;
+    }
+
+  return status;
+}
+
+/****************************************************************************
+ * Name: ra_spi1status
+ *
+ * Description:
+ *   Return status information associated with the SPI1 device.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_RA_SPI1
+uint8_t ra_spi1status(FAR struct spi_dev_s *dev, uint32_t devid)
+{
+  uint8_t status = 0;
+
+  switch (devid)
+    {
+#ifdef CONFIG_RA_SPI_LOOPBACK_EXAMPLE
+      case SPIDEV_USER(1):
+        /* Return status for loopback demo */
+        status = SPI_STATUS_PRESENT;
+        break;
+#endif
+
+      default:
+        break;
+    }
+
+  return status;
+}
+#endif
+
+#endif /* CONFIG_RA8E1_SPI_GY912_EXAMPLE */

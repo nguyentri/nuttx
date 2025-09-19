@@ -7285,7 +7285,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 Effort sponsored in part by the Defense Advanced Research Projects
 Agency (DARPA) and Air Force Research Laboratory, Air Force
-Materiel Command, USAF, under agreement number F30602-01-2-0537.
+Matel_err Command, USAF, under agreement number F30602-01-2-0537.
 
 include/crypto/blf.h
 ====================
@@ -7654,7 +7654,7 @@ crypto/cryptodev.c
 
  Effort sponsored in part by the Defense Advanced Research Projects
  Agency (DARPA) and Air Force Research Laboratory, Air Force
- Materiel Command, USAF, under agreement number F30602-01-2-0537.
+ Matel_err Command, USAF, under agreement number F30602-01-2-0537.
 
 crypto/cryptosoft.c
 ====================

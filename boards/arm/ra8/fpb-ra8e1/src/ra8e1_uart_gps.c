@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/ra8/fpb-ra8e1/src/ra8e1_gps_demo.c
+ * boards/arm/ra8/fpb-ra8e1/src/ra8e1_gps.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -45,7 +45,7 @@
 #include "chip.h"
 #include "ra_gpio.h"
 #include "ra_sci.h"
-#include "ra8e1_demo_log.h"
+#include "ra8e1_log.h"
 
 /* GPS NMEA Parameters */
 
@@ -71,7 +71,7 @@
 #define GPS_FIX_MANUAL          7
 #define GPS_FIX_SIMULATION      8
 
-#ifdef CONFIG_RA8E1_GPS_DEMO
+#ifdef CONFIG_RA8E1_GPS_EXAMPLE
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -111,7 +111,7 @@ static uint8_t g_gps_rx_buffer[GPS_RX_BUFFER_SIZE];
 static uint8_t g_gps_tx_buffer[GPS_TX_BUFFER_SIZE];
 
 /* Demo running flag */
-static volatile bool g_demo_running = false;
+static volatile bool g_running = false;
 
 /****************************************************************************
  * Private Function Prototypes
@@ -181,11 +181,11 @@ static int gps_uart_initialize(void)
   ret = ra_sci_initialize(&g_gps_uart);
   if (ret < 0)
     {
-      demoerr("GPS: Failed to initialize UART: %d\n", ret);
+      _err("GPS: Failed to initialize UART: %d\n", ret);
       return ret;
     }
   
-  demoinfo("GPS: UART3 initialized for 38400 baud, 8N1\n");
+  _info("GPS: UART3 initialized for 38400 baud, 8N1\n");
   return OK;
 }
 
@@ -213,7 +213,7 @@ static void gps_uart_callback(ra_sci_dev_t *dev, uint32_t event)
   if (event & (RA_UART_EVENT_ERR_PARITY | RA_UART_EVENT_ERR_FRAMING | RA_UART_EVENT_ERR_OVERFLOW))
     {
       g_nmea_parser.parse_errors++;
-      demowarn("GPS: UART error event: 0x%08x\n", event);
+      _warn("GPS: UART error event: 0x%08x\n", event);
     }
 }
 
@@ -624,22 +624,22 @@ static int nmea_parse_int(const char *field)
 
 static void gps_print_position(void)
 {
-  demoprintf("\nGPS Position:\n");
-  demoprintf("  Fix: %s (Type: %d)\n", 
+  printf("\nGPS Position:\n");
+  printf("  Fix: %s (Type: %d)\n", 
              g_gps_data.fix_valid ? "Valid" : "Invalid", g_gps_data.fix_type);
-  demoprintf("  Latitude:  %.6f°\n", g_gps_data.latitude);
-  demoprintf("  Longitude: %.6f°\n", g_gps_data.longitude);
-  demoprintf("  Altitude:  %.1f m\n", g_gps_data.altitude);
-  demoprintf("  Speed:     %.1f km/h\n", g_gps_data.speed_kmh);
-  demoprintf("  Course:    %.1f°\n", g_gps_data.course);
-  demoprintf("  Time:      %02d:%02d:%02d UTC\n", 
+  printf("  Latitude:  %.6f°\n", g_gps_data.latitude);
+  printf("  Longitude: %.6f°\n", g_gps_data.longitude);
+  printf("  Altitude:  %.1f m\n", g_gps_data.altitude);
+  printf("  Speed:     %.1f km/h\n", g_gps_data.speed_kmh);
+  printf("  Course:    %.1f°\n", g_gps_data.course);
+  printf("  Time:      %02d:%02d:%02d UTC\n", 
              g_gps_data.hour, g_gps_data.minute, g_gps_data.second);
-  demoprintf("  Date:      %02d/%02d/%04d\n", 
+  printf("  Date:      %02d/%02d/%04d\n", 
              g_gps_data.day, g_gps_data.month, g_gps_data.year);
-  demoprintf("  Satellites: %d\n", g_gps_data.satellites_used);
-  demoprintf("  HDOP:      %.1f\n", g_gps_data.hdop);
-  demoprintf("  VDOP:      %.1f\n", g_gps_data.vdop);
-  demoprintf("  PDOP:      %.1f\n", g_gps_data.pdop);
+  printf("  Satellites: %d\n", g_gps_data.satellites_used);
+  printf("  HDOP:      %.1f\n", g_gps_data.hdop);
+  printf("  VDOP:      %.1f\n", g_gps_data.vdop);
+  printf("  PDOP:      %.1f\n", g_gps_data.pdop);
 }
 
 /****************************************************************************
@@ -655,11 +655,11 @@ static void gps_print_status(void)
   uint32_t current_time = up_systime();
   uint32_t time_since_last = current_time - g_gps_data.timestamp;
   
-  demoprintf("\nGPS Status:\n");
-  demoprintf("  Sentences received: %u\n", g_nmea_parser.sentence_count);
-  demoprintf("  Parse errors: %u\n", g_nmea_parser.parse_errors);
-  demoprintf("  Last update: %u ms ago\n", time_since_last);
-  demoprintf("  Message rate: %.1f Hz\n", 
+  printf("\nGPS Status:\n");
+  printf("  Sentences received: %u\n", g_nmea_parser.sentence_count);
+  printf("  Parse errors: %u\n", g_nmea_parser.parse_errors);
+  printf("  Last update: %u ms ago\n", time_since_last);
+  printf("  Message rate: %.1f Hz\n", 
              g_nmea_parser.sentence_count > 0 ? (float)g_nmea_parser.sentence_count * 1000.0f / current_time : 0.0f);
 }
 
@@ -673,12 +673,12 @@ static void gps_print_status(void)
 
 static void print_menu(void)
 {
-  demoprintf("\nGPS Demo Commands:\n");
-  demoprintf("  p - Show position\n");
-  demoprintf("  s - Show status\n");
-  demoprintf("  r - Reset counters\n");
-  demoprintf("  h - Show this menu\n");
-  demoprintf("  q - Quit demo\n");
+  printf("\nGPS Demo Commands:\n");
+  printf("  p - Show position\n");
+  printf("  s - Show status\n");
+  printf("  r - Reset counters\n");
+  printf("  h - Show this menu\n");
+  printf("  q - Quit demo\n");
 }
 
 /****************************************************************************
@@ -712,7 +712,7 @@ static void process_rtt_command(const char *command)
       case 'R':
         g_nmea_parser.sentence_count = 0;
         g_nmea_parser.parse_errors = 0;
-        demoprintf("Counters reset\n");
+        printf("Counters reset\n");
         break;
         
       case 'h':
@@ -722,12 +722,12 @@ static void process_rtt_command(const char *command)
         
       case 'q':
       case 'Q':
-        g_demo_running = false;
-        demoinfo("Exiting GPS demo\n");
+        g_running = false;
+        _info("Exiting GPS demo\n");
         break;
         
       default:
-        demoprintf("Unknown command: %c\n", command[0]);
+        printf("Unknown command: %c\n", command[0]);
         print_menu();
         break;
     }
@@ -738,37 +738,37 @@ static void process_rtt_command(const char *command)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ra8e1_gps_demo_init
+ * Name: ra8e1_gps_init
  *
  * Description:
  *   Initialize the GPS demo
  *
  ****************************************************************************/
 
-int ra8e1_gps_demo_init(void)
+int ra8e1_gps_init(void)
 {
   /* GPS demo initialization is done within main function */
   return 0;
 }
 
 /****************************************************************************
- * Name: ra8e1_gps_demo_main
+ * Name: ra8e1_gps_main
  *
  * Description:
  *   GPS demo main function
  *
  ****************************************************************************/
 
-int ra8e1_gps_demo_main(int argc, char *argv[])
+int ra8e1_gps_main(int argc, char *argv[])
 {
   int ret;
   int key;
   uint8_t cmd_pos = 0;
   
-  demoprintf("\nRA8E1 GPS Demo Starting...\n");
-  demoprintf("GPS TX: P310 (TXD3) -> GPS RX\n");
-  demoprintf("GPS RX: P309 (RXD3) <- GPS TX\n");
-  demoprintf("Configuration: 38400 baud, 8N1\n\n");
+  printf("\nRA8E1 GPS Demo Starting...\n");
+  printf("GPS TX: P310 (TXD3) -> GPS RX\n");
+  printf("GPS RX: P309 (RXD3) <- GPS TX\n");
+  printf("Configuration: 38400 baud, 8N1\n\n");
   
   /* Initialize NMEA parser */
   memset(&g_nmea_parser, 0, sizeof(g_nmea_parser));
@@ -778,17 +778,17 @@ int ra8e1_gps_demo_main(int argc, char *argv[])
   ret = gps_uart_initialize();
   if (ret < 0)
     {
-      demoerr("GPS: Failed to initialize UART: %d\n", ret);
+      _err("GPS: Failed to initialize UART: %d\n", ret);
       return ret;
     }
   
   print_menu();
-  g_demo_running = true;
+  g_running = true;
   
-  demoinfo("Demo initialized - ready for commands\n");
+  _info("Demo initialized - ready for commands\n");
 
   /* Main demo loop */
-  while (g_demo_running)
+  while (g_running)
     {
       /* Check for input */
       if (demo_haskey())
@@ -825,7 +825,7 @@ int ra8e1_gps_demo_main(int argc, char *argv[])
   
   /* Cleanup */
   ra_sci_finalize(&g_gps_uart);
-  demoinfo("GPS demo finished\n");
+  _info("GPS demo finished\n");
   
   return OK;
 }
@@ -858,4 +858,4 @@ int ra8e1_gps_parse(const char *nmea_sentence, struct gps_data_s *gps_data)
   return -ENOTSUP;
 }
 
-#endif /* CONFIG_RA8E1_GPS_DEMO */
+#endif /* CONFIG_RA8E1_GPS_EXAMPLE */

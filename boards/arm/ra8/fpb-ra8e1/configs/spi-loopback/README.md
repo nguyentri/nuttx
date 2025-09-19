@@ -13,13 +13,12 @@ The demo is based on the Renesas FSP SPI examples and demonstrates both separate
 ### Pin Connections Required
 
 To run this demo, you need to connect the SPI0 and SPI1 pins externally:
-
 | SPI0 (Master) | SPI1 (Slave) | Function |
 |---------------|--------------|----------|
-| P410 (MOSI0)  | P202 (MOSI1) | Master Out, Slave In |
-| P411 (MISO0)  | P203 (MISO1) | Master In, Slave Out |
-| P412 (RSPCK0) | P204 (RSPCK1)| Serial Clock |
-| P413 (SSL0)   | P205 (SSL1)  | Slave Select |
+| P609 (MOSI0)  | P202 (MOSI1) | Master Out, Slave In |
+| P610 (MISO0)  | P313 (MISO1) | Master In, Slave Out |
+| P611 (RSPCK0) | P203 (RSPCK1)| Serial Clock |
+| P612 (SSL0)   | P204 (SSL1)  | Slave Select |
 
 **Important**: Make sure to connect these pins externally with jumper wires before running the demo.
 
@@ -42,7 +41,7 @@ make
 CONFIG_RA_SPI=y                 # Enable SPI support
 CONFIG_RA_SPI0=y                 # Enable SPI0 (Master)
 CONFIG_RA_SPI1=y                 # Enable SPI1 (Slave)
-CONFIG_SPI_LOOPBACK_DEMO=y       # Enable the loopback demo
+CONFIG_SPI_LOOPBACK_EXAMPLE=y       # Enable the loopback demo
 CONFIG_RA_SPI_DMA=y             # Enable DMA support
 CONFIG_RA_DTC=y                  # Enable Data Transfer Controller
 CONFIG_SPI_EXCHANGE=y            # Enable simultaneous read/write
@@ -113,7 +112,6 @@ SPI Loopback Demo completed successfully!
    - Ensure proper grounding
 
 3. **Initialization Failures**
-   - Verify FSP integration is enabled
    - Check clock configuration
    - Ensure both SPI0 and SPI1 are enabled
 
@@ -133,13 +131,13 @@ CONFIG_DEBUG_SPI_INFO=y
 The demo follows NuttX SPI driver architecture:
 
 ```
-Application Layer: ra8e1_spi_loopback_demo.c
+Application Layer: ra8e1_spi_loopback.c
     ↓
 NuttX SPI API: spi.h interfaces
-    ↓  
+    ↓
 Board Layer: ra8e1_spi_initialize.c
     ↓
-Arch Layer: RA8 SPI driver with FSP integration
+Arch Layer: RA8 SPI driver with FSP References
     ↓
 Hardware: RA8E1 SPI0/SPI1 controllers
 ```
@@ -152,7 +150,7 @@ Hardware: RA8E1 SPI0/SPI1 controllers
 - `spi_test_write_read()` - Simultaneous write/read test
 - `spi_verify_data()` - Data verification
 
-### FSP Integration
+### Reference FSP Features
 
 The demo leverages Renesas FSP features:
 - SPI_B driver for enhanced functionality
@@ -169,6 +167,5 @@ The demo leverages Renesas FSP features:
 
 ## References
 
-- [RA8E1 User Manual](https://www.renesas.com/ra8e1)
-- [FSP SPI Examples](fpb_ra8e1/spi/spi_fpb_ra8e1_ep/)
+- [FSP SPI Examples](spi_fpb_ra8e1_ep/)
 - [NuttX SPI Documentation](https://nuttx.apache.org/docs/latest/components/drivers/special/spi.html)

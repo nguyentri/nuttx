@@ -40,48 +40,44 @@ endif()
 ############################################################################
 # Application specific support CONFIG_BOARDCTL
 ############################################################################
-if(CONFIG_RA8E1_ADC_BMS_DEMO)
-  list(APPEND SRCS ra8e1_adc_bms_demo.c)
+if(CONFIG_RA8E1_ADC_BMS_EXAMPLE)
+  list(APPEND SRCS ra8e1_adc_bms.c)
 endif()
 
-if(CONFIG_RA8E1_CODE_FLASH_DEMO)
-  list(APPEND SRCS ra8e1_code_flash_demo.c)
+if(CONFIG_RA8E1_CODE_FLASH_EXAMPLE)
+  list(APPEND SRCS ra8e1_code_flash.c)
 endif()
 
-if(CONFIG_RA8E1_DATA_FLASH_DEMO)
-  list(APPEND SRCS ra8e1_data_flash_demo.c)
+if(CONFIG_RA8E1_DATA_FLASH_EXAMPLE)
+  list(APPEND SRCS ra8e1_data_flash.c)
 endif()
 
-if(CONFIG_RA8E1_GPS_DEMO)
-  list(APPEND SRCS ra8e1_gps_demo.c)
+if(CONFIG_RA8E1_GPS_EXAMPLE)
+  list(APPEND SRCS ra8e1_gps.c)
 endif()
 
-if(CONFIG_RA8E1_SBUS_DEMO)
-  list(APPEND SRCS ra8e1_sbus_demo.c)
+if(CONFIG_RA8E1_SBUS_EXAMPLE)
+  list(APPEND SRCS ra8e1_sbus.c)
 endif()
 
-if(CONFIG_RA8E1_I2C_GY912_DEMO)
-  list(APPEND SRCS ra8e1_i2c_gy912_demo.c)
+if(CONFIG_RA8E1_I2C_GY912_EXAMPLE)
+  list(APPEND SRCS ra8e1_i2c_gy912.c)
 endif()
 
-if(CONFIG_RA8E1_I2C_TEST)
-  list(APPEND SRCS ra8e1_i2c_test.c)
+if(CONFIG_RA8E1_I2C_ACCEL_EXAMPLE)
+  list(APPEND SRCS ra8e1_i2c_acc.c)
 endif()
 
-if(CONFIG_RA8E1_I2C_ACCEL_DEMO)
-  list(APPEND SRCS ra8e1_i2c_acc_demo.c)
+if(CONFIG_RA8E1_PWM_ESCS_EXAMPLE)
+  list(APPEND SRCS ra8e1_pwm_escs.c)
 endif()
 
-if(CONFIG_RA8E1_PWM_ESCS_DEMO)
-  list(APPEND SRCS ra8e1_pwm_escs_demo.c)
+if(CONFIG_RA8E1_SPI_LOOPBACK_EXAMPLE)
+  list(APPEND SRCS ra8e1_spi_loopback.c)
 endif()
 
-if(CONFIG_RA8E1_SPI_LOOPBACK_DEMO)
-  list(APPEND SRCS ra8e1_spi_loopback_demo.c)
-endif()
-
-if(CONFIG_RA8E1_SPI_GY912_DEMO)
-  list(APPEND SRCS ra8e1_spi_gy912_demo.c)
+if(CONFIG_RA8E1_SPI_GY912_EXAMPLE)
+  list(APPEND SRCS ra8e1_spi_gy912.c)
 endif()
 
 

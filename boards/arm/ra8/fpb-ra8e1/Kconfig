@@ -52,17 +52,113 @@ config BATTERY_BMS_ADC
 	default n
 	depends on RA_ADC
 	---help---
+		Enable support for battery management system using ADC
+		for voltage and current monitoring.
+
+# Transfer engine configuration
+comment "RA8 Transfer Engine Configuration"
+
+config RA8_DTC
+	bool "Data Transfer Controller (DTC) support"
+	default n
+	---help---
+		Enable support for RA8 Data Transfer Controller (DTC).
+		DTC provides low-power data transfer with minimal CPU intervention.
+
+if RA8_DTC
+
+config RA8_DTC_MAX_CHANNELS
+	int "Maximum DTC transfer channels"
+	default 32
+	range 1 32
+	---help---
+		Maximum number of DTC transfer channels to support.
+		Each channel uses one IELSR slot.
+
+config RA8_DTC_DEBUG
+	bool "DTC debug output"
+	default n
+	depends on DEBUG_DMA
+	---help---
+		Enable debug output for DTC operations.
+
+endif # RA8_DTC
+
+config RA8_DMAC
+	bool "Direct Memory Access Controller (DMAC) support"
+	default n
+	---help---
+		Enable support for RA8 Direct Memory Access Controller (DMAC).
+		DMAC provides high-performance data transfer with advanced features.
+
+if RA8_DMAC
+
+config RA8_DMAC_MAX_CHANNELS
+	int "Maximum DMAC channels"
+	default 8
+	range 1 8
+	---help---
+		Maximum number of DMAC channels to support.
+
+config RA8_DMAC_DEBUG
+	bool "DMAC debug output"
+	default n
+	depends on DEBUG_DMA
+	---help---
+		Enable debug output for DMAC operations.
+
+endif # RA8_DMAC
+
+# Hardware trigger support for transfer engines
+config RA8_TRANSFER_HW_TRIGGER
+	bool "Hardware trigger support for transfer engines"
+	default y
+	depends on RA8_DTC || RA8_DMAC
+	---help---
+		Enable hardware trigger support for DTC and DMAC.
+		This allows peripheral events to trigger transfers automatically.
+
+# Transfer engine examples
+comment "Transfer Engine Example Applications"
+
+config RA8E1_DTC_EXAMPLE
+	bool "DTC Example Application"
+	default n
+	depends on RA8_DTC
+	---help---
+		Enable DTC demo application for FPB-RA8E1.
+		Demonstrates memory-to-memory and peripheral transfers using DTC.
+
+config RA8E1_DMAC_EXAMPLE
+	bool "DMAC Example Application"
+	default n
+	depends on RA8_DMAC
+	---help---
+		Enable DMAC demo application for FPB-RA8E1.
+		Demonstrates high-performance DMA transfers using DMAC.
+
+config RA8E1_TRANSFER_BENCHMARK
+	bool "Transfer Engine Benchmark"
+	default n
+	depends on RA8_DTC || RA8_DMAC
+	---help---
+		Enable transfer engine benchmark application.
+		Compares performance of CPU vs DTC vs DMAC transfers.
+	bool "Battery Management System ADC support"
+	default n
+	depends on RA_ADC
+	---help---
 		Enable battery management system support using internal ADC
 		for voltage and current monitoring.
 
 # ##############################################################################
-# Demo Applications Configuration
+# Example Applications Configuration
 # ##############################################################################
 
-comment "FPB-RA8E1 Demo Applications"
+comment "FPB-RA8E1 Example Applications"
 
-config RA8E1_GPS_DEMO
-	bool "GPS Demo Application"
+config RA8E1_GPS_EXAMPLE
+	bool "GPS Example Application"
 	default n
 	depends on RA_SCI_UART
 	---help---
@@ -70,8 +166,8 @@ config RA8E1_GPS_DEMO
 		Demonstrates GPS module communication and NMEA parsing.
 		Self-contained demo with no external app dependencies.
 
-config RA8E1_SBUS_DEMO
-	bool "SBUS Demo Application"
+config RA8E1_SBUS_EXAMPLE
+	bool "SBUS Example Application"
 	default n
 	depends on RA_SCI_UART
 	---help---
@@ -79,8 +175,8 @@ config RA8E1_SBUS_DEMO
 		Demonstrates SBUS protocol for RC communication.
 		Self-contained demo with no external app dependencies.
 
-config RA8E1_PWM_ESCS_DEMO
-	bool "PWM ESCs Demo Application"
+config RA8E1_PWM_ESCS_EXAMPLE
+	bool "PWM ESCs Example Application"
 	default n
 	depends on RA_GPT
 	select RA_GPT0_PWM
@@ -98,8 +194,8 @@ config RA8E1_PWM_ESCS_DEMO
 		Self-contained demo with no external app dependencies.
 		Automatically enables required GPT driver with PWM functionality.
 
-config RA8E1_SPI_LOOPBACK_DEMO
-	bool "SPI Loopback Demo Application"
+config RA8E1_SPI_LOOPBACK_EXAMPLE
+	bool "SPI Loopback Example Application"
 	default n
 	depends on RA_SPI
 	---help---
@@ -107,8 +203,8 @@ config RA8E1_SPI_LOOPBACK_DEMO
 		Demonstrates SPI communication in loopback mode.
 		Self-contained demo with no external app dependencies.
 
-config RA8E1_SPI_GY912_DEMO
-	bool "SPI GY-912 Demo Application"
+config RA8E1_SPI_GY912_EXAMPLE
+	bool "SPI GY-912 Example Application"
 	default n
 	depends on RA_SPI && SENSORS_GY912
 	---help---
@@ -116,8 +212,8 @@ config RA8E1_SPI_GY912_DEMO
 		Demonstrates 10DOF sensor module communication via SPI.
 		Self-contained demo with no external app dependencies.
 
-config RA8E1_I2C_GY912_DEMO
-	bool "I2C GY-912 Demo Application"
+config RA8E1_I2C_GY912_EXAMPLE
+	bool "I2C GY-912 Example Application"
 	default n
 	depends on RA_I2C
 	---help---
@@ -125,17 +221,8 @@ config RA8E1_I2C_GY912_DEMO
 		Demonstrates 10DOF sensor module communication via I2C.
 		Self-contained demo with no external app dependencies.
 
-config RA8E1_I2C_TEST
-	bool "I2C Simple Demo Application"
-	default n
-	depends on RA_I2C
-	---help---
-		Enable I2C simple demo application for FPB-RA8E1.
-		Demonstrates basic I2C communication patterns.
-		Self-contained demo with no external app dependencies.
-
-config RA8E1_I2C_ACCEL_DEMO
-	bool "I2C Accelerometer Demo Application"
+config RA8E1_I2C_ACCEL_EXAMPLE
+	bool "I2C Accelerometer Example Application"
 	default n
 	depends on RA_I2C
 	---help---
@@ -143,8 +230,8 @@ config RA8E1_I2C_ACCEL_DEMO
 		Demonstrates accelerometer sensor communication via I2C.
 		Self-contained demo with no external app dependencies.
 
-config RA8E1_ADC_BMS_DEMO
-	bool "ADC Battery Management Demo Application"
+config RA8E1_ADC_BMS_EXAMPLE
+	bool "ADC Battery Management Example Application"
 	default n
 	depends on RA_ADC && BATTERY_BMS_ADC
 	---help---
@@ -152,8 +239,8 @@ config RA8E1_ADC_BMS_DEMO
 		Demonstrates battery monitoring using ADC channels.
 		Self-contained demo with no external app dependencies.
 
-config RA8E1_DATA_FLASH_DEMO
-	bool "Data Flash Demo Application"
+config RA8E1_DATA_FLASH_EXAMPLE
+	bool "Data Flash Example Application"
 	default n
 	depends on RA_DATA_FLASH
 	---help---
@@ -161,8 +248,8 @@ config RA8E1_DATA_FLASH_DEMO
 		Demonstrates data flash read/write operations.
 		Self-contained demo with no external app dependencies.
 
-config RA8E1_CODE_FLASH_DEMO
-	bool "Code Flash Demo Application"
+config RA8E1_CODE_FLASH_EXAMPLE
+	bool "Code Flash Example Application"
 	default n
 	depends on RA_CODE_FLASH
 	---help---
@@ -170,8 +257,8 @@ config RA8E1_CODE_FLASH_DEMO
 		Demonstrates code flash programming operations.
 		Self-contained demo with no external app dependencies.
 
-config RA8E1_RUST_DEMO
-	bool "Rust Demo Application"
+config RA8E1_RUST_EXAMPLE
+	bool "Rust Example Application"
 	default n
 	---help---
 		Enable Rust demo application for FPB-RA8E1.

@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/ra8/fpb-ra8e1/src/ra8e1_spi_loopback_demo.c
+ * boards/arm/ra8/fpb-ra8e1/src/ra8e1_spi_loopback.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -21,7 +21,7 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
-#ifdef CONFIG_RA8E1_SPI_LOOPBACK_DEMO
+#ifdef CONFIG_RA8E1_SPI_LOOPBACK_EXAMPLE
 
 #include <nuttx/config.h>
 
@@ -38,7 +38,7 @@
 #include <nuttx/spi/spi_transfer.h>
 
 #include <arch/board/board.h>
-#include "ra8e1_demo_log.h"
+#include "ra8e1_log.h"
 
 /* SPI Configuration */
 #define SPI_LOOPBACK_BUFFER_SIZE    32
@@ -233,16 +233,16 @@ static int spi_configure_devices(void)
 static int spi_test_write_and_read(void)
 {
   int ret;
-  
+
   spiinfo("Starting SPI write-and-read test...\n");
-  
+
   /* Reset completion flags */
   g_spi_loopback.master_complete = false;
   g_spi_loopback.slave_complete = false;
 
   /* Step 1: Slave prepares to receive data from Master */
   SPI_LOCK(g_spi_loopback.slave, true);
-  ret = SPI_RECVBLOCK(g_spi_loopback.slave, g_spi_loopback.slave_rx_buff, 
+  ret = SPI_RECVBLOCK(g_spi_loopback.slave, g_spi_loopback.slave_rx_buff,
                       SPI_BUFF_LEN * sizeof(uint32_t));
   if (ret < 0)
     {
@@ -306,9 +306,9 @@ static int spi_test_write_and_read(void)
 static int spi_test_write_read(void)
 {
   int ret;
-  
+
   spiinfo("Starting SPI write-read (simultaneous) test...\n");
-  
+
   /* Reset completion flags */
   g_spi_loopback.master_complete = false;
   g_spi_loopback.slave_complete = false;
@@ -350,14 +350,14 @@ static int spi_test_write_read(void)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ra8e1_spi_loopback_demo_init
+ * Name: ra8e1_spi_loopback_init
  *
  * Description:
  *   Initialize SPI loopback demo
  *
  ****************************************************************************/
 
-int ra8e1_spi_loopback_demo_init(void)
+int ra8e1_spi_loopback_init(void)
 {
   int ret;
 
@@ -367,7 +367,7 @@ int ra8e1_spi_loopback_demo_init(void)
   memset(&g_spi_loopback, 0, sizeof(g_spi_loopback));
 
   /* Get SPI0 as master */
-  g_spi_loopback.master = ra8_spibus_initialize(0);
+  g_spi_loopback.master = ra_spibus_initialize(0);
   if (!g_spi_loopback.master)
     {
       spierr("Failed to initialize SPI0 (master)\n");
@@ -375,7 +375,7 @@ int ra8e1_spi_loopback_demo_init(void)
     }
 
   /* Get SPI1 as slave */
-  g_spi_loopback.slave = ra8_spibus_initialize(1);
+  g_spi_loopback.slave = ra_spibus_initialize(1);
   if (!g_spi_loopback.slave)
     {
       spierr("Failed to initialize SPI1 (slave)\n");
@@ -395,14 +395,14 @@ int ra8e1_spi_loopback_demo_init(void)
 }
 
 /****************************************************************************
- * Name: ra8e1_spi_loopback_demo_test
+ * Name: ra8e1_spi_loopback_test
  *
  * Description:
  *   Run SPI loopback tests
  *
  ****************************************************************************/
 
-int ra8e1_spi_loopback_demo_test(void)
+int ra8e1_spi_loopback_test(void)
 {
   int ret;
 
@@ -410,7 +410,7 @@ int ra8e1_spi_loopback_demo_test(void)
 
   if (!g_spi_loopback.master || !g_spi_loopback.slave)
     {
-      spierr("SPI devices not initialized. Call ra8e1_spi_loopback_demo_init() first.\n");
+      spierr("SPI devices not initialized. Call ra8e1_spi_loopback_init() first.\n");
       return -EINVAL;
     }
 
@@ -457,42 +457,42 @@ int ra8e1_spi_loopback_demo_test(void)
 }
 
 /****************************************************************************
- * Name: ra8e1_spi_loopback_demo_main
+ * Name: ra8e1_spi_loopback_main
  *
  * Description:
  *   Main entry point for SPI loopback demo
  *
  ****************************************************************************/
 
-int ra8e1_spi_loopback_demo_main(int argc, char *argv[])
+int ra8e1_spi_loopback_main(int argc, char *argv[])
 {
   int ret;
 
-  demoprintf("RA8E1 SPI Loopback Demo\n");
-  demoprintf("=======================\n");
-  demoprintf("This demo tests SPI communication between two SPI units:\n");
-  demoprintf("- SPI0 as Master\n");
-  demoprintf("- SPI1 as Slave\n");
-  demoprintf("Tests both separate and simultaneous write/read operations.\n\n");
+  printf("RA8E1 SPI Loopback Demo\n");
+  printf("=======================\n");
+  printf("This demo tests SPI communication between two SPI units:\n");
+  printf("- SPI0 as Master\n");
+  printf("- SPI1 as Slave\n");
+  printf("Tests both separate and simultaneous write/read operations.\n\n");
 
   /* Initialize the demo */
-  ret = ra8e1_spi_loopback_demo_init();
+  ret = ra8e1_spi_loopback_init();
   if (ret < 0)
     {
-      demoprintf("Demo initialization failed: %d\n", ret);
+      printf("Demo initialization failed: %d\n", ret);
       return ret;
     }
 
   /* Run the tests */
-  ret = ra8e1_spi_loopback_demo_test();
+  ret = ra8e1_spi_loopback_test();
   if (ret < 0)
     {
-      demoprintf("Demo tests failed: %d\n", ret);
+      printf("Demo tests failed: %d\n", ret);
       return ret;
     }
 
-  demoprintf("\nSPI Loopback Demo completed successfully!\n");
+  printf("\nSPI Loopback Demo completed successfully!\n");
   return OK;
 }
 
-#endif /* CONFIG_RA8E1_SPI_LOOPBACK_DEMO */
+#endif /* CONFIG_RA8E1_SPI_LOOPBACK_EXAMPLE */

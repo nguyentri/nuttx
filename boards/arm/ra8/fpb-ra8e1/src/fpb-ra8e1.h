@@ -68,7 +68,7 @@
 int ra8e1_bringup(void);
 
 /****************************************************************************
- * Name: fpb_ra8e1_boardinitialize
+ * Name: ra8e1_boardinitialize
  *
  * Description:
  *   All RA8E1 architectures must provide the following entry point.  This
@@ -78,7 +78,7 @@ int ra8e1_bringup(void);
  *
  ****************************************************************************/
 
-void fpb_ra8e1_boardinitialize(void);
+void ra8e1_boardinitialize(void);
 
 /****************************************************************************
  * Name: board_autoled_initialize
@@ -113,53 +113,53 @@ int ra8e1_gpio_initialize(void);
 int board_rtc_initialize(void);
 #endif
 
-#ifdef CONFIG_RA_SPI_LOOPBACK_DEMO
-int ra8e1_spi_loopback_demo_init(void);
-int ra8e1_spi_loopback_demo_test(void);
-int ra8e1_spi_loopback_demo_main(int argc, char *argv[]);
+#ifdef CONFIG_RA_SPI_LOOPBACK_EXAMPLE
+int ra8e1_spi_loopback_init(void);
+int ra8e1_spi_loopback_test(void);
+int ra8e1_spi_loopback_main(int argc, char *argv[]);
 #endif
 
 #ifdef CONFIG_RA_ADC_BMS
-int ra8e1_adc_bms_demo_init(void);
-int ra8e1_adc_bms_demo_main(int argc, FAR char *argv[]);
+int ra8e1_adc_bms_init(void);
+int ra8e1_adc_bms_main(int argc, FAR char *argv[]);
 #endif
 
-#ifdef CONFIG_RA_CODE_FLASH_DEMO
-int ra8e1_code_flash_demo_init(void);
-int ra8e1_code_flash_demo_test(void);
-int ra8e1_code_flash_demo_info(void);
-int ra8e1_code_flash_demo_main(int argc, char *argv[]);
+#ifdef CONFIG_RA_CODE_FLASH_EXAMPLE
+int ra8e1_code_flash_init(void);
+int ra8e1_code_flash_test(void);
+int ra8e1_code_flash_info(void);
+int ra8e1_code_flash_main(int argc, char *argv[]);
 #endif
 
-#ifdef CONFIG_RA_DATA_FLASH_DEMO
-int ra8e1_data_flash_demo_init(void);
-int ra8e1_data_flash_demo_test(void);
-int ra8e1_data_flash_demo_main(int argc, char *argv[]);
+#ifdef CONFIG_RA_DATA_FLASH_EXAMPLE
+int ra8e1_data_flash_init(void);
+int ra8e1_data_flash_test(void);
+int ra8e1_data_flash_main(int argc, char *argv[]);
 #endif
 
-#ifdef CONFIG_RA8E1_PWM_ESCS_DEMO
-int ra8e1_pwm_escs_demo_init(void);
-int ra8e1_pwm_escs_demo_main(int argc, char *argv[]);
+#ifdef CONFIG_RA8E1_PWM_ESCS_EXAMPLE
+int ra8e1_pwm_escs_init(void);
+int ra8e1_pwm_escs_main(int argc, char *argv[]);
 #endif
 
-#ifdef CONFIG_RA8E1_GPS_DEMO
-int ra8e1_gps_demo_init(void);
-int ra8e1_gps_demo_main(int argc, char *argv[]);
+#ifdef CONFIG_RA8E1_GPS_EXAMPLE
+int ra8e1_gps_init(void);
+int ra8e1_gps_main(int argc, char *argv[]);
 #endif
 
-#ifdef CONFIG_RA8E1_SBUS_DEMO
-int ra8e1_sbus_demo_init(void);
-int ra8e1_sbus_demo_main(int argc, char *argv[]);
+#ifdef CONFIG_RA8E1_SBUS_EXAMPLE
+int ra8e1_sbus_init(void);
+int ra8e1_sbus_main(int argc, char *argv[]);
 #endif
 
-#ifdef CONFIG_RA8E1_I2C_ACC_DEMO
-int ra8e1_i2c_acc_demo_init(void);
-int ra8e1_i2c_acc_demo_main(int argc, char *argv[]);
+#ifdef CONFIG_RA8E1_I2C_ACC_EXAMPLE
+int ra8e1_i2c_acc_init(void);
+int ra8e1_i2c_acc_main(int argc, char *argv[]);
 #endif
 
-#ifdef CONFIG_RA8E1_I2C_GY912_DEMO
-int ra8e1_i2c_gy912_demo_init(void);
-int ra8e1_i2c_gy912_demo_main(int argc, FAR char *argv[]);
+#ifdef CONFIG_RA8E1_I2C_GY912_EXAMPLE
+int ra8e1_i2c_gy912_init(void);
+int ra8e1_i2c_gy912_main(int argc, FAR char *argv[]);
 #endif
 
 #ifdef CONFIG_RAE1_I2C_TEST
@@ -167,7 +167,7 @@ int ra8e1_i2c_test_init(void);
 int ra8e1_i2c_test_main(int argc, char *argv[]);
 #endif
 
-#ifdef CONFIG_RA8E1_RUST_DEMO
+#ifdef CONFIG_RA8E1_RUST_EXAMPLE
 int ra8e1_thread_init(void);
 #endif
 

@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/ra8/fpb-ra8e1/src/ra8e1_i2c_acc_demo.c
+ * boards/arm/ra8/fpb-ra8e1/src/ra8e1_i2c_acc.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -21,7 +21,7 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
-#ifdef CONFIG_RA8E1_I2C_ACC_DEMO
+#ifdef CONFIG_RA8E1_I2C_ACC_EXAMPLE
 
 #include <nuttx/config.h>
 
@@ -44,7 +44,7 @@
 #include <arch/board/board.h>
 
 #include "arm_internal.h"
-#include "ra8e1_demo_log.h"
+#include "ra8e1_log.h"
 #include "chip.h"
 #include "ra_gpio.h"
 #include "ra_icu.h"
@@ -77,7 +77,7 @@
 #  define OK 0
 #endif
 
-#ifndef ERROR  
+#ifndef ERROR
 #  define ERROR -1
 #endif
 
@@ -171,9 +171,9 @@ static int accel_interrupt_handler(int irq, void *context, void *arg)
 {
   /* Set data ready flag */
   g_accel_dev.data_ready = true;
-  
-  demoinfo("Accelerometer data ready interrupt\n");
-  
+
+  _info("Accelerometer data ready interrupt\n");
+
   return OK;
 }
 
@@ -208,11 +208,11 @@ static int accel_write_reg(uint8_t reg_addr, uint8_t value)
   ret = I2C_TRANSFER(g_accel_dev.i2c, msg, 1);
   if (ret < 0)
     {
-      demoerr("Failed to write register 0x%02x: %d\n", reg_addr, ret);
+      _err("Failed to write register 0x%02x: %d\n", reg_addr, ret);
       return ret;
     }
 
-  demoinfo("Wrote 0x%02x to register 0x%02x\n", value, reg_addr);
+  _info("Wrote 0x%02x to register 0x%02x\n", value, reg_addr);
   return OK;
 }
 
@@ -251,11 +251,11 @@ static int accel_read_reg(uint8_t reg_addr, uint8_t *value)
   ret = I2C_TRANSFER(g_accel_dev.i2c, msg, 2);
   if (ret < 0)
     {
-      demoerr("Failed to read register 0x%02x: %d\n", reg_addr, ret);
+      _err("Failed to read register 0x%02x: %d\n", reg_addr, ret);
       return ret;
     }
 
-  demoinfo("Read 0x%02x from register 0x%02x\n", *value, reg_addr);
+  _info("Read 0x%02x from register 0x%02x\n", *value, reg_addr);
   return OK;
 }
 
@@ -295,7 +295,7 @@ static int accel_read_data(uint8_t *data, size_t len)
   ret = I2C_TRANSFER(g_accel_dev.i2c, msg, 2);
   if (ret < 0)
     {
-      demoerr("Failed to read acceleration data: %d\n", ret);
+      _err("Failed to read acceleration data: %d\n", ret);
       return ret;
     }
 
@@ -359,7 +359,7 @@ static int accel_wait_data_ready(uint32_t timeout_ms)
             {
               return ret;
             }
-          
+
           if (int_source & 0x80)  /* DATA_READY bit */
             {
               return OK;
@@ -371,7 +371,7 @@ static int accel_wait_data_ready(uint32_t timeout_ms)
       elapsed += 10;
     }
 
-  demoerr("Timeout waiting for accelerometer data ready\n");
+  _err("Timeout waiting for accelerometer data ready\n");
   return -ETIMEDOUT;
 }
 
@@ -388,24 +388,24 @@ static int accel_initialize_hardware(void)
   uint8_t device_id;
   int ret;
 
-  demoinfo("Initializing accelerometer hardware\n");
+  _info("Initializing accelerometer hardware\n");
 
   /* Read and verify device ID */
   ret = accel_read_reg(ACCEL_REG_DEVID, &device_id);
   if (ret < 0)
     {
-      demoerr("Failed to read device ID: %d\n", ret);
+      _err("Failed to read device ID: %d\n", ret);
       return ret;
     }
 
   if (device_id != ACCEL_DEVICE_ID)
     {
-      demoerr("Invalid device ID: 0x%02x (expected 0x%02x)\n", 
+      _err("Invalid device ID: 0x%02x (expected 0x%02x)\n",
              device_id, ACCEL_DEVICE_ID);
       return -ENODEV;
     }
 
-  demoinfo("ADXL345 accelerometer detected (ID: 0x%02x)\n", device_id);
+  _info("ADXL345 accelerometer detected (ID: 0x%02x)\n", device_id);
 
   /* Configure bandwidth/output data rate */
   ret = accel_write_reg(ACCEL_REG_BW_RATE, ACCEL_BW_RATE_VALUE);
@@ -428,7 +428,7 @@ static int accel_initialize_hardware(void)
       return ret;
     }
 
-  demoinfo("Accelerometer hardware initialized successfully\n");
+  _info("Accelerometer hardware initialized successfully\n");
   return OK;
 }
 
@@ -448,7 +448,7 @@ static int accel_setup_interrupt(void)
   ret = ra_configgpio(ACCEL_INT_GPIO);
   if (ret < 0)
     {
-      demoerr("Failed to configure interrupt GPIO: %d\n", ret);
+      _err("Failed to configure interrupt GPIO: %d\n", ret);
       return ret;
     }
 
@@ -456,23 +456,23 @@ static int accel_setup_interrupt(void)
   ret = irq_attach(ACCEL_INT_IRQ, accel_interrupt_handler, NULL);
   if (ret < 0)
     {
-      demoerr("Failed to attach interrupt handler: %d\n", ret);
+      _err("Failed to attach interrupt handler: %d\n", ret);
       return ret;
     }
 
   /* Configure ICU for falling edge interrupt */
-  ret = ra_icu_config(ACCEL_INT_IRQ, RA_ICU_IRQ_EDGE_FALLING, true, 
+  ret = ra_icu_config(ACCEL_INT_IRQ, RA_ICU_IRQ_EDGE_FALLING, true,
                       RA_ICU_FILTER_PCLK_DIV_64);
   if (ret < 0)
     {
-      demoerr("Failed to configure ICU: %d\n", ret);
+      _err("Failed to configure ICU: %d\n", ret);
       return ret;
     }
 
   /* Enable the interrupt */
   up_enable_irq(ACCEL_INT_IRQ);
 
-  demoinfo("Accelerometer interrupt configured on IRQ%d\n", ACCEL_INT_IRQ);
+  _info("Accelerometer interrupt configured on IRQ%d\n", ACCEL_INT_IRQ);
   return OK;
 }
 
@@ -492,7 +492,7 @@ int ra8e1_i2c_accel_initialize(void)
 {
   int ret;
 
-  demoinfo("Initializing I2C accelerometer demo\n");
+  _info("Initializing I2C accelerometer demo\n");
 
   /* Clear device structure */
   memset(&g_accel_dev, 0, sizeof(g_accel_dev));
@@ -501,20 +501,20 @@ int ra8e1_i2c_accel_initialize(void)
   g_accel_dev.i2c = ra_i2cbus_initialize(I2C_BUS_NUM);
   if (!g_accel_dev.i2c)
     {
-      demoerr("Failed to initialize I2C bus %d\n", I2C_BUS_NUM);
+      _err("Failed to initialize I2C bus %d\n", I2C_BUS_NUM);
       return -ENODEV;
     }
 
   /* Set I2C frequency */
   I2C_SETFREQUENCY(g_accel_dev.i2c, I2C_FREQUENCY);
 
-  demoinfo("I2C bus initialized at %d Hz\n", I2C_FREQUENCY);
+  _info("I2C bus initialized at %d Hz\n", I2C_FREQUENCY);
 
   /* Initialize accelerometer hardware */
   ret = accel_initialize_hardware();
   if (ret < 0)
     {
-      demoerr("Failed to initialize accelerometer hardware: %d\n", ret);
+      _err("Failed to initialize accelerometer hardware: %d\n", ret);
       return ret;
     }
 
@@ -522,12 +522,12 @@ int ra8e1_i2c_accel_initialize(void)
   ret = accel_setup_interrupt();
   if (ret < 0)
     {
-      demoerr("Failed to setup accelerometer interrupt: %d\n", ret);
+      _err("Failed to setup accelerometer interrupt: %d\n", ret);
       return ret;
     }
 
   g_accel_dev.initialized = true;
-  demoinfo("I2C accelerometer demo initialized successfully\n");
+  _info("I2C accelerometer demo initialized successfully\n");
 
   return OK;
 }
@@ -574,46 +574,46 @@ int ra8e1_i2c_accel_read(struct accel_data_s *data)
   /* Store last reading */
   memcpy(&g_accel_dev.last_data, data, sizeof(struct accel_data_s));
 
-  demoinfo("Accel data: X=%.3fg, Y=%.3fg, Z=%.3fg\n", 
+  _info("Accel data: X=%.3fg, Y=%.3fg, Z=%.3fg\n",
           data->x_g, data->y_g, data->z_g);
 
   return OK;
 }
 
 /****************************************************************************
- * Name: ra8e1_i2c_acc_demo_init
+ * Name: ra8e1_i2c_acc_init
  *
  * Description:
  *   Initialize the I2C accelerometer demo
  *
  ****************************************************************************/
 
-int ra8e1_i2c_acc_demo_init(void)
+int ra8e1_i2c_acc_init(void)
 {
   /* I2C accelerometer demo initialization is done within main function */
   return 0;
 }
 
 /****************************************************************************
- * Name: ra8e1_i2c_acc_demo_main
+ * Name: ra8e1_i2c_acc_main
  *
  * Description:
  *   Main entry point for I2C accelerometer demo
  *
  ****************************************************************************/
 
-int ra8e1_i2c_acc_demo_main(int argc, char *argv[])
+int ra8e1_i2c_acc_main(int argc, char *argv[])
 {
   struct accel_data_s accel_data;
   int ret;
   int sample_count = 0;
 
-  demoprintf("RA8E1 I2C Accelerometer Demo\n");
-  demoprintf("=============================\n");
-  demoprintf("Reading ADXL345 accelerometer via I2C (SCI0)\n");
-  demoprintf("I2C Address: 0x%02X\n", ACCEL_I2C_ADDR);
-  demoprintf("Sample Rate: 12.5 Hz\n");
-  demoprintf("Press Ctrl+C to stop...\n\n");
+  printf("RA8E1 I2C Accelerometer Demo\n");
+  printf("=============================\n");
+  printf("Reading ADXL345 accelerometer via I2C (SCI0)\n");
+  printf("I2C Address: 0x%02X\n", ACCEL_I2C_ADDR);
+  printf("Sample Rate: 12.5 Hz\n");
+  printf("Press Ctrl+C to stop...\n\n");
 
   /* Initialize if not already done */
   if (!g_accel_dev.initialized)
@@ -621,7 +621,7 @@ int ra8e1_i2c_acc_demo_main(int argc, char *argv[])
       ret = ra8e1_i2c_accel_initialize();
       if (ret < 0)
         {
-          demoprintf("Failed to initialize accelerometer: %d\n", ret);
+          printf("Failed to initialize accelerometer: %d\n", ret);
           return ret;
         }
     }
@@ -632,31 +632,31 @@ int ra8e1_i2c_acc_demo_main(int argc, char *argv[])
       ret = ra8e1_i2c_accel_read(&accel_data);
       if (ret < 0)
         {
-          demoprintf("Failed to read accelerometer data: %d\n", ret);
+          printf("Failed to read accelerometer data: %d\n", ret);
           continue;
         }
 
       /* Display acceleration data */
-      demoprintf("Sample %3d: X=%6.3fg  Y=%6.3fg  Z=%6.3fg  ", 
+      printf("Sample %3d: X=%6.3fg  Y=%6.3fg  Z=%6.3fg  ",
              ++sample_count, accel_data.x_g, accel_data.y_g, accel_data.z_g);
-      
+
       /* Calculate magnitude */
-      float magnitude = sqrtf(accel_data.x_g * accel_data.x_g + 
-                             accel_data.y_g * accel_data.y_g + 
+      float magnitude = sqrtf(accel_data.x_g * accel_data.x_g +
+                             accel_data.y_g * accel_data.y_g +
                              accel_data.z_g * accel_data.z_g);
-      demoprintf("Mag=%.3fg\n", magnitude);
+      printf("Mag=%.3fg\n", magnitude);
 
       /* Wait for next sample (approximately 80ms for 12.5Hz) */
       usleep(80000);
     }
 
-  demoprintf("\nI2C Accelerometer demo completed successfully!\n");
+  printf("\nI2C Accelerometer demo completed successfully!\n");
   return OK;
 }
 
 #endif /* CONFIG_RA_I2C */
     {
-      demoerr("ERROR: Failed to setup I2C: %d\n", ret);
+      _err("ERROR: Failed to setup I2C: %d\n", ret);
       return;
     }
 
@@ -665,7 +665,7 @@ int ra8e1_i2c_acc_demo_main(int argc, char *argv[])
   i2c = ra_i2cbus_initialize(I2C1_PORT);
   if (i2c == NULL)
     {
-      demoerr("ERROR: Failed to get I2C1 interface\n");
+      _err("ERROR: Failed to get I2C1 interface\n");
       return;
     }
 
@@ -678,11 +678,11 @@ int ra8e1_i2c_acc_demo_main(int argc, char *argv[])
   ret = i2c_register(i2c, I2C1_PORT);
   if (ret < 0)
     {
-      demoerr("ERROR: Failed to register I2C1: %d\n", ret);
+      _err("ERROR: Failed to register I2C1: %d\n", ret);
       return;
     }
 
-  demoinfo("I2C1 initialized successfully at %d Hz\n", I2C1_FREQUENCY);
+  _info("I2C1 initialized successfully at %d Hz\n", I2C1_FREQUENCY);
 }
 
 /****************************************************************************
@@ -715,7 +715,7 @@ int ra8e1_i2c_scan(uint8_t *devices, int max_devices)
       return -ENODEV;
     }
 
-  demoinfo("Scanning I2C bus for devices...\n");
+  _info("Scanning I2C bus for devices...\n");
 
   /* Scan addresses 0x08 to 0x77 (standard 7-bit range) */
 
@@ -736,11 +736,11 @@ int ra8e1_i2c_scan(uint8_t *devices, int max_devices)
         {
           devices[found] = addr;
           found++;
-          demoinfo("Found device at address 0x%02X\n", addr);
+          _info("Found device at address 0x%02X\n", addr);
         }
     }
 
-  demoinfo("I2C scan complete: found %d devices\n", found);
+  _info("I2C scan complete: found %d devices\n", found);
 
   return found;
 }
@@ -795,7 +795,7 @@ int ra8e1_i2c_read_reg(uint8_t addr, uint8_t reg, uint8_t *data, size_t len)
   ret = I2C_TRANSFER(i2c, msg, 2);
   if (ret < 0)
     {
-      demoerr("ERROR: Failed to read from device 0x%02X reg 0x%02X: %d\n",
+      _err("ERROR: Failed to read from device 0x%02X reg 0x%02X: %d\n",
              addr, reg, ret);
     }
 
@@ -857,7 +857,7 @@ int ra8e1_i2c_write_reg(uint8_t addr, uint8_t reg, const uint8_t *data,
   ret = I2C_TRANSFER(i2c, &msg, 1);
   if (ret < 0)
     {
-      demoerr("ERROR: Failed to write to device 0x%02X reg 0x%02X: %d\n",
+      _err("ERROR: Failed to write to device 0x%02X reg 0x%02X: %d\n",
              addr, reg, ret);
     }
 

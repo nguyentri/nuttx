@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/ra8/fpb-ra8e1/src/ra8e1_sbus_demo.c
+ * boards/arm/ra8/fpb-ra8e1/src/ra8e1_sbus.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -45,7 +45,7 @@
 #include "chip.h"
 #include "ra_gpio.h"
 #include "ra_sci.h"
-#include "ra8e1_demo_log.h"
+#include "ra8e1_log.h"
 
 /* SBUS Protocol Parameters */
 
@@ -73,7 +73,7 @@
 #define SBUS_UART_NUM           2
 #define SBUS_RX_BUFFER_SIZE     64
 
-#ifdef CONFIG_RA8E1_SBUS_DEMO
+#ifdef CONFIG_RA8E1_SBUS_EXAMPLE
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -141,7 +141,7 @@ static uint8_t g_sbus_rx_buffer[SBUS_RX_BUFFER_SIZE];
 
 /* RTT command buffer */
 static char g_rtt_buffer[RTT_BUFFER_SIZE];
-static volatile bool g_demo_running = false;
+static volatile bool g_running = false;
 
 /****************************************************************************
  * Private Function Prototypes
@@ -180,30 +180,30 @@ static int sbus_uart_initialize(void)
   config.bits = SBUS_DATABITS;
   config.parity = SBUS_PARITY;
   config.stop = SBUS_STOPBITS;
-  
+
   /* Pin configuration for UART2 */
   config.rx_pin = RA_GPIO_PIN(RA_GPIO_PORT8, 2); /* P802 - RXD2 */
   config.tx_pin = 0; /* TX not used for SBUS reception */
-  
+
   /* DMA configuration */
   config.rx_dma.enabled = true;
   config.rx_dma.channel = 0;
-  
+
   /* Set up device structure */
   g_sbus_uart.config = &config;
   g_sbus_uart.rx_buffer = g_sbus_rx_buffer;
   g_sbus_uart.rx_buffer_size = SBUS_RX_BUFFER_SIZE;
   g_sbus_uart.callback = sbus_uart_callback;
-  
+
   /* Initialize UART with DMA */
   ret = ra_sci_initialize(&g_sbus_uart);
   if (ret < 0)
     {
-      demoprintf("SBUS: Failed to initialize UART: %d\n", ret);
+      printf("SBUS: Failed to initialize UART: %d\n", ret);
       return ret;
     }
-  
-  demoprintf("SBUS: UART2 initialized for 100kbps, even parity, 2 stop bits\n");
+
+  printf("SBUS: UART2 initialized for 100kbps, even parity, 2 stop bits\n");
   return OK;
 }
 
@@ -219,14 +219,14 @@ static void sbus_uart_callback(ra_sci_dev_t *dev, uint32_t event)
 {
   uint8_t byte;
   int i;
-  
+
   if (event & RA_UART_EVENT_RX_CHAR)
     {
       /* Process received bytes */
       for (i = 0; i < dev->rx_count; i++)
         {
           byte = dev->rx_buffer[i];
-          
+
           /* SBUS frame parsing state machine */
           if (!g_sbus_parser.frame_sync)
             {
@@ -244,7 +244,7 @@ static void sbus_uart_callback(ra_sci_dev_t *dev, uint32_t event)
               if (g_sbus_parser.frame_pos < SBUS_FRAME_SIZE)
                 {
                   g_sbus_parser.frame_buffer[g_sbus_parser.frame_pos++] = byte;
-                  
+
                   /* Check if frame is complete */
                   if (g_sbus_parser.frame_pos == SBUS_FRAME_SIZE)
                     {
@@ -261,7 +261,7 @@ static void sbus_uart_callback(ra_sci_dev_t *dev, uint32_t event)
                         {
                           g_sbus_parser.error_count++;
                         }
-                      
+
                       /* Reset for next frame */
                       g_sbus_parser.frame_sync = false;
                       g_sbus_parser.frame_pos = 0;
@@ -277,11 +277,11 @@ static void sbus_uart_callback(ra_sci_dev_t *dev, uint32_t event)
             }
         }
     }
-  
+
   if (event & (RA_UART_EVENT_ERR_PARITY | RA_UART_EVENT_ERR_FRAMING | RA_UART_EVENT_ERR_OVERFLOW))
     {
       g_sbus_parser.error_count++;
-      demoprintf("SBUS: UART error event: 0x%08x\n", event);
+      printf("SBUS: UART error event: 0x%08x\n", event);
     }
 }
 
@@ -300,7 +300,7 @@ static bool sbus_validate_frame(const uint8_t *frame)
     {
       return false;
     }
-  
+
   return true;
 }
 
@@ -315,12 +315,12 @@ static bool sbus_validate_frame(const uint8_t *frame)
 static int sbus_parse_frame(const uint8_t *frame, struct sbus_data_s *data)
 {
   uint8_t flags;
-  
+
   if (!frame || !data)
     {
       return -EINVAL;
     }
-  
+
   /* Extract 16 channels from 11-bit packed data */
   data->channels[0]  = ((frame[1]    ) | (frame[2] << 8))                 & 0x07FF;
   data->channels[1]  = ((frame[2]>>3 ) | (frame[3] << 5))                 & 0x07FF;
@@ -338,7 +338,7 @@ static int sbus_parse_frame(const uint8_t *frame, struct sbus_data_s *data)
   data->channels[13] = ((frame[18]>>7) | (frame[19]<< 1) | (frame[20]<<9))  & 0x07FF;
   data->channels[14] = ((frame[20]>>2) | (frame[21]<< 6))                 & 0x07FF;
   data->channels[15] = ((frame[21]>>5) | (frame[22]<< 3))                 & 0x07FF;
-  
+
   /* Extract flags */
   flags = frame[23];
   data->ch17 = (flags & SBUS_FLAG_CH17) != 0;
@@ -346,7 +346,7 @@ static int sbus_parse_frame(const uint8_t *frame, struct sbus_data_s *data)
   data->frame_lost = (flags & SBUS_FLAG_FRAME_LOST) != 0;
   data->failsafe = (flags & SBUS_FLAG_FAILSAFE) != 0;
   data->flags = flags;
-  
+
   return OK;
 }
 
@@ -361,18 +361,18 @@ static int sbus_parse_frame(const uint8_t *frame, struct sbus_data_s *data)
 static void sbus_print_channels(const struct sbus_data_s *data)
 {
   int i;
-  
-  demoprintf("SBUS Channels:\n");
+
+  printf("SBUS Channels:\n");
   for (i = 0; i < SBUS_NUM_CHANNELS; i += 4)
     {
-      demoprintf("  CH%02d:%4d  CH%02d:%4d  CH%02d:%4d  CH%02d:%4d\n",
+      printf("  CH%02d:%4d  CH%02d:%4d  CH%02d:%4d  CH%02d:%4d\n",
                  i+1, data->channels[i],
                  i+2, (i+1 < SBUS_NUM_CHANNELS) ? data->channels[i+1] : 0,
                  i+3, (i+2 < SBUS_NUM_CHANNELS) ? data->channels[i+2] : 0,
                  i+4, (i+3 < SBUS_NUM_CHANNELS) ? data->channels[i+3] : 0);
     }
-  
-  demoprintf("Digital: CH17=%d CH18=%d  Status: FrameLost=%d Failsafe=%d\n",
+
+  printf("Digital: CH17=%d CH18=%d  Status: FrameLost=%d Failsafe=%d\n",
              data->ch17, data->ch18, data->frame_lost, data->failsafe);
 }
 
@@ -388,12 +388,12 @@ static void sbus_print_status(void)
 {
   uint32_t current_time = up_systime();
   uint32_t time_since_last = current_time - g_sbus_data.timestamp;
-  
-  demoprintf("\nSBUS Status:\n");
-  demoprintf("  Frames received: %u\n", g_sbus_parser.frame_count);
-  demoprintf("  Errors: %u\n", g_sbus_parser.error_count);
-  demoprintf("  Last frame: %u ms ago\n", time_since_last);
-  demoprintf("  Frame rate: %.1f Hz\n", 
+
+  printf("\nSBUS Status:\n");
+  printf("  Frames received: %u\n", g_sbus_parser.frame_count);
+  printf("  Errors: %u\n", g_sbus_parser.error_count);
+  printf("  Last frame: %u ms ago\n", time_since_last);
+  printf("  Frame rate: %.1f Hz\n",
              g_sbus_parser.frame_count > 0 ? (float)g_sbus_parser.frame_count * 1000.0f / current_time : 0.0f);
 }
 
@@ -407,12 +407,12 @@ static void sbus_print_status(void)
 
 static void print_menu(void)
 {
-  demoprintf("\nSBUS Demo Commands:\n");
-  demoprintf("  c - Show channels\n");
-  demoprintf("  s - Show status\n");
-  demoprintf("  r - Reset counters\n");
-  demoprintf("  h - Show this menu\n");
-  demoprintf("  q - Quit demo\n");
+  printf("\nSBUS Demo Commands:\n");
+  printf("  c - Show channels\n");
+  printf("  s - Show status\n");
+  printf("  r - Reset counters\n");
+  printf("  h - Show this menu\n");
+  printf("  q - Quit demo\n");
 }
 
 /****************************************************************************
@@ -429,39 +429,39 @@ static void process_rtt_command(const char *command)
     {
       return;
     }
-  
+
   switch (command[0])
     {
       case 'c':
       case 'C':
         sbus_print_channels(&g_sbus_data);
         break;
-        
+
       case 's':
       case 'S':
         sbus_print_status();
         break;
-        
+
       case 'r':
       case 'R':
         g_sbus_parser.frame_count = 0;
         g_sbus_parser.error_count = 0;
-        demoprintf("Counters reset\n");
+        printf("Counters reset\n");
         break;
-        
+
       case 'h':
       case 'H':
         print_menu();
         break;
-        
+
       case 'q':
       case 'Q':
-        g_demo_running = false;
-        demoprintf("Exiting SBUS demo\n");
+        g_running = false;
+        printf("Exiting SBUS demo\n");
         break;
-        
+
       default:
-        demoprintf("Unknown command: %c\n", command[0]);
+        printf("Unknown command: %c\n", command[0]);
         print_menu();
         break;
     }
@@ -472,56 +472,56 @@ static void process_rtt_command(const char *command)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ra8e1_sbus_demo_init
+ * Name: ra8e1_sbus_init
  *
  * Description:
  *   Initialize the SBUS demo
  *
  ****************************************************************************/
 
-int ra8e1_sbus_demo_init(void)
+int ra8e1_sbus_init(void)
 {
   /* SBUS demo initialization is done within main function */
   return 0;
 }
 
 /****************************************************************************
- * Name: ra8e1_sbus_demo_main
+ * Name: ra8e1_sbus_main
  *
  * Description:
  *   SBUS demo main function
  *
  ****************************************************************************/
 
-int ra8e1_sbus_demo_main(int argc, char *argv[])
+int ra8e1_sbus_main(int argc, char *argv[])
 {
   int ret;
   int key;
   uint8_t cmd_pos = 0;
-  
-  demoprintf("\nRA8E1 SBUS Demo Starting...\n");
-  demoprintf("SBUS: P802 (RXD2) <- RC Receiver SBUS output\n");
-  demoprintf("Configuration: 100kbps, 8E2, inverted\n\n");
-  
+
+  printf("\nRA8E1 SBUS Demo Starting...\n");
+  printf("SBUS: P802 (RXD2) <- RC Receiver SBUS output\n");
+  printf("Configuration: 100kbps, 8E2, inverted\n\n");
+
   /* Initialize SBUS parser */
   memset(&g_sbus_parser, 0, sizeof(g_sbus_parser));
   memset(&g_sbus_data, 0, sizeof(g_sbus_data));
-  
+
   /* Initialize UART for SBUS */
   ret = sbus_uart_initialize();
   if (ret < 0)
     {
-      demoprintf("SBUS: Failed to initialize UART: %d\n", ret);
+      printf("SBUS: Failed to initialize UART: %d\n", ret);
       return ret;
     }
-  
+
   print_menu();
-  g_demo_running = true;
-  
-  demoinfo("Demo initialized - ready for commands\n");
+  g_running = true;
+
+  _info("Demo initialized - ready for commands\n");
 
   /* Main demo loop */
-  while (g_demo_running)
+  while (g_running)
     {
       /* Check for input */
       if (demo_haskey())
@@ -551,15 +551,15 @@ int ra8e1_sbus_demo_main(int argc, char *argv[])
                 }
             }
         }
-      
+
       /* Small delay to prevent overwhelming the system */
       usleep(10000); /* 10ms */
     }
-  
+
   /* Cleanup */
   ra_sci_finalize(&g_sbus_uart);
-  demoprintf("SBUS demo finished\n");
-  
+  printf("SBUS demo finished\n");
+
   return OK;
 }
 
@@ -577,12 +577,12 @@ int ra8e1_sbus_decode(const uint8_t *sbus_data, struct sbus_data_s *decoded)
     {
       return -EINVAL;
     }
-  
+
   if (!sbus_validate_frame(sbus_data))
     {
       return -EINVAL;
     }
-  
+
   return sbus_parse_frame(sbus_data, decoded);
 }
 
@@ -594,14 +594,14 @@ int ra8e1_sbus_decode(const uint8_t *sbus_data, struct sbus_data_s *decoded)
  *
  ****************************************************************************/
 
-uint16_t ra8e1_sbus_get_channel(const struct sbus_data_s *sbus_data, 
+uint16_t ra8e1_sbus_get_channel(const struct sbus_data_s *sbus_data,
                                  uint8_t channel)
 {
   if (!sbus_data || channel >= SBUS_NUM_CHANNELS)
     {
       return 0;
     }
-  
+
   return sbus_data->channels[channel];
 }
 
@@ -618,4 +618,4 @@ bool ra8e1_sbus_is_valid_frame(const uint8_t *frame)
   return sbus_validate_frame(frame);
 }
 
-#endif /* CONFIG_RA8E1_SBUS_DEMO */
+#endif /* CONFIG_RA8E1_SBUS_EXAMPLE */

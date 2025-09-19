@@ -135,9 +135,9 @@ int ra8e1_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_RA8E1_ADC_BMS_DEMO
+#ifdef CONFIG_RA8E1_ADC_BMS_EXAMPLE
   /* Initialize ADC BMS demo */
-  ret = ra8e1_adc_bms_demo_init();
+  ret = ra8e1_adc_bms_init();
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: Failed to initialize ADC BMS demo: %d\n", ret);
@@ -149,9 +149,9 @@ int ra8e1_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_RA8E1_CODE_FLASH_DEMO
+#ifdef CONFIG_RA8E1_CODE_FLASH_EXAMPLE
   /* Initialize Code Flash */
-  ret = ra8e1_code_flash_demo_init();
+  ret = ra8e1_code_flash_init();
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: Failed to initialize Code Flash: %d\n", ret);
@@ -163,9 +163,9 @@ int ra8e1_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_RA8E1_DATA_FLASH_DEMO
+#ifdef CONFIG_RA8E1_DATA_FLASH_EXAMPLE
   /* Initialize Data Flash */
-  ret = ra8e1_data_flash_demo_init();
+  ret = ra8e1_data_flash_init();
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: Failed to initialize Data Flash: %d\n", ret);
@@ -177,9 +177,9 @@ int ra8e1_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_RA8E1_PWM_ESCS_DEMO
+#ifdef CONFIG_RA8E1_PWM_ESCS_EXAMPLE
   /* Initialize ESCs demo */
-  ret = ra8e1_pwm_escs_demo_init();
+  ret = ra8e1_pwm_escs_init();
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: Failed to initialize ESCs demo: %d\n", ret);
@@ -191,9 +191,9 @@ int ra8e1_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_RA8E1_GPS_DEMO
+#ifdef CONFIG_RA8E1_GPS_EXAMPLE
   /* Initialize GPS demo */
-  ret = ra8e1_gps_demo_init();
+  ret = ra8e1_gps_init();
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: Failed to initialize GPS demo: %d\n", ret);
@@ -204,9 +204,9 @@ int ra8e1_bringup(void)
       syslog(LOG_INFO, "GPS demo initialized successfully\n");
     }
 #endif
-#ifdef CONFIG_RA8E1_SBUS_DEMO
+#ifdef CONFIG_RA8E1_SBUS_EXAMPLE
   /* Initialize SBUS demo */
-  ret = ra8e1_sbus_demo_init();
+  ret = ra8e1_sbus_init();
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: Failed to initialize SBUS demo: %d\n", ret);
@@ -218,9 +218,9 @@ int ra8e1_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_RA8E1_I2C_GY912_DEMO
+#ifdef CONFIG_RA8E1_I2C_GY912_EXAMPLE
   /* Initialize I2C GY-912 demo */
-  ret = ra8e1_i2c_gy912_demo_init();
+  ret = ra8e1_i2c_gy912_init();
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: Failed to initialize I2C GY-912 demo: %d\n", ret);
@@ -232,9 +232,9 @@ int ra8e1_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_RA8E1_I2C_ACC_DEMO
+#ifdef CONFIG_RA8E1_I2C_ACC_EXAMPLE
   /* Initialize I2C ACC demo */
-  ret = ra8e1_i2c_acc_demo_init();
+  ret = ra8e1_i2c_acc_init();
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: Failed to initialize I2C ACC demo: %d\n", ret);
@@ -262,7 +262,7 @@ int ra8e1_bringup(void)
 
 #ifdef CONFIG_RA_SPI
   /* Initialize SPI */
-  ret = fpb_ra8e1_spi_initialize();
+  ret = ra8e1_spi_initialize();
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: Failed to initialize SPI: %d\n", ret);
@@ -274,9 +274,9 @@ int ra8e1_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_RA8E1_SPI_LOOPBACK_DEMO
+#ifdef CONFIG_RA8E1_SPI_LOOPBACK_EXAMPLE
   /* Initialize SPI loopback demo */
-  ret = ra8e1_spi_loopback_demo_init();
+  ret = ra8e1_spi_loopback_init();
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: Failed to initialize SPI loopback demo: %d\n", ret);
@@ -288,9 +288,9 @@ int ra8e1_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_RA8E1_SPI_GY912_DEMO
+#ifdef CONFIG_RA8E1_SPI_GY912_EXAMPLE
   /* Initialize SPI GY-912 demo */
-  ret = ra8e1_spi_gy912_demo_init();
+  ret = ra8e1_spi_gy912_init();
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: Failed to initialize SPI GY-912 demo: %d\n", ret);
@@ -307,7 +307,7 @@ int ra8e1_bringup(void)
   board_button_initialize();
 #endif
 
-#ifdef CONFIG_RA8E1_RUST_DEMO
+#ifdef CONFIG_RA8E1_RUST_EXAMPLE
   ra8e1_thread_init();
 #endif
 

@@ -1161,107 +1161,45 @@ config RA_GPT
      Enable General Purpose Timer (GPT) support.
      Required for PWM and other timer-based functions.
 
-config RA_GPT0_PWM
+config RA_GPT0
    bool "GPT0 PWM support"
    default n
    depends on RA_GPT && RA_HAVE_GPT0
 
-config RA_GPT1_PWM
+config RA_GPT1
    bool "GPT1 PWM support"
    default n
    depends on RA_GPT && RA_HAVE_GPT1
 
-config RA_GPT2_PWM
+config RA_GPT2
    bool "GPT2 PWM support"
    default n
    depends on RA_GPT && RA_HAVE_GPT2
 
-config RA_GPT3_PWM
+config RA_GPT3
    bool "GPT3 PWM support"
    default n
    depends on RA_GPT && RA_HAVE_GPT3
 
-config RA_GPT4_PWM
+config RA_GPT4
    bool "GPT4 PWM support"
    default n
    depends on RA_GPT && RA_HAVE_GPT4
 
-config RA_GPT5_PWM
+config RA_GPT5
    bool "GPT5 PWM support"
    default n
    depends on RA_GPT && RA_HAVE_GPT5
 
-config RA_GPT6_PWM
+config RA_GPT6
    bool "GPT6 PWM support"
    default n
    depends on RA_GPT && RA_HAVE_GPT6
 
-config RA_GPT7_PWM
+config RA_GPT7
    bool "GPT7 PWM support"
    default n
    depends on RA_GPT && RA_HAVE_GPT7
-
-config RA_PWM
-   bool "PWM support"
-   default n
-   depends on RA_GPT
-   select PWM
-   help
-     Enable Pulse Width Modulation (PWM) support using GPT timers.
-
-config RA_PWM0
-   bool "PWM Channel 0"
-   default n
-   depends on RA_PWM && RA_HAVE_GPT0
-
-config RA_PWM1
-   bool "PWM Channel 1"
-   default n
-   depends on RA_PWM && RA_HAVE_GPT1
-
-config RA_PWM2
-   bool "PWM Channel 2"
-   default n
-   depends on RA_PWM && RA_HAVE_GPT2
-
-config RA_PWM3
-   bool "PWM Channel 3"
-   default n
-   depends on RA_PWM && RA_HAVE_GPT3
-
-config RA_PWM4
-   bool "PWM Channel 4"
-   default n
-   depends on RA_PWM && RA_HAVE_GPT4
-
-config RA_PWM5
-   bool "PWM Channel 5"
-   default n
-   depends on RA_PWM && RA_HAVE_GPT5
-
-config RA_PWM6
-   bool "PWM Channel 6"
-   default n
-   depends on RA_PWM && RA_HAVE_GPT6
-
-config RA_PWM7
-   bool "PWM Channel 7"
-   default n
-   depends on RA_PWM && RA_HAVE_GPT7
-
-config RA_PWM_CHANNELS
-   int "Number of PWM channels"
-   default 4
-   depends on RA_PWM
-   help
-     Number of PWM channels to support (1-8).
-
-config RA_PWM_FREQUENCY_LIMIT
-   int "PWM frequency limit (Hz)"
-   default 1000000
-   depends on RA_PWM
-   help
-     Maximum PWM frequency to prevent integer overflow.
 
 endmenu
 
@@ -1448,23 +1386,6 @@ config RA_PWM
    help
      Enable PWM support using GPT (General PWM Timer) modules.
 
-if RA_PWM
-
-config RA_PWM_CHANNELS
-   int "Number of PWM channels"
-   default 4
-   range 1 8
-   help
-     Number of PWM channels to support (1-8).
-     RA8E1 has multiple GPT timers that can generate PWM.
-
-config RA_PWM_FREQUENCY_LIMIT
-   int "Maximum PWM frequency (Hz)"
-   default 1000000
-   help
-     Maximum allowed PWM frequency to prevent timer overflow.
-
-endif # RA_PWM
 endmenu
 
 menu "RTC"

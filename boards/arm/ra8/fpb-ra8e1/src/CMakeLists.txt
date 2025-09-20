@@ -69,7 +69,7 @@ if(CONFIG_RA8E1_I2C_ACCEL_EXAMPLE)
 endif()
 
 if(CONFIG_RA8E1_PWM_ESCS_EXAMPLE)
-  list(APPEND SRCS ra8e1_pwm_escs.c)
+  list(APPEND SRCS ra8e1_gpt_escs.c)
 endif()
 
 if(CONFIG_RA8E1_SPI_LOOPBACK_EXAMPLE)

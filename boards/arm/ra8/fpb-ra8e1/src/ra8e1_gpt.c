@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/ra8/fpb-ra8e1/src/ra8e1_pwm_test.c
+ * boards/arm/ra8/fpb-ra8e1/src/ra8e1_gpt.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -22,29 +22,20 @@
  * Included Files
  ****************************************************************************/
 
-#include <stdio.h>
+#include <nuttx/config.h>
+
+#include <sys/types.h>
+#include <sys/ioctl.h>
+
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <sys/ioctl.h>
 #include <errno.h>
 
-/* PWM driver definitions */
-#define PWMIOC_SETCHARACTERISTICS  1
-#define PWMIOC_START              2
-#define PWMIOC_STOP               3
-
-/* PWM info structure */
-struct pwm_info_s
-{
-  uint32_t frequency;             /* PWM frequency */
-  uint32_t duty;                  /* PWM duty cycle (0-65536) */
-};
-
-#ifndef OK
-#define OK 0
-#endif
+#include <fixedmath.h>
+#include <nuttx/timers/pwm.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -154,14 +145,14 @@ static int test_pwm_device(const char *devpath, int channel)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ra8e1_pwm_test_main
+ * Name: ra8e1_gpt_test_main
  *
  * Description:
  *   Test all available PWM devices for ESC control
  *
  ****************************************************************************/
 
-int ra8e1_pwm_test_main(int argc, char *argv[])
+int ra8e1_gpt_test_main(int argc, char *argv[])
 {
   int ret = OK;
 
@@ -214,7 +205,7 @@ int ra8e1_pwm_test_main(int argc, char *argv[])
     }
 
   printf("All PWM ESC tests completed successfully!\n");
-  printf("You can now use the interactive ESC demo: ra8e1_pwm_escs\n");
+  printf("You can now use the interactive ESC demo: ra8e1_gpt_escs\n");
 
   return OK;
 }

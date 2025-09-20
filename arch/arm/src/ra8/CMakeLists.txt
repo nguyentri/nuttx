@@ -69,8 +69,8 @@ if(CONFIG_RA_SPI)
 endif()
 
 # PWM driver
-if(CONFIG_RA_PWM)
-  list(APPEND SRCS ra_pwm.c)
+if(CONFIG_RA_GPT)
+  list(APPEND SRCS ra_gpt.c)
 endif()
 
 # Enhanced UART+DMA driver

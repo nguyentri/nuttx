@@ -62,7 +62,7 @@
  *
  ****************************************************************************/
 
-#ifdef CONFIG_PWM
+#ifdef CONFIG_RA_GPT
 static int ra8e1_gpt_pwm_initialize(void)
 {
   struct pwm_lowerhalf_s *pwm;
@@ -247,7 +247,7 @@ int ra8e1_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_PWM
+#ifdef CONFIG_RA_GPT
   /* Initialize GPT-based PWM devices for ESC control */
 
   ret = ra8e1_gpt_pwm_initialize();
@@ -306,7 +306,7 @@ int ra8e1_bringup(void)
 
 #ifdef CONFIG_RA8E1_PWM_ESCS_EXAMPLE
   /* Initialize ESCs demo */
-  ret = ra8e1_pwm_escs_init();
+  ret = ra8e1_gpt_escs_init();
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: Failed to initialize ESCs demo: %d\n", ret);

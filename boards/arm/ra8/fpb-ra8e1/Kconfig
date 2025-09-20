@@ -164,10 +164,10 @@ config RA8E1_PWM_ESCS_EXAMPLE
 	bool "PWM ESCs Example Application"
 	default n
 	depends on RA_GPT
-	select RA_GPT0_PWM
-	select RA_GPT2_PWM
-	select RA_GPT3_PWM
-	select RA_GPT4_PWM
+	select RA_GPT0
+	select RA_GPT2
+	select RA_GPT3
+	select RA_GPT4
 	select RA_PWM
 	select RA_PWM0
 	select RA_PWM2

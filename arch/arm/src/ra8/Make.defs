@@ -73,8 +73,8 @@ CHIP_CSRCS += ra_spi.c
 endif
 
 # PWM driver
-ifeq ($(CONFIG_RA_PWM),y)
-CHIP_CSRCS += ra_pwm.c
+ifeq ($(CONFIG_RA_GPT),y)
+CHIP_CSRCS += ra_gpt.c
 endif
 
 # Enhanced UART+DMA driver

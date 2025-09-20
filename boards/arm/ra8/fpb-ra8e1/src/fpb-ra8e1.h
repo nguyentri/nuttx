@@ -169,8 +169,8 @@ int ra8e1_data_flash_main(int argc, char *argv[]);
 #endif
 
 #ifdef CONFIG_RA8E1_PWM_ESCS_EXAMPLE
-int ra8e1_pwm_escs_init(void);
-int ra8e1_pwm_escs_main(int argc, char *argv[]);
+int ra8e1_gpt_escs_init(void);
+int ra8e1_gpt_escs_main(int argc, char *argv[]);
 #endif
 
 #ifdef CONFIG_RA8E1_GPS_EXAMPLE

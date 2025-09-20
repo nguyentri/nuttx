@@ -86,17 +86,7 @@ CSRCS += ra8e1_i2c_acc.c
 endif
 
 ifeq ($(CONFIG_RA8E1_PWM_ESCS_EXAMPLE),y)
-CSRCS += ra8e1_pwm_escs.c
-endif
-
-# Data Flash Demo Support
-ifeq ($(CONFIG_RA8E1_DATA_FLASH_EXAMPLE),y)
-CSRCS += ra8e1_df.c
-endif
-
-# Code Flash Demo Support
-ifeq ($(CONFIG_RA8E1_CODE_FLASH_EXAMPLE),y)
-CSRCS += ra8e1_cf.c
+CSRCS += ra8e1_gpt_escs.c
 endif
 
 # SPI Loopback Demo

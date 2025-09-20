@@ -21,9 +21,10 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
-#ifdef CONFIG_RA8E1_CODE_FLASH_EXAMPLE
 
 #include <nuttx/config.h>
+
+#ifdef CONFIG_RA8E1_CODE_FLASH_EXAMPLE
 
 #include <sys/types.h>
 #include <stdio.h>
@@ -34,7 +35,7 @@
 #include <nuttx/mtd/mtd.h>
 
 #include "ra_flash.h"
-#include "ra8e1_log.h"
+#include "fpb-ra8e1.h"
 
 /****************************************************************************
  * Pre-processor Definitions

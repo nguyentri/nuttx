@@ -41,11 +41,13 @@
 #include <nuttx/power/pm.h>
 
 #include <arch/board/board.h>
+#include <arch/ra8/ra8e1_irq.h>
 
 #include "arm_internal.h"
 #include "chip.h"
 #include "ra_gpio.h"
 #include "ra_icu.h"
+#include "ra_clock.h"
 #include "hardware/ra_spi.h"
 #include "hardware/ra_dmac.h"
 #include "hardware/ra_memorymap.h"
@@ -73,9 +75,6 @@
 /* SPI timeout */
 #define SPI_TIMEOUT_MS          1000
 
-/* Maximum SPI frequency */
-#define RA_SPI_MAX_FREQUENCY    10000000
-
 /* Sensor-specific frequency limits */
 #define ICM20948_MAX_FREQ       7000000   /* ICM-20948: =7MHz */
 #define BMP388_MAX_FREQ         10000000  /* BMP388: =10MHz */
@@ -85,10 +84,27 @@
 #define CS_HOLD_DELAY           1
 #define CS_NEGATION_DELAY       1
 
+/* The max number of chip selects */
+#define RA_SPI_NCS              4
+
 /* DTC transfer modes */
 #define DTC_MODE_NORMAL         0x00
 #define DTC_MODE_REPEAT         0x01
 #define DTC_MODE_BLOCK          0x02
+
+/* RA8E1 SPI Pin definitions from board.h */
+#define PIN_SPI0_SCK    GPIO_SPI0_SCK    /* P611 - SPI Clock */
+#define PIN_SPI0_MOSI   GPIO_SPI0_MOSI   /* P609 - SPI MOSI */
+#define PIN_SPI0_MISO   GPIO_SPI0_MISO   /* P610 - SPI MISO */
+#define PIN_SPI0_CS0    GPIO_SPI0_SS0    /* P612 - Hardware SS0 */
+#define PIN_SPI0_CS1    GPIO_BMP_CS      /* P605 - BMP388 CS */
+
+/* SPI1 Pin definitions from board.h */
+#define PIN_SPI1_SCK    GPIO_SPI1_SCK    /* P500 - SPI1 Clock */
+#define PIN_SPI1_MOSI   GPIO_SPI1_MOSI   /* P501 - SPI1 MOSI */
+#define PIN_SPI1_MISO   GPIO_SPI1_MISO   /* P502 - SPI1 MISO */
+#define PIN_SPI1_CS0    GPIO_SPI1_SSL0    /* P413 - SPI1 SSL0 Slave Selection */
+#define PIN_SPI1_CS1    {0, 0, 0}                /* Not defined on FPB-RA8E1 */
 
 /****************************************************************************
  * Private Types
@@ -97,7 +113,7 @@
 /* Chip Select Configuration */
 struct ra_spi_cs_config_s
 {
-  uint32_t gpio_pin;        /* GPIO pin for CS control */
+  gpio_pinset_t gpio_pin;   /* GPIO pin for CS control */
   bool     use_hardware;    /* Use hardware SS0 or GPIO */
   uint8_t  ssl_select;      /* SSL select value (0-3) */
   uint32_t max_frequency;   /* Maximum frequency for this device */
@@ -110,8 +126,7 @@ struct ra_spi_cs_config_s
 struct ra_spi_config_s
 {
   uint32_t base;          /* SPI peripheral base address */
-  uint32_t clk_src;       /* Clock source */
-  uint32_t clk_freq;      /* Clock frequency */
+
   uint8_t  bus;           /* SPI bus number */
   int  irq_rxi;           /* RX interrupt */
   int  irq_txi;           /* TX interrupt */
@@ -124,14 +139,14 @@ struct ra_spi_config_s
   uint32_t mstpcrb_bit;   /* Module stop control bit */
 
   /* Pin configuration */
-  uint32_t sck_pin;       /* SCK pin configuration */
-  uint32_t miso_pin;      /* MISO pin configuration */
-  uint32_t mosi_pin;      /* MOSI pin configuration */
-  uint32_t cs0_pin;       /* CS0 pin configuration */
-  uint32_t cs1_pin;       /* CS1 pin configuration */
+  gpio_pinset_t sck_pin;       /* SCK pin configuration */
+  gpio_pinset_t miso_pin;      /* MISO pin configuration */
+  gpio_pinset_t mosi_pin;      /* MOSI pin configuration */
+  gpio_pinset_t cs0_pin;       /* CS0 pin configuration */
+  gpio_pinset_t cs1_pin;       /* CS1 pin configuration */
 
   /* CS device configurations */
-  struct ra_spi_cs_config_s cs_configs[4];  /* Up to 4 CS devices */
+  struct ra_spi_cs_config_s cs_configs[RA_SPI_NCS];  /* Up to 4 CS devices */
 };
 
 /* DTC Transfer Information */
@@ -190,10 +205,10 @@ struct ra_spi_priv_s
 /* Low-level helpers */
 static void ra_spi_putreg8(struct ra_spi_priv_s *priv, uint8_t offset, uint8_t value);
 static void ra_spi_putreg16(struct ra_spi_priv_s *priv, uint8_t offset, uint16_t value);
-static void ra_spi_putreg32(struct ra_spi_priv_s *priv, uint8_t offset, uint32_t value);
+//static void ra_spi_putreg32(struct ra_spi_priv_s *priv, uint8_t offset, uint32_t value);
 static uint8_t ra_spi_getreg8(struct ra_spi_priv_s *priv, uint8_t offset);
-static uint16_t ra_spi_getreg16(struct ra_spi_priv_s *priv, uint8_t offset);
-static uint32_t ra_spi_getreg32(struct ra_spi_priv_s *priv, uint8_t offset);
+//static uint16_t ra_spi_getreg16(struct ra_spi_priv_s *priv, uint8_t offset);
+//static uint32_t ra_spi_getreg32(struct ra_spi_priv_s *priv, uint8_t offset);
 
 /* CS control functions */
 static void ra_spi_cs_assert(struct ra_spi_priv_s *priv, uint32_t devid);
@@ -249,149 +264,6 @@ static void ra_spi_bus_initialize(struct ra_spi_priv_s *priv);
  * Private Data
  ****************************************************************************/
 
-#ifdef CONFIG_RA_SPI0
-static const struct ra_spi_config_s ra_spi0_config =
-{
-  .base        = R_SPI0_BASE,
-  .clk_src     = RA_PCKB_FREQUENCY,
-  .clk_freq    = RA_PCKB_FREQUENCY,
-  .bus         = 0,
-
-  .irq_rxi     = -1, // Will be assigned by ICU
-  .irq_txi     = -1, // Will be assigned by ICU
-  .irq_tei     = -1, // Will be assigned by ICU
-  .irq_eri     = -1, // Will be assigned by ICU
-
-  .el_rxi       = ELC_EVENT_SPI0_RXI,
-  .el_txi       = ELC_EVENT_SPI0_TXI,
-  .el_tei       = ELC_EVENT_SPI0_TEI,
-  .el_eri       = ELC_EVENT_SPI0_ERI,
-
-  .mstpcrb_bit = R_MSTP_MSTPCRB_SPI0,
-
-  /* Pin configuration for FPB-RA8E1 */
-  .sck_pin     = PIN_SPI0_SCK,     /* P611 */
-  .miso_pin    = PIN_SPI0_MISO,    /* P610 */
-  .mosi_pin    = PIN_SPI0_MOSI,    /* P609 */
-  .cs0_pin     = PIN_SPI0_CS0,     /* P612 - Hardware SS0 */
-  .cs1_pin     = PIN_SPI0_CS1,     /* P605 - GPIO CS */
-
-  /* CS device configurations */
-  .cs_configs = {
-    /* CS0: ICM-20948 IMU - Hardware SS0 */
-    {
-      .gpio_pin = PIN_SPI0_CS0,
-      .use_hardware = true,
-      .ssl_select = 0,
-      .max_frequency = ICM20948_MAX_FREQ,
-      .setup_delay = CS_SETUP_DELAY,
-      .hold_delay = CS_HOLD_DELAY,
-      .negation_delay = CS_NEGATION_DELAY,
-    },
-    /* CS1: BMP388 Barometer - GPIO CS */
-    {
-      .gpio_pin = PIN_SPI0_CS1,
-      .use_hardware = false,
-      .ssl_select = 1,
-      .max_frequency = BMP388_MAX_FREQ,
-      .setup_delay = CS_SETUP_DELAY,
-      .hold_delay = CS_HOLD_DELAY,
-      .negation_delay = CS_NEGATION_DELAY,
-    },
-    /* CS2: Reserved */
-    {
-      .gpio_pin = 0,
-      .use_hardware = false,
-      .ssl_select = 2,
-      .max_frequency = RA_SPI_MAX_FREQUENCY,
-      .setup_delay = CS_SETUP_DELAY,
-      .hold_delay = CS_HOLD_DELAY,
-      .negation_delay = CS_NEGATION_DELAY,
-    },
-    /* CS3: Reserved */
-    {
-      .gpio_pin = 0,
-      .use_hardware = false,
-      .ssl_select = 3,
-      .max_frequency = RA_SPI_MAX_FREQUENCY,
-      .setup_delay = CS_SETUP_DELAY,
-      .hold_delay = CS_HOLD_DELAY,
-      .negation_delay = CS_NEGATION_DELAY,
-    },
-  },
-};
-
-static struct ra_spi_priv_s ra_spi0_priv =
-{
-  .spidev   =
-    {
-      .ops    = &ra_spi_ops,
-    },
-  .config   = &ra_spi0_config,
-  .refs     = 0,
-  .lock     = NXMUTEX_INITIALIZER,
-  .waitsem  = SEM_INITIALIZER(0),
-  .current_devid = 0xffffffff,
-};
-#endif
-
-#ifdef CONFIG_RA_SPI1
-static const struct ra_spi_config_s ra_spi1_config =
-{
-  .base        = R_SPI1_BASE,
-  .clk_src     = RA_PCKB_FREQUENCY,
-  .clk_freq    = RA_PCKB_FREQUENCY,
-  .bus         = 1,
-  .irq_rxi     = R_ICU_VECT(EVENT_SPI1_RXI),
-  .irq_txi     = R_ICU_VECT(EVENT_SPI1_TXI),
-  .irq_tei     = R_ICU_VECT(EVENT_SPI1_TEI),
-  .irq_eri     = R_ICU_VECT(EVENT_SPI1_ERI),
-  .mstpcrb_bit = R_MSTP_MSTPCRB_SPI1,
-
-  /* Pin configuration */
-  .sck_pin     = PIN_SPI1_SCK,
-  .miso_pin    = PIN_SPI1_MISO,
-  .mosi_pin    = PIN_SPI1_MOSI,
-  .cs0_pin     = PIN_SPI1_CS0,
-  .cs1_pin     = PIN_SPI1_CS1,
-
-  /* CS device configurations */
-  .cs_configs = {
-    {
-      .gpio_pin = PIN_SPI1_CS0,
-      .use_hardware = true,
-      .ssl_select = 0,
-      .max_frequency = RA_SPI_MAX_FREQUENCY,
-      .setup_delay = CS_SETUP_DELAY,
-      .hold_delay = CS_HOLD_DELAY,
-      .negation_delay = CS_NEGATION_DELAY,
-    },
-    {
-      .gpio_pin = PIN_SPI1_CS1,
-      .use_hardware = false,
-      .ssl_select = 1,
-      .max_frequency = RA_SPI_MAX_FREQUENCY,
-      .setup_delay = CS_SETUP_DELAY,
-      .hold_delay = CS_HOLD_DELAY,
-      .negation_delay = CS_NEGATION_DELAY,
-    },
-    {0}, {0}, /* Reserved CS2, CS3 */
-  },
-};
-
-static struct ra_spi_priv_s ra_spi1_priv =
-{
-  .spidev   =
-    {
-      .ops    = &ra_spi_ops,
-    },
-  .config   = &ra_spi1_config,
-  .refs     = 0,
-  .lock     = NXMUTEX_INITIALIZER,
-  .waitsem  = SEM_INITIALIZER(0),
-  .current_devid = 0xffffffff,
-};
-#endif
 
 /* SPI operations */
 static const struct spi_ops_s ra_spi_ops =
@@ -423,6 +295,170 @@ static const struct spi_ops_s ra_spi_ops =
 #endif
 };
 
+#ifdef CONFIG_RA_SPI0
+static const struct ra_spi_config_s ra_spi0_config =
+{
+  .base        = R_SPI0_BASE,
+  .bus         = 0,
+
+  .irq_rxi     = -1, // Will be assigned by ICU
+  .irq_txi     = -1, // Will be assigned by ICU
+  .irq_tei     = -1, // Will be assigned by ICU
+  .irq_eri     = -1, // Will be assigned by ICU
+
+  .el_rxi       = RA_ELC_SPI0_RXI,
+  .el_txi       = RA_ELC_SPI0_TXI,
+  .el_tei       = RA_ELC_SPI0_TEI,
+  .el_eri       = RA_ELC_SPI0_ERI,
+
+  .mstpcrb_bit = R_MSTP_MSTPCRB_SPI0,
+
+  /* Pin configuration for FPB-RA8E1 */
+  .sck_pin     = PIN_SPI0_SCK,     /* P611 */
+  .miso_pin    = PIN_SPI0_MISO,    /* P610 */
+  .mosi_pin    = PIN_SPI0_MOSI,    /* P609 */
+  .cs0_pin     = PIN_SPI0_CS0,     /* P612 - Hardware SS0 */
+  .cs1_pin     = PIN_SPI0_CS1,     /* P605 - GPIO CS */
+
+  /* CS device configurations */
+  .cs_configs = {
+    /* CS0: ICM-20948 IMU - Hardware SS0 */
+    {
+      .gpio_pin = PIN_SPI0_CS0,
+      .use_hardware = true,
+      .ssl_select = 0,
+      .max_frequency = ICM20948_MAX_FREQ,
+      .setup_delay = CS_SETUP_DELAY,
+      .hold_delay = CS_HOLD_DELAY,
+      .negation_delay = CS_NEGATION_DELAY,
+    },
+    /* CS1: BMP388 Barometer - GPIO CS */
+    {
+      .gpio_pin = PIN_SPI0_CS1,
+      .use_hardware = true,
+      .ssl_select = 1,
+      .max_frequency = BMP388_MAX_FREQ,
+      .setup_delay = CS_SETUP_DELAY,
+      .hold_delay = CS_HOLD_DELAY,
+      .negation_delay = CS_NEGATION_DELAY,
+    },
+    /* CS2: Reserved */
+    {
+      .gpio_pin = {0, 0, 0},
+      .use_hardware = false,
+      .ssl_select = 2,
+      .max_frequency = RA_SPI_MAX_FREQUENCY,
+      .setup_delay = CS_SETUP_DELAY,
+      .hold_delay = CS_HOLD_DELAY,
+      .negation_delay = CS_NEGATION_DELAY,
+    },
+    /* CS3: Reserved */
+    {
+      .gpio_pin = {0, 0, 0},
+      .use_hardware = false,
+      .ssl_select = 3,
+      .max_frequency = RA_SPI_MAX_FREQUENCY,
+      .setup_delay = CS_SETUP_DELAY,
+      .hold_delay = CS_HOLD_DELAY,
+      .negation_delay = CS_NEGATION_DELAY,
+    },
+  },
+};
+
+static struct ra_spi_priv_s ra_spi0_priv =
+{
+  .spidev   =
+    {
+      .ops    = &ra_spi_ops,
+    },
+  .config   = &ra_spi0_config,
+  .refs     = 0,
+  .lock     = NXMUTEX_INITIALIZER,
+  .waitsem  = SEM_INITIALIZER(0),
+  .current_devid = 0xffffffff,
+};
+#endif
+
+#ifdef CONFIG_RA_SPI1
+static const struct ra_spi_config_s ra_spi1_config =
+{
+  .base        = R_SPI1_BASE,
+  .bus         = 1,
+
+  .irq_rxi     = -1, // Will be assigned by ICU
+  .irq_txi     = -1, // Will be assigned by ICU
+  .irq_tei     = -1, // Will be assigned by ICU
+  .irq_eri     = -1, // Will be assigned by ICU
+
+  .el_rxi       = RA_ELC_SPI1_RXI,
+  .el_txi       = RA_ELC_SPI1_TXI,
+  .el_tei       = RA_ELC_SPI1_TEI,
+  .el_eri       = RA_ELC_SPI1_ERI,
+
+  .mstpcrb_bit = R_MSTP_MSTPCRB_SPI1,
+
+  /* Pin configuration for FPB-RA8E1 */
+  .sck_pin     = PIN_SPI1_SCK,
+  .miso_pin    = PIN_SPI1_MISO,
+  .mosi_pin    = PIN_SPI1_MOSI,
+  .cs0_pin     = PIN_SPI1_CS0,
+  .cs1_pin     = {0, 0, 0}, /* Not defined on FPB-RA8E1 */
+
+  /* CS device configurations */
+  .cs_configs = {
+    {
+      .gpio_pin = PIN_SPI1_CS0,
+      .use_hardware = true,
+      .ssl_select = 0,
+      .max_frequency = RA_SPI_MAX_FREQUENCY,
+      .setup_delay = CS_SETUP_DELAY,
+      .hold_delay = CS_HOLD_DELAY,
+      .negation_delay = CS_NEGATION_DELAY,
+    },
+    {
+      .gpio_pin = {0, 0, 0}, /* Not defined */
+      .use_hardware = false,
+      .ssl_select = 1,
+      .max_frequency = RA_SPI_MAX_FREQUENCY,
+      .setup_delay = CS_SETUP_DELAY,
+      .hold_delay = CS_HOLD_DELAY,
+      .negation_delay = CS_NEGATION_DELAY,
+    },
+    {
+      .gpio_pin = {0, 0, 0},
+      .use_hardware = false,
+      .ssl_select = 2,
+      .max_frequency = RA_SPI_MAX_FREQUENCY,
+      .setup_delay = CS_SETUP_DELAY,
+      .hold_delay = CS_HOLD_DELAY,
+      .negation_delay = CS_NEGATION_DELAY,
+    },
+    {
+      .gpio_pin = {0, 0, 0},
+      .use_hardware = false,
+      .ssl_select = 3,
+      .max_frequency = RA_SPI_MAX_FREQUENCY,
+      .setup_delay = CS_SETUP_DELAY,
+      .hold_delay = CS_HOLD_DELAY,
+      .negation_delay = CS_NEGATION_DELAY,
+    },
+  },
+};
+
+static struct ra_spi_priv_s ra_spi1_priv =
+{
+  .spidev   =
+    {
+      .ops    = &ra_spi_ops,
+    },
+  .config   = &ra_spi1_config,
+  .refs     = 0,
+  .lock     = NXMUTEX_INITIALIZER,
+  .waitsem  = SEM_INITIALIZER(0),
+  .current_devid = 0xffffffff,
+};
+#endif
+
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -447,11 +483,11 @@ static void ra_spi_putreg16(struct ra_spi_priv_s *priv, uint8_t offset,
   putreg16(value, priv->config->base + offset);
 }
 
-static void ra_spi_putreg32(struct ra_spi_priv_s *priv, uint8_t offset,
-                           uint32_t value)
-{
-  putreg32(value, priv->config->base + offset);
-}
+//static void ra_spi_putreg32(struct ra_spi_priv_s *priv, uint8_t offset,
+//                           uint32_t value)
+//{
+//  putreg32(value, priv->config->base + offset);
+//}
 
 /****************************************************************************
  * Name: ra_spi_getreg8/16/32
@@ -471,10 +507,10 @@ static uint16_t ra_spi_getreg16(struct ra_spi_priv_s *priv, uint8_t offset)
   return getreg16(priv->config->base + offset);
 }
 
-static uint32_t ra_spi_getreg32(struct ra_spi_priv_s *priv, uint8_t offset)
-{
-  return getreg32(priv->config->base + offset);
-}
+//static uint32_t ra_spi_getreg32(struct ra_spi_priv_s *priv, uint8_t offset)
+//{
+//  return getreg32(priv->config->base + offset);
+//}
 
 /****************************************************************************
  * Name: ra_spi_get_device_max_freq
@@ -529,16 +565,16 @@ static void ra_spi_cs_configure(struct ra_spi_priv_s *priv, uint32_t devid)
 
   /* Configure SPCMD register for this CS */
   spcmd = ra_spi_getreg16(priv, RA_SPI_SPCMD0_OFFSET);
-  
+
   /* Clear SSL selection bits */
   spcmd &= ~RA_SPI_SPCMD_SSLA_MASK;
-  
+
   /* Set SSL selection */
   spcmd |= (cs_config->ssl_select << RA_SPI_SPCMD_SSLA_SHIFT) & RA_SPI_SPCMD_SSLA_MASK;
-  
+
   /* Enable timing delays */
   spcmd |= RA_SPI_SPCMD_SCKDEN | RA_SPI_SPCMD_SLNDEN | RA_SPI_SPCMD_SPNDEN;
-  
+
   ra_spi_putreg16(priv, RA_SPI_SPCMD0_OFFSET, spcmd);
 
   /* Configure timing delays */
@@ -588,7 +624,7 @@ static void ra_spi_cs_assert(struct ra_spi_priv_s *priv, uint32_t devid)
   else
     {
       /* GPIO CS - manually control */
-      ra_gpio_write(cs_config->gpio_pin, false); /* Active low */
+      ra_gpiowrite(cs_config->gpio_pin, false); /* Active low */
       spiinfo("SPI%d GPIO CS%d asserted\n", priv->config->bus, cs_index);
     }
 }
@@ -630,7 +666,7 @@ static void ra_spi_cs_deassert(struct ra_spi_priv_s *priv, uint32_t devid)
   else
     {
       /* GPIO CS - manually control */
-      ra_gpio_write(cs_config->gpio_pin, true); /* Active low */
+      ra_gpiowrite(cs_config->gpio_pin, true); /* Active low */
       spiinfo("SPI%d GPIO CS%d deasserted\n", priv->config->bus, cs_index);
     }
 }
@@ -720,7 +756,7 @@ static int ra_spi_dtc_setup(struct ra_spi_priv_s *priv)
   putreg32((uint32_t)&priv->dtc_tx_info, R_DTC_BASE + R_DTC_DTCVBR_OFFSET);
 
   priv->use_dtc = true;
-  
+
   spiinfo("DTC setup completed for SPI%d\n", priv->config->bus);
   return OK;
 }
@@ -740,8 +776,8 @@ static int ra_spi_dtc_configure_transfer(struct ra_spi_priv_s *priv,
   /* Configure TX DTC */
   if (txbuffer)
     {
-      priv->dtc_tx_info.mra = DTC_MODE_NORMAL | 
-                              (ra_spi_9to16bitmode(priv) ? 
+      priv->dtc_tx_info.mra = DTC_MODE_NORMAL |
+                              (ra_spi_9to16bitmode(priv) ?
                                RA_DTC_MRA_SZ_WORD : RA_DTC_MRA_SZ_BYTE);
       priv->dtc_tx_info.mrb = 0;
       priv->dtc_tx_info.sar = (uint32_t)txbuffer;
@@ -753,8 +789,8 @@ static int ra_spi_dtc_configure_transfer(struct ra_spi_priv_s *priv,
   /* Configure RX DTC */
   if (rxbuffer)
     {
-      priv->dtc_rx_info.mra = DTC_MODE_NORMAL | 
-                              (ra_spi_9to16bitmode(priv) ? 
+      priv->dtc_rx_info.mra = DTC_MODE_NORMAL |
+                              (ra_spi_9to16bitmode(priv) ?
                                RA_DTC_MRA_SZ_WORD : RA_DTC_MRA_SZ_BYTE);
       priv->dtc_rx_info.mrb = 0;
       priv->dtc_rx_info.sar = priv->config->base + RA_SPI_SPDR_OFFSET;
@@ -844,11 +880,13 @@ static int ra_spi_rxi_interrupt(int irq, void *context, void *arg)
     {
       if (ra_spi_9to16bitmode(priv))
         {
-          *((uint16_t *)priv->rxbuffer)++ = data;
+          *((uint16_t *)priv->rxbuffer) = data;
+          priv->rxbuffer = (uint8_t *)priv->rxbuffer + 2;
         }
       else
         {
-          *((uint8_t *)priv->rxbuffer)++ = (uint8_t)data;
+          *((uint8_t *)priv->rxbuffer) = (uint8_t)data;
+          priv->rxbuffer = (uint8_t *)priv->rxbuffer + 1;
         }
     }
 
@@ -905,11 +943,13 @@ static int ra_spi_txi_interrupt(int irq, void *context, void *arg)
     {
       if (ra_spi_9to16bitmode(priv))
         {
-          data = *((uint16_t *)priv->txbuffer)++;
+          data = *((uint16_t *)priv->txbuffer);
+          priv->txbuffer = (uint8_t *)priv->txbuffer + 2;
         }
       else
         {
-          data = (uint16_t)*((uint8_t *)priv->txbuffer)++;
+          data = (uint16_t)*((uint8_t *)priv->txbuffer);
+          priv->txbuffer = (uint8_t *)priv->txbuffer + 1;
         }
       priv->ntxwords--;
     }
@@ -1058,7 +1098,8 @@ static int ra_spi_lock(struct spi_dev_s *dev, bool lock)
 static uint32_t ra_spi_setfrequency(struct spi_dev_s *dev, uint32_t frequency)
 {
   struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)dev;
-  uint32_t src_clk = priv->config->clk_freq;
+  //uint32_t src_clk = priv->config->clk_freq;
+  uint32_t src_clk = RA_PCLKA_FREQUENCY;
   uint32_t divisor;
   uint8_t spbr;
   uint8_t brdv = 0;
@@ -1367,7 +1408,7 @@ static void ra_spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
     {
       /* Configure DTC transfer */
       ra_spi_dtc_configure_transfer(priv, txbuffer, rxbuffer, nwords);
-      
+
       /* Start DTC transfer */
       ra_spi_dtc_start(priv);
 
@@ -1515,23 +1556,20 @@ static void ra_spi_bus_initialize(struct ra_spi_priv_s *priv)
   int i;
 
   /* Configure GPIO pins for SPI */
-  ra_gpio_config(priv->config->sck_pin);
-  ra_gpio_config(priv->config->miso_pin);
-  ra_gpio_config(priv->config->mosi_pin);
-  ra_gpio_config(priv->config->cs0_pin);
-  ra_gpio_config(priv->config->cs1_pin);
+  ra_configgpio(priv->config->sck_pin);
+  ra_configgpio(priv->config->miso_pin);
+  ra_configgpio(priv->config->mosi_pin);
+  ra_configgpio(priv->config->cs0_pin);
+  ra_configgpio(priv->config->cs1_pin);
 
   /* Initialize CS pins */
-  for (i = 0; i < 4; i++)
+  for (i = 0; i < RA_SPI_NCS; i++)
     {
-      if (priv->config->cs_configs[i].gpio_pin != 0)
+      if (!priv->config->cs_configs[i].use_hardware)
         {
-          if (!priv->config->cs_configs[i].use_hardware)
-            {
-              /* Configure as GPIO output, initially deasserted (high) */
-              ra_gpio_config(priv->config->cs_configs[i].gpio_pin);
-              ra_gpio_write(priv->config->cs_configs[i].gpio_pin, true);
-            }
+          /* Configure as GPIO output, initially deasserted (high) */
+          ra_configgpio(priv->config->cs_configs[i].gpio_pin);
+          ra_gpiowrite(priv->config->cs_configs[i].gpio_pin, true);
         }
     }
 
@@ -1684,17 +1722,17 @@ void ra_spi_select_device(struct spi_dev_s *dev, uint32_t devid, bool selected)
 
   DEBUGASSERT(priv != NULL);
 
-  spiinfo("SPI%d devid=0x%08x selected=%d\n", 
+  spiinfo("SPI%d devid=0x%08x selected=%d\n",
           priv->config->bus, devid, selected);
 
   if (selected)
     {
       /* Configure CS and timing for this device */
       ra_spi_cs_configure(priv, devid);
-      
+
       /* Store current device ID for frequency limiting */
       priv->current_devid = devid;
-      
+
       /* Assert CS */
       ra_spi_cs_assert(priv, devid);
     }
@@ -1702,10 +1740,91 @@ void ra_spi_select_device(struct spi_dev_s *dev, uint32_t devid, bool selected)
     {
       /* Deassert CS */
       ra_spi_cs_deassert(priv, devid);
-      
+
       /* Clear current device ID */
       priv->current_devid = 0xffffffff;
     }
 }
+
+/****************************************************************************
+ * Name: ra_spi_select
+ *
+ * Description:
+ *   Board-specific SPI device select function called by the SPI driver.
+ *   This is a weak function that can be overridden by board-specific
+ *   implementations.
+ *
+ ****************************************************************************/
+
+void weak_function ra_spi_select(struct spi_dev_s *dev, uint32_t devid, 
+                                 bool selected)
+{
+  /* Default implementation does nothing */
+  UNUSED(dev);
+  UNUSED(devid);
+  UNUSED(selected);
+}
+
+/****************************************************************************
+ * Name: ra_spi_status
+ *
+ * Description:
+ *   Board-specific SPI device status function called by the SPI driver.
+ *   This is a weak function that can be overridden by board-specific
+ *   implementations.
+ *
+ ****************************************************************************/
+
+uint8_t weak_function ra_spi_status(struct spi_dev_s *dev, uint32_t devid)
+{
+  /* Default implementation returns no status */
+  UNUSED(dev);
+  UNUSED(devid);
+  return 0;
+}
+
+/****************************************************************************
+ * Name: ra_spi_cmddata
+ *
+ * Description:
+ *   Board-specific SPI command/data function called by the SPI driver.
+ *   This is a weak function that can be overridden by board-specific
+ *   implementations.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SPI_CMDDATA
+int weak_function ra_spi_cmddata(struct spi_dev_s *dev, uint32_t devid, 
+                                 bool cmd)
+{
+  /* Default implementation does nothing */
+  UNUSED(dev);
+  UNUSED(devid);
+  UNUSED(cmd);
+  return OK;
+}
+#endif
+
+/****************************************************************************
+ * Name: ra_spi_register_callback
+ *
+ * Description:
+ *   Board-specific SPI register callback function called by the SPI driver.
+ *   This is a weak function that can be overridden by board-specific
+ *   implementations.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SPI_CALLBACK
+int weak_function ra_spi_register_callback(struct spi_dev_s *dev, 
+                                           spi_callback_t callback, void *arg)
+{
+  /* Default implementation does nothing */
+  UNUSED(dev);
+  UNUSED(callback);
+  UNUSED(arg);
+  return OK;
+}
+#endif
 
 #endif /* CONFIG_RA_SPI */

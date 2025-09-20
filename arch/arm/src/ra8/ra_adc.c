@@ -820,7 +820,7 @@ FAR struct adc_dev_s *ra8_adc_initialize(int intf, uint32_t chanlist,
     {
       if (chanlist & ADC_CHANNEL_MASK(channels[i].channel))
         {
-          ra_gpio_config(channels[i].pinmux);
+          ra_configgpio(channels[i].pinmux);
           ainfo("ADC%d: Configured pin for channel %d\n",
                 intf, channels[i].channel);
         }

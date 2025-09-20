@@ -21,9 +21,10 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
-#ifdef CONFIG_RA8E1_I2C_GY912_EXAMPLE
 
 #include <nuttx/config.h>
+
+#ifdef CONFIG_RA8E1_I2C_GY912_EXAMPLE
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -43,7 +44,7 @@
 #include "ra_i2c.h"
 #include "gy912.h"
 
-#include "ra8e1_log.h"
+#include "fpb-ra8e1.h"
 
 #define I2C_GY912_EXAMPLE_VERSION        "1.0.0"
 #define I2C_GY912_BUFFER_SIZE         64
@@ -462,7 +463,7 @@ static int gy912_bmp388_read(struct gy912_data_s *data)
 
   /* Parse temperature data (little endian, 24-bit) */
   data->temperature_bmp = (int32_t)(buffer[3] | (buffer[4] << 8) | (buffer[5] << 16));
-  
+
   /* Sign extend 24-bit temperature to 32-bit */
   if (data->temperature_bmp & 0x800000)
     {
@@ -581,9 +582,9 @@ void ra8e1_gy912_print_data(const struct gy912_data_s *data)
 
   printf("GY-912 Sensor Data:\n");
   printf("  ICM-20948 IMU:\n");
-  printf("    Accel: X=%6d, Y=%6d, Z=%6d\n", 
+  printf("    Accel: X=%6d, Y=%6d, Z=%6d\n",
          data->accel_x, data->accel_y, data->accel_z);
-  printf("    Gyro:  X=%6d, Y=%6d, Z=%6d\n", 
+  printf("    Gyro:  X=%6d, Y=%6d, Z=%6d\n",
          data->gyro_x, data->gyro_y, data->gyro_z);
   printf("    Temp:  %d\n", data->temperature_imu);
   printf("  BMP388 Pressure Sensor:\n");

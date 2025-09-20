@@ -264,7 +264,7 @@ void up_timer_initialize(void)
   putreg32(0, RA_GPT_SYSTICK_GTST);
 
   /* Attach the timer interrupt handler through ICU */
-  ra_icu_attach(RA_EL_GPT0_COUNTER_OVERFLOW, ra_systick_isr, NULL);
+  ra_icu_attach(RA_ELC_GPT0_COUNTER_OVERFLOW, ra_systick_isr, NULL);
 
   /* Start GPT timer - this must be done BEFORE re-enabling write protection */
   putreg32((1 << RA_GPT_CHANNEL), RA_GPT_SYSTICK_GTSTR);

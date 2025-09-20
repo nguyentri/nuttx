@@ -21,9 +21,10 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
-#ifdef CONFIG_RA8E1_PWM_ESCS_EXAMPLE
 
 #include <nuttx/config.h>
+
+#ifdef CONFIG_RA8E1_PWM_ESCS_EXAMPLE
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -43,7 +44,7 @@
 #include "chip.h"
 #include "ra_gpio.h"
 #include "ra_gpt.h"
-#include "ra8e1_log.h"
+#include "fpb-ra8e1.h"
 #include "fpb-ra8e1.h"
 
 

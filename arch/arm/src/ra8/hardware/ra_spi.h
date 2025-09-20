@@ -204,8 +204,6 @@
 #define RA_SPI_SPCMD7(n)         (RA_SPI_BASE(n) + RA_SPI_SPCMD7_OFFSET)
 #define RA_SPI_SPDCR2(n)         (RA_SPI_BASE(n) + RA_SPI_SPDCR2_OFFSET)
 
-/* DTC Register Addresses */
-#define R_DTC_BASE               0x40005400
 #define R_DTC_DTCST              (R_DTC_BASE + R_DTC_DTCST_OFFSET)
 #define R_DTC_DTCVBR             (R_DTC_BASE + R_DTC_DTCVBR_OFFSET)
 #define R_DTC_DTCADMOD           (R_DTC_BASE + R_DTC_DTCADMOD_OFFSET)

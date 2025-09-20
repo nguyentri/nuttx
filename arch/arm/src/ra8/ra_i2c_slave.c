@@ -394,8 +394,8 @@ static int ra_i2c_slave_init(struct ra_i2c_slave_priv_s *priv)
   putreg32(regval, 0x40036038);
 
   /* Configure I2C pins - TODO: Implement proper GPIO configuration */
-  /* ra_gpio_config(config->scl_pin); */
-  /* ra_gpio_config(config->sda_pin); */
+  /* ra_configgpio(config->scl_pin); */
+  /* ra_configgpio(config->sda_pin); */
 
   /* Reset I2C peripheral */
   ra_i2c_slave_modifyreg(priv, RA_I2C_ICCR1_OFFSET, 0, I2C_ICCR1_IICRST);

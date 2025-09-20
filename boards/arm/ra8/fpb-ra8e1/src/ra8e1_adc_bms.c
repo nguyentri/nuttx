@@ -21,10 +21,10 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
- 
-#ifdef RA8E1_ADC_BMS_EXAMPLE
 
 #include <nuttx/config.h>
+
+#ifdef CONFIG_RA8E1_ADC_BMS_EXAMPLE
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -42,13 +42,13 @@
 #include "chip.h"
 #include "ra_gpio.h"
 #include "board.h"
-#include "ra8e1_log.h"
+#include "fpb-ra8e1.h"
 
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
- 
+
 /* ADC Channels *************************************************************/
 
 /* Battery monitoring pins on FPB-RA8E1:
@@ -187,7 +187,7 @@ static int ra8e1_adc_setup(void)
 
   for (int i = 0; i < BOARD_ADC_CHANNELS; i++)
     {
-      ret = ra_gpio_config(g_adc_channels[i].pinset);
+      ret = ra_configgpio(g_adc_channels[i].pinset);
       if (ret < 0)
         {
           aerr("ERROR: Failed to configure GPIO for ADC channel %d: %d\n",
@@ -855,9 +855,9 @@ static void show_usage(FAR const char *progname, int exitcode)
 static void print_battery_status(FAR struct battery_status_s *status, bool verbose)
 {
   const char *charge_level = "Unknown";
-  
+
   /* Determine charge level description */
-  
+
   if (status->percentage >= 80)
     {
       charge_level = "High";
@@ -879,7 +879,7 @@ static void print_battery_status(FAR struct battery_status_s *status, bool verbo
     {
       printf("=== Battery Status ===\n");
       printf("Voltage:     %lu mV\n", status->voltage_mv);
-      printf("Current:     %ld mA (%s)\n", 
+      printf("Current:     %ld mA (%s)\n",
              abs(status->current_ma),
              status->is_charging ? "Charging" : "Discharging");
       printf("Power:       %lu mW\n", status->power_mw);
@@ -1053,7 +1053,7 @@ int ra8e1_adc_bms_main(int argc, FAR char *argv[])
     {
       /* Multiple sample mode */
 
-      printf("Taking %d battery measurements with %dms delay...\n", 
+      printf("Taking %d battery measurements with %dms delay...\n",
              sample_count, delay_ms);
 
       if (!verbose)
@@ -1067,7 +1067,7 @@ int ra8e1_adc_bms_main(int argc, FAR char *argv[])
           ret = ra8e1_get_battery_status(&status);
           if (ret < 0)
             {
-              fprintf(stderr, "Sample %d: Failed to read battery status: %d\n", 
+              fprintf(stderr, "Sample %d: Failed to read battery status: %d\n",
                       i + 1, ret);
               continue;
             }

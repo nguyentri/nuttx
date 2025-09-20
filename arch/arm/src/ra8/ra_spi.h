@@ -28,6 +28,8 @@
 #include <nuttx/config.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <nuttx/spi/spi.h>
+#include <nuttx/semaphore.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -49,6 +51,13 @@
 #define RA_SPI_DTC_TX_CHANNEL    0        /* TX DTC channel */
 #define RA_SPI_DTC_RX_CHANNEL    1        /* RX DTC channel */
 
+/****************************************************************************
+ * Public Types
+ ****************************************************************************/
+
+/* SPI callback function type */
+typedef void (*spi_callback_t)(void *arg);
+
 /* DTC transfer modes for SPI */
 #define RA_SPI_DTC_MODE_DISABLED 0        /* DTC disabled */
 #define RA_SPI_DTC_MODE_TX_ONLY  1        /* TX only DTC */
@@ -60,51 +69,51 @@
  ****************************************************************************/
 
 /* SPI device configuration */
-struct ra_spi_config_s
-{
-  uint8_t  bus;              /* SPI bus number */
-  uint32_t frequency;        /* SPI frequency */
-  uint8_t  mode;            /* SPI mode (0-3) */
-  uint8_t  nbits;           /* Number of bits per word */
-  uint8_t  cs;              /* Chip select line */
-  bool     use_dma;         /* Use DMA for transfers */
-};
+//struct ra_spi_config_s
+//{
+//  uint8_t  bus;              /* SPI bus number */
+//  uint32_t frequency;        /* SPI frequency */
+//  uint8_t  mode;            /* SPI mode (0-3) */
+//  uint8_t  nbits;           /* Number of bits per word */
+//  uint8_t  cs;              /* Chip select line */
+//  bool     use_dma;         /* Use DMA for transfers */
+//};
 
 /* SPI driver state */
-struct ra_spi_priv_s
-{
-  struct spi_dev_s spidev;   /* Externally visible part of the SPI interface */
-  uint32_t         base;     /* SPI controller register base address */
-  uint8_t          bus;      /* SPI bus number */
-  uint8_t          irq_rxi;  /* RX interrupt number */
-  uint8_t          irq_txi;  /* TX interrupt number */
-  uint8_t          irq_tei;  /* Transfer end interrupt number */
-  uint8_t          irq_eri;  /* Error interrupt number */
-  sem_t            exclsem;  /* Holds exclusive access to SPI */
-  sem_t            waitsem;  /* Wait for transfer completion */
-
-  /* DTC support */
-  bool             use_dtc;   /* DTC enabled flag */
-  uint8_t          dtc_mode;  /* DTC transfer mode */
-  void            *dtc_tx_handle; /* TX DTC handle */
-  void            *dtc_rx_handle; /* RX DTC handle */
-
-  /* Transfer state */
-  const uint8_t   *txbuffer;  /* Source data for SPI output */
-  uint8_t         *rxbuffer;  /* Sink for SPI input */
-  size_t           ntxwords;  /* Number of words left to transfer */
-  size_t           nrxwords;  /* Number of words left to receive */
-
-  /* Configuration */
-  uint32_t         frequency; /* Requested clock frequency */
-  uint32_t         actual;    /* Actual clock frequency */
-  uint8_t          mode;      /* Mode 0,1,2,3 */
-  uint8_t          nbits;     /* Width of word in bits (4-16) */
-
-  /* Debug */
-  uint32_t         debug_flags;
-};
-
+//struct ra_spi_priv_s
+//{
+//  struct spi_dev_s spidev;   /* Externally visible part of the SPI interface */
+//  uint32_t         base;     /* SPI controller register base address */
+//  uint8_t          bus;      /* SPI bus number */
+//  uint8_t          irq_rxi;  /* RX interrupt number */
+//  uint8_t          irq_txi;  /* TX interrupt number */
+//  uint8_t          irq_tei;  /* Transfer end interrupt number */
+//  uint8_t          irq_eri;  /* Error interrupt number */
+//  sem_t            exclsem;  /* Holds exclusive access to SPI */
+//  sem_t            waitsem;  /* Wait for transfer completion */
+//
+//  /* DTC support */
+//  bool             use_dtc;   /* DTC enabled flag */
+//  uint8_t          dtc_mode;  /* DTC transfer mode */
+//  void            *dtc_tx_handle; /* TX DTC handle */
+//  void            *dtc_rx_handle; /* RX DTC handle */
+//
+//  /* Transfer state */
+//  const uint8_t   *txbuffer;  /* Source data for SPI output */
+//  uint8_t         *rxbuffer;  /* Sink for SPI input */
+//  size_t           ntxwords;  /* Number of words left to transfer */
+//  size_t           nrxwords;  /* Number of words left to receive */
+//
+//  /* Configuration */
+//  uint32_t         frequency; /* Requested clock frequency */
+//  uint32_t         actual;    /* Actual clock frequency */
+//  uint8_t          mode;      /* Mode 0,1,2,3 */
+//  uint8_t          nbits;     /* Width of word in bits (4-16) */
+//
+//  /* Debug */
+//  uint32_t         debug_flags;
+//};
+//
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
@@ -135,19 +144,6 @@ struct spi_dev_s *ra_spibus_initialize(int bus);
 
 int ra_spi_register_callback(struct spi_dev_s *dev, spi_callback_t callback,
                              void *arg);
-
-/****************************************************************************
- * Name: ra_spi_exchange (optional)
- *
- * Description:
- *   Exchange a block of data from SPI. This is alternative interface when
- *   a complex SPI device requires both sending and receiving data
- *   simultaneously.
- *
- ****************************************************************************/
-
-void ra_spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
-                     void *rxbuffer, size_t nwords);
 
 /****************************************************************************
  * Name: ra_spi_select

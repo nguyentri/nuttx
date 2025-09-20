@@ -22,14 +22,14 @@
  *
  * // Configure P1_05 as output pin
  * gpio_pinset_t led_pin = RA_GPIO_OUTPUT_PIN(1, 5);
- * ra_gpio_config(led_pin);
+ * ra_configgpio(led_pin);
  *
  * // Configure P0_03 as input with pull-up
  * gpio_pinset_t button_pin = RA_GPIO_INPUT_PULLUP_PIN(0, 3);
- * ra_gpio_config(button_pin);
+ * ra_configgpio(button_pin);
  *
  * // Control GPIO pins
- * ra_gpio_write(led_pin, true);     // Turn on LED
+ * ra_gpiowrite(led_pin, true);     // Turn on LED
  * bool button_state = ra_gpio_read(button_pin);  // Read button
  */
 

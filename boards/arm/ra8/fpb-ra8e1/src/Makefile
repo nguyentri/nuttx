@@ -23,6 +23,15 @@ include $(TOPDIR)/Make.defs
 # Core board initialization files
 CSRCS = ra8e1_boot.c ra8e1_bringup.c
 
+############################################################################
+# Board-specific initialization
+############################################################################
+
+# Button/Switch support
+ifeq ($(CONFIG_ARCH_BUTTONS),y)
+CSRCS += ra8e1_buttons.c
+endif
+
 # LED support
 ifeq ($(CONFIG_ARCH_LEDS),y)
 CSRCS += ra8e1_auto_leds.c
@@ -30,9 +39,18 @@ else
 CSRCS += ra8e1_user_leds.c
 endif
 
-# Button/Switch support
-ifeq ($(CONFIG_RA8E1_SWITCH),y)
-CSRCS += ra8e1_buttons.c
+############################################################################
+# Driver support
+############################################################################
+
+# RTC driver support
+ifeq ($(CONFIG_RTC_DRIVER),y)
+CSRCS += ra8e1_rtc.c
+endif
+
+# SPI driver support
+ifeq ($(CONFIG_RA_SPI),y)
+CSRCS += ra8e1_spi.c
 endif
 
 ############################################################################
@@ -62,10 +80,6 @@ ifeq ($(CONFIG_RA8E1_I2C_GY912_EXAMPLE),y)
 CSRCS += ra8e1_i2c_gy912.c
 endif
 
-ifeq ($(CONFIG_RA8E1_I2C_TEST),y)
-CSRCS += ra8e1_i2c_test.c
-endif
-
 ifeq ($(CONFIG_RA8E1_I2C_ACCEL_EXAMPLE),y)
 CSRCS += ra8e1_i2c_acc.c
 endif
@@ -93,11 +107,6 @@ endif
 # GY-912 sensor support
 ifeq ($(CONFIG_RA8E1_SPI_GY912_EXAMPLE),y)
 CSRCS += ra8e1_spi_gy912.c
-endif
-
-# RTC driver support
-ifeq ($(CONFIG_RTC_DRIVER),y)
-CSRCS += ra8e1_rtc.c
 endif
 
 # Rust Demo Support

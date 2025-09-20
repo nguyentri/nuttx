@@ -21,9 +21,10 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
-#ifdef CONFIG_RA8E1_SPI_LOOPBACK_EXAMPLE
 
 #include <nuttx/config.h>
+
+#ifdef CONFIG_RA8E1_SPI_LOOPBACK_EXAMPLE
 
 #include <sys/types.h>
 #include <stdio.h>
@@ -38,7 +39,8 @@
 #include <nuttx/spi/spi_transfer.h>
 
 #include <arch/board/board.h>
-#include "ra8e1_log.h"
+#include "ra_spi.h"
+#include "fpb-ra8e1.h"
 
 /* SPI Configuration */
 #define SPI_LOOPBACK_BUFFER_SIZE    32
@@ -232,8 +234,6 @@ static int spi_configure_devices(void)
 
 static int spi_test_write_and_read(void)
 {
-  int ret;
-
   spiinfo("Starting SPI write-and-read test...\n");
 
   /* Reset completion flags */
@@ -242,26 +242,14 @@ static int spi_test_write_and_read(void)
 
   /* Step 1: Slave prepares to receive data from Master */
   SPI_LOCK(g_spi_loopback.slave, true);
-  ret = SPI_RECVBLOCK(g_spi_loopback.slave, g_spi_loopback.slave_rx_buff,
-                      SPI_BUFF_LEN * sizeof(uint32_t));
-  if (ret < 0)
-    {
-      spierr("Slave receive setup failed: %d\n", ret);
-      SPI_LOCK(g_spi_loopback.slave, false);
-      return ret;
-    }
+  SPI_RECVBLOCK(g_spi_loopback.slave, g_spi_loopback.slave_rx_buff,
+                SPI_BUFF_LEN * sizeof(uint32_t));
   SPI_LOCK(g_spi_loopback.slave, false);
 
   /* Step 2: Master sends data to Slave */
   SPI_LOCK(g_spi_loopback.master, true);
-  ret = SPI_SNDBLOCK(g_spi_loopback.master, g_spi_loopback.master_tx_buff,
-                     SPI_BUFF_LEN * sizeof(uint32_t));
-  if (ret < 0)
-    {
-      spierr("Master send failed: %d\n", ret);
-      SPI_LOCK(g_spi_loopback.master, false);
-      return ret;
-    }
+  SPI_SNDBLOCK(g_spi_loopback.master, g_spi_loopback.master_tx_buff,
+               SPI_BUFF_LEN * sizeof(uint32_t));
   SPI_LOCK(g_spi_loopback.master, false);
 
   /* Small delay to ensure first transfer completes */
@@ -269,26 +257,14 @@ static int spi_test_write_and_read(void)
 
   /* Step 3: Slave sends response data to Master */
   SPI_LOCK(g_spi_loopback.slave, true);
-  ret = SPI_SNDBLOCK(g_spi_loopback.slave, g_spi_loopback.slave_tx_buff,
-                     SPI_BUFF_LEN * sizeof(uint32_t));
-  if (ret < 0)
-    {
-      spierr("Slave send failed: %d\n", ret);
-      SPI_LOCK(g_spi_loopback.slave, false);
-      return ret;
-    }
+  SPI_SNDBLOCK(g_spi_loopback.slave, g_spi_loopback.slave_tx_buff,
+               SPI_BUFF_LEN * sizeof(uint32_t));
   SPI_LOCK(g_spi_loopback.slave, false);
 
   /* Step 4: Master receives response from Slave */
   SPI_LOCK(g_spi_loopback.master, true);
-  ret = SPI_RECVBLOCK(g_spi_loopback.master, g_spi_loopback.master_rx_buff,
-                      SPI_BUFF_LEN * sizeof(uint32_t));
-  if (ret < 0)
-    {
-      spierr("Master receive failed: %d\n", ret);
-      SPI_LOCK(g_spi_loopback.master, false);
-      return ret;
-    }
+  SPI_RECVBLOCK(g_spi_loopback.master, g_spi_loopback.master_rx_buff,
+                SPI_BUFF_LEN * sizeof(uint32_t));
   SPI_LOCK(g_spi_loopback.master, false);
 
   spiinfo("Write-and-read test completed successfully\n");
@@ -305,8 +281,6 @@ static int spi_test_write_and_read(void)
 
 static int spi_test_write_read(void)
 {
-  int ret;
-
   spiinfo("Starting SPI write-read (simultaneous) test...\n");
 
   /* Reset completion flags */
@@ -319,26 +293,14 @@ static int spi_test_write_read(void)
 
   /* Slave performs simultaneous write/read */
   SPI_LOCK(g_spi_loopback.slave, true);
-  ret = SPI_EXCHANGE(g_spi_loopback.slave, g_spi_loopback.slave_tx_buff,
-                     g_spi_loopback.slave_rx_buff, SPI_BUFF_LEN * sizeof(uint32_t));
-  if (ret < 0)
-    {
-      spierr("Slave exchange setup failed: %d\n", ret);
-      SPI_LOCK(g_spi_loopback.slave, false);
-      return ret;
-    }
+  SPI_EXCHANGE(g_spi_loopback.slave, g_spi_loopback.slave_tx_buff,
+               g_spi_loopback.slave_rx_buff, SPI_BUFF_LEN * sizeof(uint32_t));
   SPI_LOCK(g_spi_loopback.slave, false);
 
   /* Master performs simultaneous write/read */
   SPI_LOCK(g_spi_loopback.master, true);
-  ret = SPI_EXCHANGE(g_spi_loopback.master, g_spi_loopback.master_tx_buff,
-                     g_spi_loopback.master_rx_buff, SPI_BUFF_LEN * sizeof(uint32_t));
-  if (ret < 0)
-    {
-      spierr("Master exchange failed: %d\n", ret);
-      SPI_LOCK(g_spi_loopback.master, false);
-      return ret;
-    }
+  SPI_EXCHANGE(g_spi_loopback.master, g_spi_loopback.master_tx_buff,
+               g_spi_loopback.master_rx_buff, SPI_BUFF_LEN * sizeof(uint32_t));
   SPI_LOCK(g_spi_loopback.master, false);
 
   spiinfo("Write-read (simultaneous) test completed successfully\n");

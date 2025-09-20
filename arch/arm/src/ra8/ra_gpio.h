@@ -70,7 +70,7 @@ typedef struct gpio_pinset
  *
  ****************************************************************************/
 
-void ra_configgpio(gpio_pinset_t cfgset);
+int ra_configgpio(gpio_pinset_t cfgset);
 
 /****************************************************************************
  * Name: ra_gpiowrite

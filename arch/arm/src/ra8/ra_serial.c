@@ -242,10 +242,10 @@ struct up_dev_s
   int irq_tx;               /* TX IRQ number assigned by ICU */
   int irq_txe;              /* TX End IRQ number assigned by ICU */
   int irq_err;              /* Error IRQ number assigned by ICU */
-  int el_rx;                /* RX event link for ICU configuration */
-  int el_tx;                /* TX event link for ICU configuration */
-  int el_txe;               /* TX End event link for ICU configuration */
-  int el_err;               /* Error event link for ICU configuration */
+  int elc_rx;               /* RX event link for ICU configuration */
+  int elc_tx;               /* TX event link for ICU configuration */
+  int elc_txe;              /* TX End event link for ICU configuration */
+  int elc_err;              /* Error event link for ICU configuration */
   int parity;               /* 0=none, 1=odd, 2=even */
   int bits;                 /* Number of bits (5-9) */
   bool stopbits2;           /* true: Configure with 2 stop bits instead of 1 */
@@ -307,10 +307,10 @@ static struct up_dev_s  g_uart0priv =
   .irq_tx       = -1,               /* Will be assigned by ICU */
   .irq_txe      = -1,               /* Will be assigned by ICU */
   .irq_err      = -1,               /* Will be assigned by ICU */
-  .el_rx        = RA_EL_SCI0_RXI,
-  .el_tx        = RA_EL_SCI0_TXI,
-  .el_txe       = RA_EL_SCI0_TEI,
-  .el_err       = RA_EL_SCI0_ERI,
+  .elc_rx        = RA_ELC_SCI0_RXI,
+  .elc_tx        = RA_ELC_SCI0_TXI,
+  .elc_txe       = RA_ELC_SCI0_TEI,
+  .elc_err       = RA_ELC_SCI0_ERI,
   .baud         = CONFIG_SCI0_BAUD,
   .parity       = CONFIG_SCI0_PARITY,
   .bits         = CONFIG_SCI0_BITS,
@@ -343,10 +343,10 @@ static struct up_dev_s  g_uart1priv =
   .irq_tx       = -1,               /* Will be assigned by ICU */
   .irq_txe      = -1,               /* Will be assigned by ICU */
   .irq_err      = -1,               /* Will be assigned by ICU */
-  .el_rx        = RA_EL_SCI1_RXI,
-  .el_tx        = RA_EL_SCI1_TXI,
-  .el_txe       = RA_EL_SCI1_TEI,
-  .el_err       = RA_EL_SCI1_ERI,
+  .elc_rx       = RA_ELC_SCI1_RXI,
+  .elc_tx       = RA_ELC_SCI1_TXI,
+  .elc_txe      = RA_ELC_SCI1_TEI,
+  .elc_err      = RA_ELC_SCI1_ERI,
   .baud         = CONFIG_SCI1_BAUD,
   .parity       = CONFIG_SCI1_PARITY,
   .bits         = CONFIG_SCI1_BITS,
@@ -379,10 +379,10 @@ static struct up_dev_s  g_uart2priv =
   .irq_tx       = -1,               /* Will be assigned by ICU */
   .irq_txe      = -1,               /* Will be assigned by ICU */
   .irq_err      = -1,               /* Will be assigned by ICU */
-  .el_rx        = RA_EL_SCI2_RXI,
-  .el_tx        = RA_EL_SCI2_TXI,
-  .el_txe       = RA_EL_SCI2_TEI,
-  .el_err       = RA_EL_SCI2_ERI,
+  .elc_rx       = RA_ELC_SCI2_RXI,
+  .elc_tx       = RA_ELC_SCI2_TXI,
+  .elc_txe      = RA_ELC_SCI2_TEI,
+  .elc_err      = RA_ELC_SCI2_ERI,
   .baud         = CONFIG_SCI2_BAUD,
   .parity       = CONFIG_SCI2_PARITY,
   .bits         = CONFIG_SCI2_BITS,
@@ -415,10 +415,10 @@ static struct up_dev_s  g_uart3priv =
   .irq_tx       = -1,               /* Will be assigned by ICU */
   .irq_txe      = -1,               /* Will be assigned by ICU */
   .irq_err      = -1,               /* Will be assigned by ICU */
-  .el_rx        = RA_EL_SCI3_RXI,
-  .el_tx        = RA_EL_SCI3_TXI,
-  .el_txe       = RA_EL_SCI3_TEI,
-  .el_err       = RA_EL_SCI3_ERI,
+  .elc_rx       = RA_ELC_SCI3_RXI,
+  .elc_tx       = RA_ELC_SCI3_TXI,
+  .elc_txe      = RA_ELC_SCI3_TEI,
+  .elc_err      = RA_ELC_SCI3_ERI,
   .baud         = CONFIG_SCI3_BAUD,
   .parity       = CONFIG_SCI3_PARITY,
   .bits         = CONFIG_SCI3_BITS,
@@ -451,10 +451,10 @@ static struct up_dev_s  g_uart4priv =
   .irq_tx       = -1,               /* Will be assigned by ICU */
   .irq_txe      = -1,               /* Will be assigned by ICU */
   .irq_err      = -1,               /* Will be assigned by ICU */
-  .el_rx        = RA_EL_SCI4_RXI,   /* RX event link for ICU configuration */
-  .el_tx        = RA_EL_SCI4_TXI,
-  .el_txe       = RA_EL_SCI4_TEI,
-  .el_err       = RA_EL_SCI4_ERI,
+  .elc_rx       = RA_ELC_SCI4_RXI,   /* RX event link for ICU configuration */
+  .elc_tx       = RA_ELC_SCI4_TXI,
+  .elc_txe      = RA_ELC_SCI4_TEI,
+  .elc_err      = RA_ELC_SCI4_ERI,
   .baud         = CONFIG_SCI4_BAUD,
   .parity       = CONFIG_SCI4_PARITY,
   .bits         = CONFIG_SCI4_BITS,
@@ -487,10 +487,10 @@ static struct up_dev_s  g_uart9priv =
   .irq_tx       = -1,               /* Will be assigned by ICU */
   .irq_txe      = -1,               /* Will be assigned by ICU */
   .irq_err      = -1,               /* Will be assigned by ICU */
-  .el_rx        = RA_EL_SCI9_RXI,
-  .el_tx        = RA_EL_SCI9_TXI,
-  .el_txe       = RA_EL_SCI9_TEI,
-  .el_err       = RA_EL_SCI9_ERI,
+  .elc_rx       = RA_ELC_SCI9_RXI,
+  .elc_tx       = RA_ELC_SCI9_TXI,
+  .elc_txe      = RA_ELC_SCI9_TEI,
+  .elc_err      = RA_ELC_SCI9_ERI,
   .baud         = CONFIG_SCI9_BAUD,
   .parity       = CONFIG_SCI9_PARITY,
   .bits         = CONFIG_SCI9_BITS,
@@ -746,14 +746,14 @@ static int up_attach(struct uart_dev_s *dev)
 
   /* Attach and enable the IRQ using the ICU API */
 
-  ret = ra_icu_attach(priv->el_rx, up_rxinterrupt, dev);
+  ret = ra_icu_attach(priv->elc_rx, up_rxinterrupt, dev);
   if (ret < 0)
     {
       return ret;
     }
   priv->irq_rx = ret; /* Store the assigned IRQ number */
 
-  ret = ra_icu_attach(priv->el_tx, up_txinterrupt, dev);
+  ret = ra_icu_attach(priv->elc_tx, up_txinterrupt, dev);
   if (ret < 0)
     {
       ra_icu_detach(priv->irq_rx);
@@ -761,7 +761,7 @@ static int up_attach(struct uart_dev_s *dev)
     }
   priv->irq_tx = ret; /* Store the assigned IRQ number */
 
-  ret = ra_icu_attach(priv->el_txe, up_txeinterrupt, dev);
+  ret = ra_icu_attach(priv->elc_txe, up_txeinterrupt, dev);
   if (ret < 0)
     {
       ra_icu_detach(priv->irq_rx);
@@ -770,7 +770,7 @@ static int up_attach(struct uart_dev_s *dev)
     }
   priv->irq_txe = ret; /* Store the assigned IRQ number */
 
-  ret = ra_icu_attach(priv->el_err, up_erinterrupt, dev);
+  ret = ra_icu_attach(priv->elc_err, up_erinterrupt, dev);
   if (ret < 0)
     {
       ra_icu_detach(priv->irq_rx);

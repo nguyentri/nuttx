@@ -21,9 +21,10 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
-#ifdef CONFIG_RA8E1_DATA_FLASH_EXAMPLE
 
 #include <nuttx/config.h>
+
+#ifdef CONFIG_RA8E1_DATA_FLASH_EXAMPLE
 
 #include <sys/types.h>
 #include <sys/mount.h>
@@ -38,7 +39,7 @@
 #include <nuttx/fs/nxffs.h>
 
 #include "ra_flash.h"
-#include "ra8e1_log.h"
+#include "fpb-ra8e1.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -137,7 +138,7 @@ int ra8e1_data_flash_test(void)
   printf("  Block size: %lu bytes\n", (unsigned long)geo.blocksize);
   printf("  Erase size: %lu bytes\n", (unsigned long)geo.erasesize);
   printf("  Blocks: %lu\n", (unsigned long)geo.neraseblocks);
-  printf("  Total size: %lu bytes\n", 
+  printf("  Total size: %lu bytes\n",
          (unsigned long)(geo.blocksize * geo.neraseblocks));
 
   /* Prepare test data */
@@ -201,7 +202,7 @@ int ra8e1_data_flash_test(void)
   /* Test file system operations */
 
   printf("\nTesting file system operations...\n");
-  
+
   const char *test_file = DATA_FLASH_MOUNT_POINT "/test.txt";
   const char *test_data = "Hello, RA8E1 Data Flash!";
   char read_data[64];

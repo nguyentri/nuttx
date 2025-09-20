@@ -111,27 +111,38 @@
 #define PFS_PSEL_XSPI                (0x18 << R_PFS_PSEL_SHIFT)
 #define PFS_PSEL_ETHERNET            (0x19 << R_PFS_PSEL_SHIFT)
 #define PFS_PSEL_CEU                 (0x1A << R_PFS_PSEL_SHIFT)
+#define PFS_PSEL_OSPI                (0x1B << R_PFS_PSEL_SHIFT)
+#define PFS_PSEL_ULPT                (0x1C << R_PFS_PSEL_SHIFT)
 
-/* SCI Alternative */
+/* SCI Alternative Functions */
 
-#define GPIO_RXD0_MISO0_SCL0_1              (gpio_pinset_t){ PORT1,PIN0, (PFS_PSEL_SCI | R_PFS_PMR)}
-#define GPIO_TXD0_MOSI0_SDA0_1              (gpio_pinset_t){ PORT1,PIN1, (PFS_PSEL_SCI | R_PFS_PMR)}
-#define GPIO_RXD0_MISO0_SCL0_2              (gpio_pinset_t){ PORT2,PIN6, (PFS_PSEL_SCI | R_PFS_PMR)}
-#define GPIO_TXD0_MOSI0_SDA0_2              (gpio_pinset_t){ PORT2,PIN5, (PFS_PSEL_SCI | R_PFS_PMR)}
-#define GPIO_RXD0_MISO0_SCL0_3              (gpio_pinset_t){ PORT4,PIN10, (PFS_PSEL_SCI | R_PFS_PMR)}
-#define GPIO_TXD0_MOSI0_SDA0_3              (gpio_pinset_t){ PORT14,PIN11, (PFS_PSEL_SCI | R_PFS_PMR)}
+/* SCI0 Alternative Functions */
+#define GPIO_RXD0_MISO0_SCL0_A              (gpio_pinset_t){ PORT1,PIN13, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_TXD0_MOSI0_SDA0_A              (gpio_pinset_t){ PORT1,PIN12, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_RXD0_MISO0_SCL0_B              (gpio_pinset_t){ PORT6,PIN2, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_TXD0_MOSI0_SDA0_B              (gpio_pinset_t){ PORT6,PIN3, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_RXD0_MISO0_SCL0_C              (gpio_pinset_t){ PORT6,PIN10, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_TXD0_MOSI0_SDA0_C              (gpio_pinset_t){ PORT6,PIN9, (PFS_PSEL_SCI | R_PFS_PMR)}
 
-#define GPIO_RXD1_MISO1_SCL1_1              (gpio_pinset_t){ PORT2,PIN12, (PFS_PSEL_SCI1 | R_PFS_PMR)}
-#define GPIO_TXD1_MOSI1_SDA1_1              (gpio_pinset_t){ PORT2,PIN13, (PFS_PSEL_SCI1 | R_PFS_PMR)}
-#define GPIO_RXD1_MISO1_SCL1_2              (gpio_pinset_t){ PORT4,PIN2, (PFS_PSEL_SCI1 | R_PFS_PMR)}
-#define GPIO_TXD1_MOSI1_SDA1_2              (gpio_pinset_t){ PORT4,PIN1, (PFS_PSEL_SCI1 | R_PFS_PMR)}
-#define GPIO_RXD1_MISO1_SCL1_3              (gpio_pinset_t){ PORT5,PIN2, (PFS_PSEL_SCI1 | R_PFS_PMR)}
-#define GPIO_TXD1_MOSI1_SDA1_3              (gpio_pinset_t){ PORT5,PIN1, (PFS_PSEL_SCI1 | R_PFS_PMR)}
+/* SCI1 Alternative Functions */
+#define GPIO_RXD1_MISO1_SCL1_A              (gpio_pinset_t){ PORT4,PIN1, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_TXD1_MOSI1_SDA1_A              (gpio_pinset_t){ PORT4,PIN0, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_RXD1_MISO1_SCL1_B              (gpio_pinset_t){ PORT2,PIN12, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_TXD1_MOSI1_SDA1_B              (gpio_pinset_t){ PORT2,PIN13, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_RXD1_MISO1_SCL1_C              (gpio_pinset_t){ PORT5,PIN12, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_TXD1_MOSI1_SDA1_C              (gpio_pinset_t){ PORT5,PIN11, (PFS_PSEL_SCI | R_PFS_PMR)}
 
-#define GPIO_RXD2_MISO2_SCL2_1              (gpio_pinset_t){ PORT3,PIN1, (PFS_PSEL_SCI | R_PFS_PMR)}
-#define GPIO_TXD2_MOSI2_SDA2_1              (gpio_pinset_t){ PORT3,PIN2, (PFS_PSEL_SCI | R_PFS_PMR)}
-#define GPIO_RXD2_MISO2_SCL2_2              (gpio_pinset_t){ PORT8,PIN1, (PFS_PSEL_SCI | R_PFS_PMR)}
-#define GPIO_TXD2_MOSI2_SDA2_2              (gpio_pinset_t){ PORT8,PIN2, (PFS_PSEL_SCI | R_PFS_PMR)}
+/* SCI2 Alternative Functions */
+#define GPIO_RXD2_MISO2_SCL2_A              (gpio_pinset_t){ PORT8,PIN2, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_TXD2_MOSI2_SDA2_A              (gpio_pinset_t){ PORT8,PIN1, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_RXD2_MISO2_SCL2_B              (gpio_pinset_t){ PORT7,PIN0, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_TXD2_MOSI2_SDA2_B              (gpio_pinset_t){ PORT4,PIN5, (PFS_PSEL_SCI | R_PFS_PMR)}
+
+/* SCI3 Alternative Functions */
+#define GPIO_RXD3_MISO3_SCL3_A              (gpio_pinset_t){ PORT4,PIN8, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_TXD3_MOSI3_SDA3_A              (gpio_pinset_t){ PORT4,PIN9, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_RXD3_MISO3_SCL3_B              (gpio_pinset_t){ PORT3,PIN9, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_TXD3_MOSI3_SDA3_B              (gpio_pinset_t){ PORT3,PIN10, (PFS_PSEL_SCI | R_PFS_PMR)}
 
 /* SCI4 Alternative Functions */
 #define GPIO_SCK4_A                         (gpio_pinset_t){ PORT2,PIN4, (PFS_PSEL_SCI | R_PFS_PMR)}
@@ -149,31 +160,28 @@
 #define GPIO_CTS4_A                         (gpio_pinset_t){ PORT4,PIN8, (PFS_PSEL_SCI | R_PFS_PMR)}
 #define GPIO_CTS4_B                         (gpio_pinset_t){ PORT7,PIN10, (PFS_PSEL_SCI | R_PFS_PMR)}
 
-#define GPIO_RXD9_MISO9_SCL9_1              (gpio_pinset_t){ PORT1,PIN10, (PFS_PSEL_SCI1 | R_PFS_PMR)}
-#define GPIO_TXD9_MOSI9_SDA9_1              (gpio_pinset_t){ PORT1,PIN9, (PFS_PSEL_SCI1 | R_PFS_PMR)}
-#define GPIO_RXD9_MISO9_SCL9_2              (gpio_pinset_t){ PORT2,PIN2, (PFS_PSEL_SCI1 | R_PFS_PMR)}
-#define GPIO_TXD9_MOSI9_SDA9_2              (gpio_pinset_t){ PORT2,PIN3, (PFS_PSEL_SCI1 | R_PFS_PMR)}
-#define GPIO_RXD9_MISO9_SCL9_3              (gpio_pinset_t){ PORT4,PIN8, (PFS_PSEL_SCI1 | R_PFS_PMR)}
-#define GPIO_TXD9_MOSI9_SDA9_3              (gpio_pinset_t){ PORT4,PIN9, (PFS_PSEL_SCI1 | R_PFS_PMR)}
-#define GPIO_RXD9_MISO9_SCL9_4              (gpio_pinset_t){ PORT6,PIN1, (PFS_PSEL_SCI1 | R_PFS_PMR)}
-#define GPIO_TXD9_MOSI9_SDA9_4              (gpio_pinset_t){ PORT6,PIN2, (PFS_PSEL_SCI1 | R_PFS_PMR)}
-
-/* SCI3 Alternative Functions */
-#define GPIO_RXD3_MISO3_SCL3_A              (gpio_pinset_t){ PORT4,PIN9, (PFS_PSEL_SCI1 | R_PFS_PMR)}
-#define GPIO_TXD3_MOSI3_SDA3_A              (gpio_pinset_t){ PORT4,PIN10, (PFS_PSEL_SCI1 | R_PFS_PMR)}
-#define GPIO_RXD3_MISO3_SCL3_B              (gpio_pinset_t){ PORT3,PIN9, (PFS_PSEL_SCI1 | R_PFS_PMR)}
-#define GPIO_TXD3_MOSI3_SDA3_B              (gpio_pinset_t){ PORT3,PIN10, (PFS_PSEL_SCI1 | R_PFS_PMR)}
+/* SCI9 Alternative Functions */
+#define GPIO_RXD9_MISO9_SCL9_A              (gpio_pinset_t){ PORT1,PIN1, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_TXD9_MOSI9_SDA9_A              (gpio_pinset_t){ PORT1,PIN2, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_RXD9_MISO9_SCL9_B              (gpio_pinset_t){ PORT2,PIN8, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_TXD9_MOSI9_SDA9_B              (gpio_pinset_t){ PORT2,PIN9, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_SCK9_A                         (gpio_pinset_t){ PORT1,PIN0, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_SCK9_B                         (gpio_pinset_t){ PORT2,PIN11, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_CTS9_RTS9_A                    (gpio_pinset_t){ PORT1,PIN3, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_CTS9_RTS9_B                    (gpio_pinset_t){ PORT2,PIN10, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_CTS9_A                         (gpio_pinset_t){ PORT1,PIN4, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_CTS9_B                         (gpio_pinset_t){ PORT3,PIN8, (PFS_PSEL_SCI | R_PFS_PMR)}
 
 /* SPI/SCI Alternative Functions for SPI0 */
-#define GPIO_SCK0_A                         (gpio_pinset_t){ PORT1,PIN2, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_SCK0_A                         (gpio_pinset_t){ PORT3,PIN0, (PFS_PSEL_SCI | R_PFS_PMR)}
 #define GPIO_SCK0_B                         (gpio_pinset_t){ PORT6,PIN1, (PFS_PSEL_SCI | R_PFS_PMR)}
 #define GPIO_SCK0_C                         (gpio_pinset_t){ PORT6,PIN11, (PFS_PSEL_SCI | R_PFS_PMR)}
 
-#define GPIO_MOSI0_TXD0_SDA0_A              (gpio_pinset_t){ PORT1,PIN0, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_MOSI0_TXD0_SDA0_A              (gpio_pinset_t){ PORT1,PIN12, (PFS_PSEL_SCI | R_PFS_PMR)}
 #define GPIO_MOSI0_TXD0_SDA0_B              (gpio_pinset_t){ PORT6,PIN3, (PFS_PSEL_SCI | R_PFS_PMR)}
 #define GPIO_MOSI0_TXD0_SDA0_C              (gpio_pinset_t){ PORT6,PIN9, (PFS_PSEL_SCI | R_PFS_PMR)}
 
-#define GPIO_MISO0_RXD0_SCL0_A              (gpio_pinset_t){ PORT1,PIN1, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_MISO0_RXD0_SCL0_A              (gpio_pinset_t){ PORT1,PIN13, (PFS_PSEL_SCI | R_PFS_PMR)}
 #define GPIO_MISO0_RXD0_SCL0_B              (gpio_pinset_t){ PORT6,PIN2, (PFS_PSEL_SCI | R_PFS_PMR)}
 #define GPIO_MISO0_RXD0_SCL0_C              (gpio_pinset_t){ PORT6,PIN10, (PFS_PSEL_SCI | R_PFS_PMR)}
 
@@ -181,21 +189,74 @@
 #define GPIO_SS0_CTS_RTS0_B                 (gpio_pinset_t){ PORT6,PIN4, (PFS_PSEL_SCI | R_PFS_PMR)}
 #define GPIO_SS0_CTS_RTS0_C                 (gpio_pinset_t){ PORT6,PIN12, (PFS_PSEL_SCI | R_PFS_PMR)}
 
-/* GPT Timer Alternative Functions */
-#define GPIO_GTIOC0A_1                      (gpio_pinset_t){ PORT2,PIN13, (PFS_PSEL_GPT | R_PFS_PMR)}
-#define GPIO_GTIOC0A_2                      (gpio_pinset_t){ PORT4,PIN15, (PFS_PSEL_GPT | R_PFS_PMR)}
-#define GPIO_GTIOC0A_3                      (gpio_pinset_t){ PORT5,PIN12, (PFS_PSEL_GPT | R_PFS_PMR)}
+#define GPIO_CTS0_A                         (gpio_pinset_t){ PORT1,PIN15, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_CTS0_B                         (gpio_pinset_t){ PORT6,PIN5, (PFS_PSEL_SCI | R_PFS_PMR)}
+#define GPIO_CTS0_C                         (gpio_pinset_t){ PORT6,PIN13, (PFS_PSEL_SCI | R_PFS_PMR)}
 
-#define GPIO_GTIOC0B_1                      (gpio_pinset_t){ PORT2,PIN11, (PFS_PSEL_GPT | R_PFS_PMR)}
-#define GPIO_GTIOC0B_2                      (gpio_pinset_t){ PORT4,PIN14, (PFS_PSEL_GPT | R_PFS_PMR)}
-#define GPIO_GTIOC0B_3                      (gpio_pinset_t){ PORT5,PIN11, (PFS_PSEL_GPT | R_PFS_PMR)}
+/* SPI Alternative Functions for Group B */
+#define GPIO_MISOB_A                        (gpio_pinset_t){ PORT1,PIN0, (PFS_PSEL_SPI | R_PFS_PMR)}
+#define GPIO_MISOB_B                        (gpio_pinset_t){ PORT4,PIN10, (PFS_PSEL_SPI | R_PFS_PMR)}
+
+#define GPIO_MOSIB_A                        (gpio_pinset_t){ PORT1,PIN15, (PFS_PSEL_SPI | R_PFS_PMR)}
+#define GPIO_MOSIB_B                        (gpio_pinset_t){ PORT4,PIN11, (PFS_PSEL_SPI | R_PFS_PMR)}
+
+#define GPIO_RSPCKB_A                       (gpio_pinset_t){ PORT1,PIN2, (PFS_PSEL_SPI | R_PFS_PMR)}
+#define GPIO_RSPCKB_B                       (gpio_pinset_t){ PORT4,PIN12, (PFS_PSEL_SPI | R_PFS_PMR)}
+
+#define GPIO_SSLB0_B                        (gpio_pinset_t){ PORT4,PIN13, (PFS_PSEL_SPI | R_PFS_PMR)}
+
+/* SPI SSL Alternative Functions */
+#define GPIO_SSLA0_A                        (gpio_pinset_t){ PORT2,PIN4, (PFS_PSEL_SPI | R_PFS_PMR)}
+#define GPIO_SSLA0_B                        (gpio_pinset_t){ PORT1,PIN14, (PFS_PSEL_SPI | R_PFS_PMR)}
+#define GPIO_SSLA0_C                        (gpio_pinset_t){ PORT7,PIN3, (PFS_PSEL_SPI | R_PFS_PMR)}
+#define GPIO_SSLA1_A                        (gpio_pinset_t){ PORT2,PIN5, (PFS_PSEL_SPI | R_PFS_PMR)}
+#define GPIO_SSLA1_B                        (gpio_pinset_t){ PORT1,PIN13, (PFS_PSEL_SPI | R_PFS_PMR)}
+#define GPIO_SSLA1_C                        (gpio_pinset_t){ PORT7,PIN4, (PFS_PSEL_SPI | R_PFS_PMR)}
+#define GPIO_SSLA2_A                        (gpio_pinset_t){ PORT2,PIN6, (PFS_PSEL_SPI | R_PFS_PMR)}
+#define GPIO_SSLA2_B                        (gpio_pinset_t){ PORT1,PIN12, (PFS_PSEL_SPI | R_PFS_PMR)}
+#define GPIO_SSLA2_C                        (gpio_pinset_t){ PORT7,PIN5, (PFS_PSEL_SPI | R_PFS_PMR)}
+#define GPIO_SSLA3_A                        (gpio_pinset_t){ PORT4,PIN7, (PFS_PSEL_SPI | R_PFS_PMR)}
+#define GPIO_SSLA3_B                        (gpio_pinset_t){ PORT3,PIN0, (PFS_PSEL_SPI | R_PFS_PMR)}
+#define GPIO_SSLA3_C                        (gpio_pinset_t){ PORT4,PIN6, (PFS_PSEL_SPI | R_PFS_PMR)}
+#define GPIO_SSLB0_A                        (gpio_pinset_t){ PORT1,PIN3, (PFS_PSEL_SPI | R_PFS_PMR)}
+#define GPIO_SSLB1_A                        (gpio_pinset_t){ PORT1,PIN4, (PFS_PSEL_SPI | R_PFS_PMR)}
+#define GPIO_SSLB1_B                        (gpio_pinset_t){ PORT4,PIN14, (PFS_PSEL_SPI | R_PFS_PMR)}
+#define GPIO_SSLB2_A                        (gpio_pinset_t){ PORT1,PIN5, (PFS_PSEL_SPI | R_PFS_PMR)}
+#define GPIO_SSLB2_B                        (gpio_pinset_t){ PORT4,PIN15, (PFS_PSEL_SPI | R_PFS_PMR)}
+#define GPIO_SSLB3_A                        (gpio_pinset_t){ PORT1,PIN6, (PFS_PSEL_SPI | R_PFS_PMR)}
+#define GPIO_SSLB3_B                        (gpio_pinset_t){ PORT7,PIN8, (PFS_PSEL_SPI | R_PFS_PMR)}
+
+/* I2C Alternative Functions */
+#define GPIO_SDA0_A                         (gpio_pinset_t){ PORT4,PIN9, (PFS_PSEL_IIC | R_PFS_PMR)}
+#define GPIO_SDA0_B                         (gpio_pinset_t){ PORT4,PIN7, (PFS_PSEL_IIC | R_PFS_PMR)}
+#define GPIO_SCL0_A                         (gpio_pinset_t){ PORT4,PIN10, (PFS_PSEL_IIC | R_PFS_PMR)}
+#define GPIO_SCL0_B                         (gpio_pinset_t){ PORT4,PIN8, (PFS_PSEL_IIC | R_PFS_PMR)}
+
+#define GPIO_SDA1_A                         (gpio_pinset_t){ PORT5,PIN11, (PFS_PSEL_IIC | R_PFS_PMR)}
+#define GPIO_SDA1_B                         (gpio_pinset_t){ PORT2,PIN6, (PFS_PSEL_IIC | R_PFS_PMR)}
+#define GPIO_SCL1_A                         (gpio_pinset_t){ PORT5,PIN12, (PFS_PSEL_IIC | R_PFS_PMR)}
+#define GPIO_SCL1_B                         (gpio_pinset_t){ PORT2,PIN5, (PFS_PSEL_IIC | R_PFS_PMR)}
+
+/* Special Pin Functions */
+#define GPIO_NMI                            (gpio_pinset_t){ PORT2,PIN0, (0)}
+#define GPIO_MD                             (gpio_pinset_t){ PORT2,PIN1, (0)}
+
+#define GPIO_GTIOC0A_1                      (gpio_pinset_t){ PORT2,PIN11, (PFS_PSEL_GPT | R_PFS_PMR)}
+#define GPIO_GTIOC0A_2                      (gpio_pinset_t){ PORT2,PIN13, (PFS_PSEL_GPT | R_PFS_PMR)}
+#define GPIO_GTIOC0A_3                      (gpio_pinset_t){ PORT4,PIN15, (PFS_PSEL_GPT | R_PFS_PMR)}
+#define GPIO_GTIOC0A_4                      (gpio_pinset_t){ PORT5,PIN12, (PFS_PSEL_GPT | R_PFS_PMR)}
+
+#define GPIO_GTIOC0B_1                      (gpio_pinset_t){ PORT2,PIN10, (PFS_PSEL_GPT | R_PFS_PMR)}
+#define GPIO_GTIOC0B_2                      (gpio_pinset_t){ PORT2,PIN12, (PFS_PSEL_GPT | R_PFS_PMR)}
+#define GPIO_GTIOC0B_3                      (gpio_pinset_t){ PORT4,PIN14, (PFS_PSEL_GPT | R_PFS_PMR)}
+#define GPIO_GTIOC0B_4                      (gpio_pinset_t){ PORT5,PIN11, (PFS_PSEL_GPT | R_PFS_PMR)}
 
 #define GPIO_GTIOC1A_1                      (gpio_pinset_t){ PORT1,PIN5, (PFS_PSEL_GPT | R_PFS_PMR)}
-#define GPIO_GTIOC1A_2                      (gpio_pinset_t){ PORT2,PIN10, (PFS_PSEL_GPT | R_PFS_PMR)}
+#define GPIO_GTIOC1A_2                      (gpio_pinset_t){ PORT2,PIN9, (PFS_PSEL_GPT | R_PFS_PMR)}
 #define GPIO_GTIOC1A_3                      (gpio_pinset_t){ PORT4,PIN5, (PFS_PSEL_GPT | R_PFS_PMR)}
 
 #define GPIO_GTIOC1B_1                      (gpio_pinset_t){ PORT1,PIN4, (PFS_PSEL_GPT | R_PFS_PMR)}
-#define GPIO_GTIOC1B_2                      (gpio_pinset_t){ PORT2,PIN9, (PFS_PSEL_GPT | R_PFS_PMR)}
+#define GPIO_GTIOC1B_2                      (gpio_pinset_t){ PORT2,PIN8, (PFS_PSEL_GPT | R_PFS_PMR)}
 #define GPIO_GTIOC1B_3                      (gpio_pinset_t){ PORT4,PIN6, (PFS_PSEL_GPT | R_PFS_PMR)}
 
 #define GPIO_GTIOC2A_1                      (gpio_pinset_t){ PORT1, PIN3, (PFS_PSEL_GPT | R_PFS_PMR)}
@@ -227,9 +288,9 @@
 #define GPIO_GTIOC5B_2                      (gpio_pinset_t){ PORT6,PIN9, (PFS_PSEL_GPT | R_PFS_PMR)}
 #define GPIO_GTIOC5B_3                      (gpio_pinset_t){ PORT7,PIN1, (PFS_PSEL_GPT | R_PFS_PMR)}
 
-#define GPIO_GTIOC10A_1                     (gpio_pinset_t){ PORT4, PIN9, (PFS_PSEL_GPT | R_PFS_PMR)}
+#define GPIO_GTIOC10A_1                     (gpio_pinset_t){ PORT4, PIN8, (PFS_PSEL_GPT | R_PFS_PMR)}
 
-#define GPIO_GTIOC10B_1                     (gpio_pinset_t){ PORT4, PIN8, (PFS_PSEL_GPT | R_PFS_PMR)}
+#define GPIO_GTIOC10B_1                     (gpio_pinset_t){ PORT4, PIN7, (PFS_PSEL_GPT | R_PFS_PMR)}
 
 #define GPIO_GTIOC11A_1                     (gpio_pinset_t){ PORT8,PIN0, (PFS_PSEL_GPT | R_PFS_PMR)}
 
@@ -243,7 +304,248 @@
 
 #define GPIO_GTIOC13B_1                     (gpio_pinset_t){ PORT8,PIN8, (PFS_PSEL_GPT | R_PFS_PMR)}
 
-/* I2C Alternative Functions */
+/* CAN Alternative Functions */
+#define GPIO_CRX0_1                         (gpio_pinset_t){ PORT1,PIN2, (PFS_PSEL_CAN | R_PFS_PMR)}
+#define GPIO_CTX0_1                         (gpio_pinset_t){ PORT1,PIN3, (PFS_PSEL_CAN | R_PFS_PMR)}
+#define GPIO_CRX0_2                         (gpio_pinset_t){ PORT2,PIN2, (PFS_PSEL_CAN | R_PFS_PMR)}
+#define GPIO_CTX0_2                         (gpio_pinset_t){ PORT2,PIN3, (PFS_PSEL_CAN | R_PFS_PMR)}
+#define GPIO_CRX0_3                         (gpio_pinset_t){ PORT3,PIN11, (PFS_PSEL_CAN | R_PFS_PMR)}
+#define GPIO_CTX0_3                         (gpio_pinset_t){ PORT3,PIN12, (PFS_PSEL_CAN | R_PFS_PMR)}
+#define GPIO_CRX0_4                         (gpio_pinset_t){ PORT4,PIN2, (PFS_PSEL_CAN | R_PFS_PMR)}
+#define GPIO_CTX0_4                         (gpio_pinset_t){ PORT4,PIN1, (PFS_PSEL_CAN | R_PFS_PMR)}
+#define GPIO_CRX0_5                         (gpio_pinset_t){ PORT7,PIN5, (PFS_PSEL_CAN | R_PFS_PMR)}
+#define GPIO_CTX0_5                         (gpio_pinset_t){ PORT7,PIN4, (PFS_PSEL_CAN | R_PFS_PMR)}
+#define GPIO_CRX1_1                         (gpio_pinset_t){ PORT2,PIN8, (PFS_PSEL_CAN | R_PFS_PMR)}
+#define GPIO_CTX1_1                         (gpio_pinset_t){ PORT2,PIN9, (PFS_PSEL_CAN | R_PFS_PMR)}
+#define GPIO_CRX1_2                         (gpio_pinset_t){ PORT4,PIN14, (PFS_PSEL_CAN | R_PFS_PMR)}
+#define GPIO_CTX1_2                         (gpio_pinset_t){ PORT4,PIN15, (PFS_PSEL_CAN | R_PFS_PMR)}
+#define GPIO_CRX1_3                         (gpio_pinset_t){ PORT5,PIN11, (PFS_PSEL_CAN | R_PFS_PMR)}
+#define GPIO_CTX1_3                         (gpio_pinset_t){ PORT5,PIN12, (PFS_PSEL_CAN | R_PFS_PMR)}
+#define GPIO_CRX1_4                         (gpio_pinset_t){ PORT6,PIN10, (PFS_PSEL_CAN | R_PFS_PMR)}
+#define GPIO_CTX1_4                         (gpio_pinset_t){ PORT6,PIN9, (PFS_PSEL_CAN | R_PFS_PMR)}
+
+/* USB Alternative Functions */
+#define GPIO_USB_VBUS                       (gpio_pinset_t){ PORT4,PIN7, (PFS_PSEL_USBFS | R_PFS_PMR)}
+#define GPIO_USB_VBUSEN                     (gpio_pinset_t){ PORT2,PIN6, (PFS_PSEL_USBFS | R_PFS_PMR)}
+#define GPIO_USB_OVRCURA                    (gpio_pinset_t){ PORT2,PIN5, (PFS_PSEL_USBFS | R_PFS_PMR)}
+#define GPIO_USB_OVRCURB                    (gpio_pinset_t){ PORT2,PIN4, (PFS_PSEL_USBFS | R_PFS_PMR)}
+#define GPIO_USB_ID                         (gpio_pinset_t){ PORT4,PIN11, (PFS_PSEL_USBFS | R_PFS_PMR)}
+#define GPIO_USB_EXICEN                     (gpio_pinset_t){ PORT4,PIN12, (PFS_PSEL_USBFS | R_PFS_PMR)}
+#define GPIO_USB_DP                         (gpio_pinset_t){ PORT8,PIN14, (PFS_PSEL_USBFS | R_PFS_PMR)}
+#define GPIO_USB_DM                         (gpio_pinset_t){ PORT8,PIN15, (PFS_PSEL_USBFS | R_PFS_PMR)}
+
+/* Ethernet Alternative Functions */
+#define GPIO_ET0_CRS_A                      (gpio_pinset_t){ PORT1,PIN12, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_CRS_B                      (gpio_pinset_t){ PORT7,PIN5, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_EXOUT                      (gpio_pinset_t){ PORT1,PIN13, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_LINKSTA                    (gpio_pinset_t){ PORT1,PIN14, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_WOL_1                      (gpio_pinset_t){ PORT1,PIN15, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_WOL_2                      (gpio_pinset_t){ PORT4,PIN0, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_RX_CLK_A                   (gpio_pinset_t){ PORT3,PIN0, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_RX_CLK_B                   (gpio_pinset_t){ PORT7,PIN4, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_ERXD0_A                    (gpio_pinset_t){ PORT3,PIN1, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_ERXD0_B                    (gpio_pinset_t){ PORT7,PIN3, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_ERXD1_A                    (gpio_pinset_t){ PORT3,PIN2, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_ERXD1_B                    (gpio_pinset_t){ PORT7,PIN2, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_ETXD0_A                    (gpio_pinset_t){ PORT3,PIN3, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_ETXD0_B                    (gpio_pinset_t){ PORT7,PIN1, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_ETXD1_A                    (gpio_pinset_t){ PORT3,PIN4, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_ETXD1_B                    (gpio_pinset_t){ PORT7,PIN0, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_RX_ER_A                    (gpio_pinset_t){ PORT3,PIN5, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_RX_ER_B                    (gpio_pinset_t){ PORT4,PIN6, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_TX_EN_A                    (gpio_pinset_t){ PORT3,PIN6, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_TX_EN_B                    (gpio_pinset_t){ PORT4,PIN5, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_MDIO_1                     (gpio_pinset_t){ PORT3,PIN7, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_MDIO_2                     (gpio_pinset_t){ PORT4,PIN2, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_MDC_1                      (gpio_pinset_t){ PORT3,PIN8, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_MDC_2                      (gpio_pinset_t){ PORT4,PIN1, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_ETXD3                      (gpio_pinset_t){ PORT3,PIN9, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_ETXD2                      (gpio_pinset_t){ PORT3,PIN10, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_TX_ER                      (gpio_pinset_t){ PORT3,PIN11, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_TX_CLK                     (gpio_pinset_t){ PORT3,PIN12, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_ERXD2                      (gpio_pinset_t){ PORT6,PIN11, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_ERXD3                      (gpio_pinset_t){ PORT6,PIN12, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_COL                        (gpio_pinset_t){ PORT6,PIN10, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_ET0_RX_DV                      (gpio_pinset_t){ PORT6,PIN9, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+
+/* RMII Alternative Functions */
+#define GPIO_RMII0_CRS_DV_A                 (gpio_pinset_t){ PORT1,PIN12, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_RMII0_CRS_DV_B                 (gpio_pinset_t){ PORT7,PIN5, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_RMII0_RX_ER_A                  (gpio_pinset_t){ PORT3,PIN0, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_RMII0_RX_ER_B                  (gpio_pinset_t){ PORT7,PIN4, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_RMII0_RXD1_A                   (gpio_pinset_t){ PORT3,PIN1, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_RMII0_RXD1_B                   (gpio_pinset_t){ PORT7,PIN3, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_RMII0_RXD0_A                   (gpio_pinset_t){ PORT3,PIN2, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_RMII0_RXD0_B                   (gpio_pinset_t){ PORT7,PIN2, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_RMII0_TXD0_A                   (gpio_pinset_t){ PORT3,PIN4, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_RMII0_TXD0_B                   (gpio_pinset_t){ PORT7,PIN0, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_RMII0_TXD1_A                   (gpio_pinset_t){ PORT3,PIN5, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_RMII0_TXD1_B                   (gpio_pinset_t){ PORT4,PIN6, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_RMII0_TXD_EN_A                 (gpio_pinset_t){ PORT3,PIN6, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_RMII0_TXD_EN_B                 (gpio_pinset_t){ PORT4,PIN5, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_REF50CK0_A                     (gpio_pinset_t){ PORT3,PIN3, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+#define GPIO_REF50CK0_B                     (gpio_pinset_t){ PORT7,PIN1, (PFS_PSEL_ETHERNET | R_PFS_PMR)}
+
+/* Audio Clock Alternative Functions */
+#define GPIO_AUDIO_CLK_1                    (gpio_pinset_t){ PORT4,PIN0, (PFS_PSEL_CLKOUT_ACMPLP_RTC | R_PFS_PMR)}
+#define GPIO_AUDIO_CLK_2                    (gpio_pinset_t){ PORT4,PIN2, (PFS_PSEL_CLKOUT_ACMPLP_RTC | R_PFS_PMR)}
+#define GPIO_AUDIO_CLK_3                    (gpio_pinset_t){ PORT7,PIN8, (PFS_PSEL_CLKOUT_ACMPLP_RTC | R_PFS_PMR)}
+
+/* SSI (Synchronous Serial Interface) Alternative Functions */
+#define GPIO_SSIBCK0_A                      (gpio_pinset_t){ PORT4,PIN3, (PFS_PSEL_SSIE | R_PFS_PMR)}
+#define GPIO_SSIBCK0_B                      (gpio_pinset_t){ PORT1,PIN12, (PFS_PSEL_SSIE | R_PFS_PMR)}
+#define GPIO_SSILRCK0_A                     (gpio_pinset_t){ PORT4,PIN4, (PFS_PSEL_SSIE | R_PFS_PMR)}
+#define GPIO_SSILRCK0_B                     (gpio_pinset_t){ PORT1,PIN13, (PFS_PSEL_SSIE | R_PFS_PMR)}
+#define GPIO_SSITXD0_A                      (gpio_pinset_t){ PORT4,PIN5, (PFS_PSEL_SSIE | R_PFS_PMR)}
+#define GPIO_SSITXD0_B                      (gpio_pinset_t){ PORT1,PIN15, (PFS_PSEL_SSIE | R_PFS_PMR)}
+#define GPIO_SSIRXD0_A                      (gpio_pinset_t){ PORT4,PIN6, (PFS_PSEL_SSIE | R_PFS_PMR)}
+#define GPIO_SSIRXD0_B                      (gpio_pinset_t){ PORT1,PIN14, (PFS_PSEL_SSIE | R_PFS_PMR)}
+#define GPIO_SSIBCK1_A                      (gpio_pinset_t){ PORT2,PIN4, (PFS_PSEL_SSIE | R_PFS_PMR)}
+#define GPIO_SSIBCK1_B                      (gpio_pinset_t){ PORT7,PIN2, (PFS_PSEL_SSIE | R_PFS_PMR)}
+#define GPIO_SSILRCK1_A                     (gpio_pinset_t){ PORT2,PIN5, (PFS_PSEL_SSIE | R_PFS_PMR)}
+#define GPIO_SSILRCK1_B                     (gpio_pinset_t){ PORT7,PIN1, (PFS_PSEL_SSIE | R_PFS_PMR)}
+#define GPIO_SSIDATA1_A                     (gpio_pinset_t){ PORT2,PIN6, (PFS_PSEL_SSIE | R_PFS_PMR)}
+#define GPIO_SSIDATA1_B                     (gpio_pinset_t){ PORT7,PIN0, (PFS_PSEL_SSIE | R_PFS_PMR)}
+
+/* DAC Alternative Functions */
+#define GPIO_DA0                            (gpio_pinset_t){ PORT0,PIN14, (PFS_PSEL_DAC | R_PFS_PMR)}
+
+/* RTC Alternative Functions */
+#define GPIO_RTCOUT_1                       (gpio_pinset_t){ PORT4,PIN7, (PFS_PSEL_CLKOUT_ACMPLP_RTC | R_PFS_PMR)}
+#define GPIO_RTCOUT_2                       (gpio_pinset_t){ PORT6,PIN1, (PFS_PSEL_CLKOUT_ACMPLP_RTC | R_PFS_PMR)}
+#define GPIO_RTCIC0                         (gpio_pinset_t){ PORT4,PIN2, (PFS_PSEL_CLKOUT_ACMPLP_RTC | R_PFS_PMR)}
+#define GPIO_RTCIC1                         (gpio_pinset_t){ PORT4,PIN3, (PFS_PSEL_CLKOUT_ACMPLP_RTC | R_PFS_PMR)}
+#define GPIO_RTCIC2                         (gpio_pinset_t){ PORT4,PIN4, (PFS_PSEL_CLKOUT_ACMPLP_RTC | R_PFS_PMR)}
+
+/* Comparator Alternative Functions */
+#define GPIO_IVCMP0                         (gpio_pinset_t){ PORT0,PIN10, (PFS_PSEL_OPAMP | R_PFS_PMR)}
+#define GPIO_IVCMP2_1                       (gpio_pinset_t){ PORT0,PIN0, (PFS_PSEL_OPAMP | R_PFS_PMR)}
+#define GPIO_IVCMP2_2                       (gpio_pinset_t){ PORT0,PIN4, (PFS_PSEL_OPAMP | R_PFS_PMR)}
+#define GPIO_IVCMP3_1                       (gpio_pinset_t){ PORT0,PIN2, (PFS_PSEL_OPAMP | R_PFS_PMR)}
+#define GPIO_IVCMP3_2                       (gpio_pinset_t){ PORT0,PIN6, (PFS_PSEL_OPAMP | R_PFS_PMR)}
+#define GPIO_IVREF0                         (gpio_pinset_t){ PORT0,PIN1, (PFS_PSEL_OPAMP | R_PFS_PMR)}
+#define GPIO_IVREF1                         (gpio_pinset_t){ PORT0,PIN3, (PFS_PSEL_OPAMP | R_PFS_PMR)}
+#define GPIO_VCOUT_1                        (gpio_pinset_t){ PORT2,PIN8, (PFS_PSEL_OPAMP | R_PFS_PMR)}
+#define GPIO_VCOUT_2                        (gpio_pinset_t){ PORT7,PIN3, (PFS_PSEL_OPAMP | R_PFS_PMR)}
+
+/* AGT (Asynchronous General Purpose Timer) Alternative Functions */
+#define GPIO_AGTIO0_1                       (gpio_pinset_t){ PORT1,PIN0, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTIO0_2                       (gpio_pinset_t){ PORT3,PIN1, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTIO0_3                       (gpio_pinset_t){ PORT4,PIN7, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTIO0_4                       (gpio_pinset_t){ PORT7,PIN5, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTIO1_1                       (gpio_pinset_t){ PORT2,PIN4, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTIO1_2                       (gpio_pinset_t){ PORT4,PIN0, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTIO1_3                       (gpio_pinset_t){ PORT4,PIN5, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTO0_1                        (gpio_pinset_t){ PORT1,PIN2, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTO0_2                        (gpio_pinset_t){ PORT6,PIN14, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTO0_3                        (gpio_pinset_t){ PORT7,PIN4, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTO1_1                        (gpio_pinset_t){ PORT2,PIN5, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTO1_2                        (gpio_pinset_t){ PORT6,PIN13, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTO1_3                        (gpio_pinset_t){ PORT7,PIN3, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTEE0_1                       (gpio_pinset_t){ PORT1,PIN1, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTEE0_2                       (gpio_pinset_t){ PORT7,PIN11, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTEE1_1                       (gpio_pinset_t){ PORT2,PIN12, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTEE1_2                       (gpio_pinset_t){ PORT3,PIN10, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTEE1_3                       (gpio_pinset_t){ PORT4,PIN12, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTOA0_1                       (gpio_pinset_t){ PORT1,PIN7, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTOA0_2                       (gpio_pinset_t){ PORT7,PIN13, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTOA0_3                       (gpio_pinset_t){ PORT8,PIN0, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTOA1_1                       (gpio_pinset_t){ PORT3,PIN12, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTOA1_2                       (gpio_pinset_t){ PORT4,PIN11, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTOB0_1                       (gpio_pinset_t){ PORT1,PIN6, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTOB0_2                       (gpio_pinset_t){ PORT7,PIN12, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTOB0_3                       (gpio_pinset_t){ PORT8,PIN1, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTOB1_1                       (gpio_pinset_t){ PORT3,PIN8, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTOB1_2                       (gpio_pinset_t){ PORT3,PIN11, (PFS_PSEL_AGT | R_PFS_PMR)}
+#define GPIO_AGTOB1_3                       (gpio_pinset_t){ PORT4,PIN10, (PFS_PSEL_AGT | R_PFS_PMR)}
+
+/* GPT Trigger Functions */
+#define GPIO_GTETRGA_1                      (gpio_pinset_t){ PORT1,PIN0, (PFS_PSEL_GPT | R_PFS_PMR)}
+#define GPIO_GTETRGA_2                      (gpio_pinset_t){ PORT4,PIN1, (PFS_PSEL_GPT | R_PFS_PMR)}
+#define GPIO_GTETRGA_3                      (gpio_pinset_t){ PORT6,PIN13, (PFS_PSEL_GPT | R_PFS_PMR)}
+#define GPIO_GTETRGB_1                      (gpio_pinset_t){ PORT1,PIN1, (PFS_PSEL_GPT | R_PFS_PMR)}
+#define GPIO_GTETRGB_2                      (gpio_pinset_t){ PORT1,PIN4, (PFS_PSEL_GPT | R_PFS_PMR)}
+#define GPIO_GTETRGB_3                      (gpio_pinset_t){ PORT6,PIN14, (PFS_PSEL_GPT | R_PFS_PMR)}
+#define GPIO_GTETRGC_1                      (gpio_pinset_t){ PORT2,PIN13, (PFS_PSEL_GPT | R_PFS_PMR)}
+#define GPIO_GTETRGC_2                      (gpio_pinset_t){ PORT8,PIN3, (PFS_PSEL_GPT | R_PFS_PMR)}
+#define GPIO_GTETRGD_1                      (gpio_pinset_t){ PORT2,PIN12, (PFS_PSEL_GPT | R_PFS_PMR)}
+#define GPIO_GTETRGD_2                      (gpio_pinset_t){ PORT8,PIN4, (PFS_PSEL_GPT | R_PFS_PMR)}
+
+/* ADC Trigger Functions */
+#define GPIO_ADTRG0_1                       (gpio_pinset_t){ PORT1,PIN2, (PFS_PSEL_CAC_ADC14 | R_PFS_PMR)}
+#define GPIO_ADTRG0_2                       (gpio_pinset_t){ PORT4,PIN7, (PFS_PSEL_CAC_ADC14 | R_PFS_PMR)}
+#define GPIO_ADTRG1_1                       (gpio_pinset_t){ PORT2,PIN13, (PFS_PSEL_CAC_ADC14 | R_PFS_PMR)}
+#define GPIO_ADTRG1_2                       (gpio_pinset_t){ PORT4,PIN0, (PFS_PSEL_CAC_ADC14 | R_PFS_PMR)}
+
+/* ULPT (Ultra-Low-Power Timer) Alternative Functions */
+#define GPIO_ULPTOA0_1                      (gpio_pinset_t){ PORT1,PIN13, (PFS_PSEL_ULPT | R_PFS_PMR)}
+#define GPIO_ULPTOA0_2                      (gpio_pinset_t){ PORT4,PIN9, (PFS_PSEL_ULPT | R_PFS_PMR)}
+#define GPIO_ULPTOA1_1                      (gpio_pinset_t){ PORT2,PIN3, (PFS_PSEL_ULPT | R_PFS_PMR)}
+#define GPIO_ULPTOA1_2                      (gpio_pinset_t){ PORT3,PIN7, (PFS_PSEL_ULPT | R_PFS_PMR)}
+#define GPIO_ULPTOA1_3                      (gpio_pinset_t){ PORT6,PIN9, (PFS_PSEL_ULPT | R_PFS_PMR)}
+#define GPIO_ULPTOB0_1                      (gpio_pinset_t){ PORT1,PIN12, (PFS_PSEL_ULPT | R_PFS_PMR)}
+#define GPIO_ULPTOB0_2                      (gpio_pinset_t){ PORT4,PIN8, (PFS_PSEL_ULPT | R_PFS_PMR)}
+#define GPIO_ULPTOB1_1                      (gpio_pinset_t){ PORT2,PIN2, (PFS_PSEL_ULPT | R_PFS_PMR)}
+#define GPIO_ULPTOB1_2                      (gpio_pinset_t){ PORT3,PIN8, (PFS_PSEL_ULPT | R_PFS_PMR)}
+#define GPIO_ULPTOB1_3                      (gpio_pinset_t){ PORT6,PIN10, (PFS_PSEL_ULPT | R_PFS_PMR)}
+#define GPIO_ULPTO0_1                       (gpio_pinset_t){ PORT3,PIN2, (PFS_PSEL_ULPT | R_PFS_PMR)}
+#define GPIO_ULPTO0_2                       (gpio_pinset_t){ PORT6,PIN3, (PFS_PSEL_ULPT | R_PFS_PMR)}
+#define GPIO_ULPTO0_3                       (gpio_pinset_t){ PORT7,PIN2, (PFS_PSEL_ULPT | R_PFS_PMR)}
+#define GPIO_ULPTO1_1                       (gpio_pinset_t){ PORT1,PIN5, (PFS_PSEL_ULPT | R_PFS_PMR)}
+#define GPIO_ULPTO1_2                       (gpio_pinset_t){ PORT3,PIN4, (PFS_PSEL_ULPT | R_PFS_PMR)}
+#define GPIO_ULPTO1_3                       (gpio_pinset_t){ PORT7,PIN1, (PFS_PSEL_ULPT | R_PFS_PMR)}
+#define GPIO_ULPTEE0_1                      (gpio_pinset_t){ PORT2,PIN13, (PFS_PSEL_ULPT | R_PFS_PMR)}
+#define GPIO_ULPTEE0_2                      (gpio_pinset_t){ PORT3,PIN0, (PFS_PSEL_ULPT | R_PFS_PMR)}
+#define GPIO_ULPTEE0_3                      (gpio_pinset_t){ PORT6,PIN2, (PFS_PSEL_ULPT | R_PFS_PMR)}
+#define GPIO_ULPTEE1_1                      (gpio_pinset_t){ PORT1,PIN6, (PFS_PSEL_ULPT | R_PFS_PMR)}
+#define GPIO_ULPTEE1_2                      (gpio_pinset_t){ PORT3,PIN5, (PFS_PSEL_ULPT | R_PFS_PMR)}
+#define GPIO_ULPTEE1_3                      (gpio_pinset_t){ PORT4,PIN13, (PFS_PSEL_ULPT | R_PFS_PMR)}
+#define GPIO_ULPTEVI0_1                     (gpio_pinset_t){ PORT3,PIN0, (PFS_PSEL_ULPT | R_PFS_PMR)}
+#define GPIO_ULPTEVI0_2                     (gpio_pinset_t){ PORT6,PIN1, (PFS_PSEL_ULPT | R_PFS_PMR)}
+#define GPIO_ULPTEVI1_1                     (gpio_pinset_t){ PORT3,PIN6, (PFS_PSEL_ULPT | R_PFS_PMR)}
+#define GPIO_ULPTEVI1_2                     (gpio_pinset_t){ PORT6,PIN0, (PFS_PSEL_ULPT | R_PFS_PMR)}
+
+/* OctaRAM/OSPI Memory Interface Functions */
+#define GPIO_OM_CS0                         (gpio_pinset_t){ PORT1,PIN7, (PFS_PSEL_XSPI | R_PFS_PMR)}
+#define GPIO_OM_CS1                         (gpio_pinset_t){ PORT1,PIN4, (PFS_PSEL_XSPI | R_PFS_PMR)}
+#define GPIO_OM_RESET                       (gpio_pinset_t){ PORT1,PIN6, (PFS_PSEL_XSPI | R_PFS_PMR)}
+#define GPIO_OM_SIO0                        (gpio_pinset_t){ PORT1,PIN0, (PFS_PSEL_XSPI | R_PFS_PMR)}
+#define GPIO_OM_SIO1                        (gpio_pinset_t){ PORT8,PIN3, (PFS_PSEL_XSPI | R_PFS_PMR)}
+#define GPIO_OM_SIO2                        (gpio_pinset_t){ PORT1,PIN3, (PFS_PSEL_XSPI | R_PFS_PMR)}
+#define GPIO_OM_SIO3                        (gpio_pinset_t){ PORT1,PIN1, (PFS_PSEL_XSPI | R_PFS_PMR)}
+#define GPIO_OM_SIO4                        (gpio_pinset_t){ PORT1,PIN2, (PFS_PSEL_XSPI | R_PFS_PMR)}
+#define GPIO_OM_SIO5                        (gpio_pinset_t){ PORT8,PIN0, (PFS_PSEL_XSPI | R_PFS_PMR)}
+#define GPIO_OM_SIO6                        (gpio_pinset_t){ PORT8,PIN2, (PFS_PSEL_XSPI | R_PFS_PMR)}
+#define GPIO_OM_SIO7                        (gpio_pinset_t){ PORT8,PIN4, (PFS_PSEL_XSPI | R_PFS_PMR)}
+#define GPIO_OM_SCLK                        (gpio_pinset_t){ PORT8,PIN8, (PFS_PSEL_XSPI | R_PFS_PMR)}
+#define GPIO_OM_SCLKN                       (gpio_pinset_t){ PORT8,PIN9, (PFS_PSEL_XSPI | R_PFS_PMR)}
+#define GPIO_OM_DQS                         (gpio_pinset_t){ PORT8,PIN1, (PFS_PSEL_XSPI | R_PFS_PMR)}
+#define GPIO_OM_WP1                         (gpio_pinset_t){ PORT6,PIN1, (PFS_PSEL_XSPI | R_PFS_PMR)}
+#define GPIO_OM_RSTO1                       (gpio_pinset_t){ PORT6,PIN0, (PFS_PSEL_XSPI | R_PFS_PMR)}
+#define GPIO_OM_ECSINT1                     (gpio_pinset_t){ PORT1,PIN5, (PFS_PSEL_XSPI | R_PFS_PMR)}
+
+/* VIO (Video Input/Output) Alternative Functions */
+#define GPIO_VIO_CLK                        (gpio_pinset_t){ PORT7,PIN8, (PFS_PSEL_CEU | R_PFS_PMR)}
+#define GPIO_VIO_HD                         (gpio_pinset_t){ PORT7,PIN9, (PFS_PSEL_CEU | R_PFS_PMR)}
+#define GPIO_VIO_VD                         (gpio_pinset_t){ PORT7,PIN10, (PFS_PSEL_CEU | R_PFS_PMR)}
+#define GPIO_VIO_FLD                        (gpio_pinset_t){ PORT5,PIN13, (PFS_PSEL_CEU | R_PFS_PMR)}
+#define GPIO_VIO_D0                         (gpio_pinset_t){ PORT4,PIN0, (PFS_PSEL_CEU | R_PFS_PMR)}
+#define GPIO_VIO_D1                         (gpio_pinset_t){ PORT4,PIN1, (PFS_PSEL_CEU | R_PFS_PMR)}
+#define GPIO_VIO_D2                         (gpio_pinset_t){ PORT4,PIN5, (PFS_PSEL_CEU | R_PFS_PMR)}
+#define GPIO_VIO_D3_1                       (gpio_pinset_t){ PORT4,PIN4, (PFS_PSEL_CEU | R_PFS_PMR)}
+#define GPIO_VIO_D3_2                       (gpio_pinset_t){ PORT4,PIN6, (PFS_PSEL_CEU | R_PFS_PMR)}
+#define GPIO_VIO_D4                         (gpio_pinset_t){ PORT7,PIN0, (PFS_PSEL_CEU | R_PFS_PMR)}
+#define GPIO_VIO_D5                         (gpio_pinset_t){ PORT7,PIN1, (PFS_PSEL_CEU | R_PFS_PMR)}
+#define GPIO_VIO_D6                         (gpio_pinset_t){ PORT7,PIN2, (PFS_PSEL_CEU | R_PFS_PMR)}
+#define GPIO_VIO_D7                         (gpio_pinset_t){ PORT7,PIN3, (PFS_PSEL_CEU | R_PFS_PMR)}
+
+/* GPT Delta-Sigma Modulator Functions */
+#define GPIO_GTADSM0_1                      (gpio_pinset_t){ PORT3,PIN12, (PFS_PSEL_GPT | R_PFS_PMR)}
+#define GPIO_GTADSM0_2                      (gpio_pinset_t){ PORT4,PIN15, (PFS_PSEL_GPT | R_PFS_PMR)}
+#define GPIO_GTADSM0_3                      (gpio_pinset_t){ PORT7,PIN4, (PFS_PSEL_GPT | R_PFS_PMR)}
+#define GPIO_GTADSM1_1                      (gpio_pinset_t){ PORT3,PIN11, (PFS_PSEL_GPT | R_PFS_PMR)}
+#define GPIO_GTADSM1_2                      (gpio_pinset_t){ PORT4,PIN14, (PFS_PSEL_GPT | R_PFS_PMR)}
+#define GPIO_GTADSM1_3                      (gpio_pinset_t){ PORT7,PIN5, (PFS_PSEL_GPT | R_PFS_PMR)}
 #define GPIO_SDA1_MOSI1_TXD1_A              (gpio_pinset_t){ PORT2,PIN5, (PFS_PSEL_IIC | R_PFS_PMR)}
 #define GPIO_SDA1_MOSI1_TXD1_B              (gpio_pinset_t){ PORT4,PIN9, (PFS_PSEL_IIC | R_PFS_PMR)}
 #define GPIO_SDA1_MOSI1_TXD1_C              (gpio_pinset_t){ PORT5,PIN11, (PFS_PSEL_IIC | R_PFS_PMR)}
@@ -305,6 +607,18 @@
 #define GPIO_P408_OUTPUT_LOW                (gpio_pinset_t){ PORT4, PIN8, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_LOW)}
 #define GPIO_P408_INPUT                     (gpio_pinset_t){ PORT4, PIN8, (GPIO_INPUT)}
 
+#define GPIO_P410_OUTPUT_HIGH               (gpio_pinset_t){ PORT4, PIN10, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}
+#define GPIO_P410_OUTPUT_LOW                (gpio_pinset_t){ PORT4, PIN10, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_LOW)}
+#define GPIO_P410_INPUT                     (gpio_pinset_t){ PORT4, PIN10, (GPIO_INPUT)}
+
+#define GPIO_P411_OUTPUT_HIGH               (gpio_pinset_t){ PORT4, PIN11, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}
+#define GPIO_P411_OUTPUT_LOW                (gpio_pinset_t){ PORT4, PIN11, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_LOW)}
+#define GPIO_P411_INPUT                     (gpio_pinset_t){ PORT4, PIN11, (GPIO_INPUT)}
+
+#define GPIO_P412_OUTPUT_HIGH               (gpio_pinset_t){ PORT4, PIN12, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}
+#define GPIO_P412_OUTPUT_LOW                (gpio_pinset_t){ PORT4, PIN12, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_LOW)}
+#define GPIO_P412_INPUT                     (gpio_pinset_t){ PORT4, PIN12, (GPIO_INPUT)}
+
 #define GPIO_P605_OUTPUT_HIGH               (gpio_pinset_t){ PORT6, PIN5, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}
 #define GPIO_P605_OUTPUT_LOW                (gpio_pinset_t){ PORT6, PIN5, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_LOW)}
 #define GPIO_P605_INPUT                     (gpio_pinset_t){ PORT6, PIN5, (GPIO_INPUT)}
@@ -312,16 +626,6 @@
 #define GPIO_P905_OUTPUT_HIGH               (gpio_pinset_t){ PORT9, PIN5, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}
 #define GPIO_P905_OUTPUT_LOW                (gpio_pinset_t){ PORT9, PIN5, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_LOW)}
 #define GPIO_P905_INPUT                     (gpio_pinset_t){ PORT9, PIN5, (GPIO_INPUT)}
-
-/* UART GPIO Pin Definitions */
-#define GPIO_UART1_RXD_1                    (gpio_pinset_t){ PORT5, PIN2, (PFS_PSEL_SCI1 | R_PFS_PMR)}
-#define GPIO_UART1_TXD_1                    (gpio_pinset_t){ PORT5, PIN1, (PFS_PSEL_SCI1 | R_PFS_PMR)}
-
-#define GPIO_UART2_RXD_1                    (gpio_pinset_t){ PORT8, PIN2, (PFS_PSEL_SCI | R_PFS_PMR)}
-#define GPIO_UART2_TXD_1                    (gpio_pinset_t){ PORT8, PIN1, (PFS_PSEL_SCI | R_PFS_PMR)}
-
-#define GPIO_UART3_RXD_1                    (gpio_pinset_t){ PORT3, PIN9, (PFS_PSEL_SCI1 | R_PFS_PMR)}
-#define GPIO_UART3_TXD_1                    (gpio_pinset_t){ PORT3, PIN10, (PFS_PSEL_SCI1 | R_PFS_PMR)}
 
 #define GPIO_P113_RXD0_A                    (gpio_pinset_t){ PORT1, PIN13, (PFS_PSEL_SCI | R_PFS_PMR)}
 #define GPIO_P113_MISO0_A                   (gpio_pinset_t){ PORT1, PIN13, (PFS_PSEL_SCI | R_PFS_PMR)}
@@ -390,6 +694,26 @@
 #define GPIO_IRQ15_P404                     (gpio_pinset_t){ PORT4, PIN4, (GPIO_INPUT | R_PFS_PCR | R_PFS_ISEL)}
 #define GPIO_IRQ15_P511                     (gpio_pinset_t){ PORT5, PIN11, (GPIO_INPUT | R_PFS_PCR | R_PFS_ISEL)}
 #define GPIO_IRQ15_P808                     (gpio_pinset_t){ PORT8, PIN8, (GPIO_INPUT | R_PFS_PCR | R_PFS_ISEL)}
+
+/* Missing IRQ definitions from CSV */
+#define GPIO_IRQ6_P000                      (gpio_pinset_t){ PORT0, PIN0, (GPIO_INPUT | R_PFS_PCR | R_PFS_ISEL)}
+#define GPIO_IRQ7_P001                      (gpio_pinset_t){ PORT0, PIN1, (GPIO_INPUT | R_PFS_PCR | R_PFS_ISEL)}
+#define GPIO_IRQ8_P002                      (gpio_pinset_t){ PORT0, PIN2, (GPIO_INPUT | R_PFS_PCR | R_PFS_ISEL)}
+#define GPIO_IRQ8_P008                      (gpio_pinset_t){ PORT0, PIN8, (GPIO_INPUT | R_PFS_PCR | R_PFS_ISEL)}
+#define GPIO_IRQ9_P004                      (gpio_pinset_t){ PORT0, PIN4, (GPIO_INPUT | R_PFS_PCR | R_PFS_ISEL)}
+#define GPIO_IRQ10_P005                     (gpio_pinset_t){ PORT0, PIN5, (GPIO_INPUT | R_PFS_PCR | R_PFS_ISEL)}
+#define GPIO_IRQ11_P006                     (gpio_pinset_t){ PORT0, PIN6, (GPIO_INPUT | R_PFS_PCR | R_PFS_ISEL)}
+#define GPIO_IRQ12_P008                     (gpio_pinset_t){ PORT0, PIN8, (GPIO_INPUT | R_PFS_PCR | R_PFS_ISEL)}
+#define GPIO_IRQ15_P015                     (gpio_pinset_t){ PORT0, PIN15, (GPIO_INPUT | R_PFS_PCR | R_PFS_ISEL)}
+
+/* IRQ with DS (Deep Standby) capability */
+#define GPIO_IRQ1_P205_DS                   (gpio_pinset_t){ PORT2, PIN5, (GPIO_INPUT | R_PFS_PCR | R_PFS_ISEL)}
+#define GPIO_IRQ2_P203_DS                   (gpio_pinset_t){ PORT2, PIN3, (GPIO_INPUT | R_PFS_PCR | R_PFS_ISEL)}
+#define GPIO_IRQ3_P202_DS                   (gpio_pinset_t){ PORT2, PIN2, (GPIO_INPUT | R_PFS_PCR | R_PFS_ISEL)}
+#define GPIO_IRQ4_P402_DS                   (gpio_pinset_t){ PORT4, PIN2, (GPIO_INPUT | R_PFS_PCR | R_PFS_ISEL)}
+#define GPIO_IRQ5_P401_DS                   (gpio_pinset_t){ PORT4, PIN1, (GPIO_INPUT | R_PFS_PCR | R_PFS_ISEL)}
+#define GPIO_IRQ14_P403_DS                  (gpio_pinset_t){ PORT4, PIN3, (GPIO_INPUT | R_PFS_PCR | R_PFS_ISEL)}
+#define GPIO_IRQ15_P404_DS                  (gpio_pinset_t){ PORT4, PIN4, (GPIO_INPUT | R_PFS_PCR | R_PFS_ISEL)}
 
 /* PORT 0 Pin Definitions */
 #define GPIO_P000_OUTPUT_HIGH               (gpio_pinset_t){ PORT0, PIN0, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}
@@ -512,6 +836,72 @@
 #define GPIO_P115_OUTPUT_LOW                (gpio_pinset_t){ PORT1, PIN15, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_LOW)}
 #define GPIO_P115_INPUT                     (gpio_pinset_t){ PORT1, PIN15, (GPIO_INPUT)}
 #define GPIO_P115_INPUT_PULLUP              (gpio_pinset_t){ PORT1, PIN15, (GPIO_INPUT | R_PFS_PCR)}
+
+/* PORT 2 Pin Definitions */
+#define GPIO_P200_OUTPUT_HIGH               (gpio_pinset_t){ PORT2, PIN0, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}
+#define GPIO_P200_OUTPUT_LOW                (gpio_pinset_t){ PORT2, PIN0, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_LOW)}
+#define GPIO_P200_INPUT                     (gpio_pinset_t){ PORT2, PIN0, (GPIO_INPUT)}
+#define GPIO_P200_INPUT_PULLUP              (gpio_pinset_t){ PORT2, PIN0, (GPIO_INPUT | R_PFS_PCR)}
+
+#define GPIO_P201_OUTPUT_HIGH               (gpio_pinset_t){ PORT2, PIN1, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}
+#define GPIO_P201_OUTPUT_LOW                (gpio_pinset_t){ PORT2, PIN1, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_LOW)}
+#define GPIO_P201_INPUT                     (gpio_pinset_t){ PORT2, PIN1, (GPIO_INPUT)}
+#define GPIO_P201_INPUT_PULLUP              (gpio_pinset_t){ PORT2, PIN1, (GPIO_INPUT | R_PFS_PCR)}
+
+#define GPIO_P202_OUTPUT_HIGH               (gpio_pinset_t){ PORT2, PIN2, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}
+#define GPIO_P202_OUTPUT_LOW                (gpio_pinset_t){ PORT2, PIN2, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_LOW)}
+#define GPIO_P202_INPUT                     (gpio_pinset_t){ PORT2, PIN2, (GPIO_INPUT)}
+#define GPIO_P202_INPUT_PULLUP              (gpio_pinset_t){ PORT2, PIN2, (GPIO_INPUT | R_PFS_PCR)}
+
+#define GPIO_P203_OUTPUT_HIGH               (gpio_pinset_t){ PORT2, PIN3, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}
+#define GPIO_P203_OUTPUT_LOW                (gpio_pinset_t){ PORT2, PIN3, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_LOW)}
+#define GPIO_P203_INPUT                     (gpio_pinset_t){ PORT2, PIN3, (GPIO_INPUT)}
+#define GPIO_P203_INPUT_PULLUP              (gpio_pinset_t){ PORT2, PIN3, (GPIO_INPUT | R_PFS_PCR)}
+
+#define GPIO_P204_OUTPUT_HIGH               (gpio_pinset_t){ PORT2, PIN4, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}
+#define GPIO_P204_OUTPUT_LOW                (gpio_pinset_t){ PORT2, PIN4, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_LOW)}
+#define GPIO_P204_INPUT                     (gpio_pinset_t){ PORT2, PIN4, (GPIO_INPUT)}
+#define GPIO_P204_INPUT_PULLUP              (gpio_pinset_t){ PORT2, PIN4, (GPIO_INPUT | R_PFS_PCR)}
+
+#define GPIO_P205_OUTPUT_HIGH               (gpio_pinset_t){ PORT2, PIN5, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}
+#define GPIO_P205_OUTPUT_LOW                (gpio_pinset_t){ PORT2, PIN5, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_LOW)}
+#define GPIO_P205_INPUT                     (gpio_pinset_t){ PORT2, PIN5, (GPIO_INPUT)}
+#define GPIO_P205_INPUT_PULLUP              (gpio_pinset_t){ PORT2, PIN5, (GPIO_INPUT | R_PFS_PCR)}
+
+#define GPIO_P206_OUTPUT_HIGH               (gpio_pinset_t){ PORT2, PIN6, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}
+#define GPIO_P206_OUTPUT_LOW                (gpio_pinset_t){ PORT2, PIN6, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_LOW)}
+#define GPIO_P206_INPUT                     (gpio_pinset_t){ PORT2, PIN6, (GPIO_INPUT)}
+#define GPIO_P206_INPUT_PULLUP              (gpio_pinset_t){ PORT2, PIN6, (GPIO_INPUT | R_PFS_PCR)}
+
+#define GPIO_P208_OUTPUT_HIGH               (gpio_pinset_t){ PORT2, PIN8, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}
+#define GPIO_P208_OUTPUT_LOW                (gpio_pinset_t){ PORT2, PIN8, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_LOW)}
+#define GPIO_P208_INPUT                     (gpio_pinset_t){ PORT2, PIN8, (GPIO_INPUT)}
+#define GPIO_P208_INPUT_PULLUP              (gpio_pinset_t){ PORT2, PIN8, (GPIO_INPUT | R_PFS_PCR)}
+
+#define GPIO_P209_OUTPUT_HIGH               (gpio_pinset_t){ PORT2, PIN9, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}
+#define GPIO_P209_OUTPUT_LOW                (gpio_pinset_t){ PORT2, PIN9, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_LOW)}
+#define GPIO_P209_INPUT                     (gpio_pinset_t){ PORT2, PIN9, (GPIO_INPUT)}
+#define GPIO_P209_INPUT_PULLUP              (gpio_pinset_t){ PORT2, PIN9, (GPIO_INPUT | R_PFS_PCR)}
+
+#define GPIO_P210_OUTPUT_HIGH               (gpio_pinset_t){ PORT2, PIN10, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}
+#define GPIO_P210_OUTPUT_LOW                (gpio_pinset_t){ PORT2, PIN10, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_LOW)}
+#define GPIO_P210_INPUT                     (gpio_pinset_t){ PORT2, PIN10, (GPIO_INPUT)}
+#define GPIO_P210_INPUT_PULLUP              (gpio_pinset_t){ PORT2, PIN10, (GPIO_INPUT | R_PFS_PCR)}
+
+#define GPIO_P211_OUTPUT_HIGH               (gpio_pinset_t){ PORT2, PIN11, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}
+#define GPIO_P211_OUTPUT_LOW                (gpio_pinset_t){ PORT2, PIN11, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_LOW)}
+#define GPIO_P211_INPUT                     (gpio_pinset_t){ PORT2, PIN11, (GPIO_INPUT)}
+#define GPIO_P211_INPUT_PULLUP              (gpio_pinset_t){ PORT2, PIN11, (GPIO_INPUT | R_PFS_PCR)}
+
+#define GPIO_P212_OUTPUT_HIGH               (gpio_pinset_t){ PORT2, PIN12, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}
+#define GPIO_P212_OUTPUT_LOW                (gpio_pinset_t){ PORT2, PIN12, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_LOW)}
+#define GPIO_P212_INPUT                     (gpio_pinset_t){ PORT2, PIN12, (GPIO_INPUT)}
+#define GPIO_P212_INPUT_PULLUP              (gpio_pinset_t){ PORT2, PIN12, (GPIO_INPUT | R_PFS_PCR)}
+
+#define GPIO_P213_OUTPUT_HIGH               (gpio_pinset_t){ PORT2, PIN13, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}
+#define GPIO_P213_OUTPUT_LOW                (gpio_pinset_t){ PORT2, PIN13, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_LOW)}
+#define GPIO_P213_INPUT                     (gpio_pinset_t){ PORT2, PIN13, (GPIO_INPUT)}
+#define GPIO_P213_INPUT_PULLUP              (gpio_pinset_t){ PORT2, PIN13, (GPIO_INPUT | R_PFS_PCR)}
 
 /* PORT 3 Pin Definitions */
 #define GPIO_P300_OUTPUT_HIGH               (gpio_pinset_t){ PORT3, PIN0, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}
@@ -807,6 +1197,11 @@
 #define GPIO_P804_INPUT                     (gpio_pinset_t){ PORT8, PIN4, (GPIO_INPUT)}
 #define GPIO_P804_INPUT_PULLUP              (gpio_pinset_t){ PORT8, PIN4, (GPIO_INPUT | R_PFS_PCR)}
 
+#define GPIO_P805_OUTPUT_HIGH               (gpio_pinset_t){ PORT8, PIN5, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}
+#define GPIO_P805_OUTPUT_LOW                (gpio_pinset_t){ PORT8, PIN5, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_LOW)}
+#define GPIO_P805_INPUT                     (gpio_pinset_t){ PORT8, PIN5, (GPIO_INPUT)}
+#define GPIO_P805_INPUT_PULLUP              (gpio_pinset_t){ PORT8, PIN5, (GPIO_INPUT | R_PFS_PCR)}
+
 #define GPIO_P806_OUTPUT_HIGH               (gpio_pinset_t){ PORT8, PIN6, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}
 #define GPIO_P806_OUTPUT_LOW                (gpio_pinset_t){ PORT8, PIN6, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_LOW)}
 #define GPIO_P806_INPUT                     (gpio_pinset_t){ PORT8, PIN6, (GPIO_INPUT)}
@@ -821,6 +1216,16 @@
 #define GPIO_P809_OUTPUT_LOW                (gpio_pinset_t){ PORT8, PIN9, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_LOW)}
 #define GPIO_P809_INPUT                     (gpio_pinset_t){ PORT8, PIN9, (GPIO_INPUT)}
 #define GPIO_P809_INPUT_PULLUP              (gpio_pinset_t){ PORT8, PIN9, (GPIO_INPUT | R_PFS_PCR)}
+
+#define GPIO_P814_OUTPUT_HIGH               (gpio_pinset_t){ PORT8, PIN14, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}
+#define GPIO_P814_OUTPUT_LOW                (gpio_pinset_t){ PORT8, PIN14, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_LOW)}
+#define GPIO_P814_INPUT                     (gpio_pinset_t){ PORT8, PIN14, (GPIO_INPUT)}
+#define GPIO_P814_INPUT_PULLUP              (gpio_pinset_t){ PORT8, PIN14, (GPIO_INPUT | R_PFS_PCR)}
+
+#define GPIO_P815_OUTPUT_HIGH               (gpio_pinset_t){ PORT8, PIN15, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_HIGH)}
+#define GPIO_P815_OUTPUT_LOW                (gpio_pinset_t){ PORT8, PIN15, (GPIO_OUTPUT | GPIO_LOW_DRIVE | GPIO_OUTPUT_LOW)}
+#define GPIO_P815_INPUT                     (gpio_pinset_t){ PORT8, PIN15, (GPIO_INPUT)}
+#define GPIO_P815_INPUT_PULLUP              (gpio_pinset_t){ PORT8, PIN15, (GPIO_INPUT | R_PFS_PCR)}
 
 /* GPIO Configuration */
 

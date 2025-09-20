@@ -220,7 +220,4 @@ typedef enum
 #define RA_DMAC_DMAST            (R_DMAC0_BASE + RA_DMAC_DMAST_OFFSET)
 #define RA_DMAC_DMIST            (R_DMAC0_BASE + RA_DMAC_DMIST_OFFSET)
 
-/* Maximum number of DMAC channels */
-#define RA_DMAC_NUM_CHANNELS     8
-
 #endif /* __ARCH_ARM_SRC_RA8_HARDWARE_RA_DMAC_H */

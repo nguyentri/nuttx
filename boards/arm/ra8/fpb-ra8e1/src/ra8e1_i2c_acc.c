@@ -21,9 +21,10 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
-#ifdef CONFIG_RA8E1_I2C_ACC_EXAMPLE
 
 #include <nuttx/config.h>
+
+#ifdef CONFIG_RA8E1_I2C_ACC_EXAMPLE
 
 #include <sys/types.h>
 #include <stdio.h>
@@ -44,7 +45,7 @@
 #include <arch/board/board.h>
 
 #include "arm_internal.h"
-#include "ra8e1_log.h"
+#include "fpb-ra8e1.h"
 #include "chip.h"
 #include "ra_gpio.h"
 #include "ra_icu.h"

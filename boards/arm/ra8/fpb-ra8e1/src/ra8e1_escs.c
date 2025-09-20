@@ -21,9 +21,10 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
-#ifdef CONFIG_RA8E1_PWM_ESCS_EXAMPLE
 
 #include <nuttx/config.h>
+
+#ifdef CONFIG_RA8E1_PWM_ESCS_EXAMPLE
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -42,7 +43,7 @@
 #include "arm_internal.h"
 #include "chip.h"
 #include "ra_gpio.h"
-#include "ra8e1_log.h"
+#include "fpb-ra8e1.h"
 
 
 #ifdef CONFIG_RA8E1_PWM_ESCS
@@ -191,7 +192,7 @@ static int esc_pwm_close(int esc_index)
     {
       /* Stop PWM before closing */
       ioctl(g_esc_channels[esc_index].fd, PWMIOC_STOP, 0);
-      
+
       close(g_esc_channels[esc_index].fd);
       g_esc_channels[esc_index].fd = -1;
       g_esc_channels[esc_index].armed = false;
@@ -286,7 +287,7 @@ static int esc_set_throttle_percent(int esc_index, uint16_t throttle_percent)
     }
 
   /* Convert percentage to pulse width */
-  pulse_us = ESC_PWM_MIN_US + 
+  pulse_us = ESC_PWM_MIN_US +
              ((ESC_PWM_MAX_US - ESC_PWM_MIN_US) * throttle_percent) / 100;
 
   g_esc_channels[esc_index].current_throttle = throttle_percent;
@@ -429,10 +430,10 @@ static void print_menu(void)
   printf("  esc2 0    - Set ESC2 to 0%% throttle\n");
   printf("  arm1      - Arm ESC1 only\n");
   printf("\nCurrent Status:\n");
-  
+
   for (int i = 0; i < NUM_ESC_CHANNELS; i++)
     {
-      printf("  ESC%d: %s, %d%% throttle\n", 
+      printf("  ESC%d: %s, %d%% throttle\n",
              i + 1,
              g_esc_channels[i].armed ? "ARMED" : "DISARMED",
              g_esc_channels[i].current_throttle);
@@ -456,7 +457,7 @@ static int parse_esc_command(const char *command, int *esc_index, int *value)
 
   /* Try to parse "esc<N> <value>" format */
   parsed_items = sscanf(command, "%3s%d %d", cmd_type, &channel, value);
-  
+
   if (parsed_items >= 2 && strcmp(cmd_type, "esc") == 0)
     {
       if (channel >= 1 && channel <= NUM_ESC_CHANNELS)
@@ -472,7 +473,7 @@ static int parse_esc_command(const char *command, int *esc_index, int *value)
 
   /* Try to parse "arm<N>" format */
   parsed_items = sscanf(command, "%3s%d", cmd_type, &channel);
-  
+
   if (parsed_items == 2 && strcmp(cmd_type, "arm") == 0)
     {
       if (channel >= 1 && channel <= NUM_ESC_CHANNELS)
@@ -536,7 +537,7 @@ static void process_rtt_command(const char *command)
     {
       /* Try to parse ESC-specific commands */
       cmd_type = parse_esc_command(command, &esc_index, &value);
-      
+
       if (cmd_type == 1)  /* ESC throttle command */
         {
           if (value >= 0 && value <= 100)
@@ -554,7 +555,7 @@ static void process_rtt_command(const char *command)
         }
       else
         {
-          printf("ERROR: Unknown command '%s'. Type 'help' for commands.\n", 
+          printf("ERROR: Unknown command '%s'. Type 'help' for commands.\n",
                  command);
         }
     }
@@ -611,7 +612,7 @@ int ra8e1_escs_main(int argc, char *argv[])
     }
 
   printf("All PWM devices initialized successfully\n");
-  
+
   /* Safety: Disarm all ESCs initially */
   esc_disarm_all();
 
@@ -621,7 +622,7 @@ int ra8e1_escs_main(int argc, char *argv[])
 
   /* Main command loop */
   printf("Ready for commands (type 'help' for menu):\n> ");
-  
+
   while (g_running)
     {
       /* Check for input */
@@ -652,7 +653,7 @@ int ra8e1_escs_main(int argc, char *argv[])
               printf("%c", ch);
             }
         }
-      
+
       usleep(10000);  /* 10ms delay */
     }
 
@@ -660,7 +661,7 @@ cleanup:
   /* Cleanup: Disarm all ESCs and close devices */
   printf("Cleaning up...\n");
   esc_disarm_all();
-  
+
   for (i = 0; i < NUM_ESC_CHANNELS; i++)
     {
       esc_pwm_close(i);
@@ -687,10 +688,10 @@ int ra8e1_esc_get_status(int esc_index, struct esc_status_s *status)
 
   status->armed = g_esc_channels[esc_index].armed;
   status->throttle_percent = g_esc_channels[esc_index].current_throttle;
-  
+
   /* Calculate current pulse width */
-  status->pulse_width_us = ESC_PWM_MIN_US + 
-                          ((ESC_PWM_MAX_US - ESC_PWM_MIN_US) * 
+  status->pulse_width_us = ESC_PWM_MIN_US +
+                          ((ESC_PWM_MAX_US - ESC_PWM_MIN_US) *
                            status->throttle_percent) / 100;
 
   return OK;
@@ -731,12 +732,12 @@ int ra8e1_escs_test(void)
   for (i = 0; i <= 25; i += 5)
     {
       printf("Setting all ESCs to %d%% throttle\n", i);
-      
+
       for (int j = 0; j < NUM_ESC_CHANNELS; j++)
         {
           esc_set_throttle_percent(j, i);
         }
-      
+
       sleep(1);  /* Wait 1 second between steps */
     }
 
@@ -746,12 +747,12 @@ int ra8e1_escs_test(void)
   for (i = 25; i >= 0; i -= 5)
     {
       printf("Setting all ESCs to %d%% throttle\n", i);
-      
+
       for (int j = 0; j < NUM_ESC_CHANNELS; j++)
         {
           esc_set_throttle_percent(j, i);
         }
-      
+
       sleep(1);  /* Wait 1 second between steps */
     }
 

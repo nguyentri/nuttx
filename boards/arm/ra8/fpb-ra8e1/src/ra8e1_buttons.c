@@ -75,14 +75,12 @@ static int button_handler_isr(int irq, void *context, void *arg)
 /****************************************************************************
  * Name: board_button_initialize
  ****************************************************************************/
-#ifdef CONFIG_ARCH_BUTTONS
 uint32_t board_button_initialize(void)
 {
   /* Configure the button pin as an input with pullup and interrupt on falling edge */
   ra_configgpio(GPIO_SW1);
 
   /* Attach the button interrupt handler */
-  ra_icu_attach(RA_EL_ICU_IRQ0, button_handler_isr, NULL);
+  ra_icu_attach(RA_ELC_ICU_IRQ0, button_handler_isr, NULL);
   return 1;
 }
-#endif

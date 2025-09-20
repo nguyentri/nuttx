@@ -233,7 +233,7 @@ int ra8e1_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_RA8E1_GPIO
+#ifdef CONFIG_RA_GPIO
   /* Initialize GPIO drivers */
 
   ret = ra8e1_gpio_initialize();
@@ -371,20 +371,6 @@ int ra8e1_bringup(void)
     {
       syslog(LOG_INFO, "I2C ACC demo initialized successfully\n");
     }
-
-#ifdef CONFIG_RA8E1_I2C_TEST
-  /* Initialize I2C Simple demo */
-  ret = ra8e1_i2c_test_init();
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to initialize I2C Simple demo: %d\n", ret);
-      /* Don't return error, continue with other initialization */
-    }
-  else
-    {
-      syslog(LOG_INFO, "I2C Simple demo initialized successfully\n");
-    }
-#endif
 #endif
 
 #ifdef CONFIG_RA_SPI

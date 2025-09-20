@@ -144,12 +144,6 @@ config RA8E1_TRANSFER_BENCHMARK
 	---help---
 		Enable transfer engine benchmark application.
 		Compares performance of CPU vs DTC vs DMAC transfers.
-	bool "Battery Management System ADC support"
-	default n
-	depends on RA_ADC
-	---help---
-		Enable battery management system support using internal ADC
-		for voltage and current monitoring.
 
 # ##############################################################################
 # Example Applications Configuration

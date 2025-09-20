@@ -45,7 +45,7 @@
 #include "chip.h"
 #include "ra_gpio.h"
 #include "ra_sci.h"
-#include "ra8e1_log.h"
+#include "fpb-ra8e1.h"
 
 /* GPS NMEA Parameters */
 

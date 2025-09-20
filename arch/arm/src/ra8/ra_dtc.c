@@ -251,15 +251,15 @@ static int ra_dtc_interrupt_handler(int irq, void *context, void *arg)
 
   if (ctrl && ctrl->config.callback)
     {
-      /* For DTC completion interrupt (RA_EL_DTC_COMPLETE), the specific
+      /* For DTC completion interrupt (RA_ELC_DTC_COMPLETE), the specific
        * transfer that completed is indicated in DTCSTS register.
        * However, since we're using individual control blocks per transfer,
        * we can directly call the callback for this specific context.
        */
-      
+
       /* Check if DTC is still active for this specific transfer */
       uint32_t dtc_status = getreg32(RA_DTC_DTCSTS);
-      
+
       /* If DTC is no longer active, the transfer completed */
       if (!(dtc_status & RA_DTC_DTCSTS_ACT))
         {
@@ -422,32 +422,32 @@ int ra_dtc_open(ra_dtc_handle_t *handle, const ra_dtc_config_t *config)
     }
 
   /* Setup hardware trigger if used */
-  if (!config->software_trigger && config->activation_source >= 0)
+  if (!config->software_trigger && config->elc_src >= 0)
     {
       /* For event link triggered transfers, DTC hardware uses the event link
        * number as index into vector table, NOT the ICU IRQ slot number.
        * The event link itself should NOT have an interrupt handler attached
        * since DTC handles the transfer automatically on the event.
        */
-      
+
       /* Validate event link number is within vector table bounds */
-      if (config->activation_source >= RA_DTC_VECTOR_TABLE_ENTRIES)
+      if (config->elc_src >= RA_DTC_VECTOR_TABLE_ENTRIES)
         {
           kmm_free(ctrl->info);
           return -EINVAL;
         }
 
       /* Set vector table entry using the event link number */
-      g_dtc_vector_table[config->activation_source] = ctrl->info;
-      
+      g_dtc_vector_table[config->elc_src] = ctrl->info;
+
       /* If completion callback is needed, attach DTC completion interrupt */
       if (config->callback)
         {
           /* Use DTC completion interrupt for notification */
-          ret = ra_icu_attach(RA_EL_DTC_COMPLETE, ra_dtc_interrupt_handler, ctrl);
+          ret = ra_icu_attach(RA_ELC_DTC_COMPLETE, ra_dtc_interrupt_handler, ctrl);
           if (ret < 0)
             {
-              g_dtc_vector_table[config->activation_source] = NULL;
+              g_dtc_vector_table[config->elc_src] = NULL;
               kmm_free(ctrl->info);
               return ret;
             }
@@ -503,9 +503,9 @@ int ra_dtc_close(ra_dtc_handle_t handle)
     }
 
   /* Clear vector table entry if hardware trigger was used */
-  if (!ctrl->config.software_trigger && ctrl->config.activation_source >= 0)
+  if (!ctrl->config.software_trigger && ctrl->config.elc_src >= 0)
     {
-      g_dtc_vector_table[ctrl->config.activation_source] = NULL;
+      g_dtc_vector_table[ctrl->config.elc_src] = NULL;
     }
 
   /* Free transfer information */

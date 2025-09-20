@@ -207,7 +207,7 @@ static uint32_t ra_gpio_get_pfs_config(gpio_pinset_t cfgset)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ra_gpio_config
+ * Name: ra_configgpio
  *
  * Description:
  *   Configure a GPIO pin based on encoded pin configuration.
@@ -220,7 +220,7 @@ static uint32_t ra_gpio_get_pfs_config(gpio_pinset_t cfgset)
  *
  ****************************************************************************/
 
-int ra_gpio_config(gpio_pinset_t cfgset)
+int ra_configgpio(gpio_pinset_t cfgset)
 {
   uint8_t port;
   uint8_t pin;
@@ -248,7 +248,7 @@ int ra_gpio_config(gpio_pinset_t cfgset)
 }
 
 /****************************************************************************
- * Name: ra_gpio_write
+ * Name: ra_gpiowrite
  *
  * Description:
  *   Write one or zero to the selected GPIO pin
@@ -259,7 +259,7 @@ int ra_gpio_config(gpio_pinset_t cfgset)
  *
  ****************************************************************************/
 
-void ra_gpio_write(gpio_pinset_t pinset, bool value)
+void ra_gpiowrite(gpio_pinset_t pinset, bool value)
 {
   uint8_t port;
   uint8_t pin;
@@ -479,47 +479,4 @@ void ra_gpio_set_drive_strength(gpio_pinset_t pinset, uint8_t strength)
   putreg32(pfs_value, pfs_addr);
 
   ra_pin_access_disable();
-}
-
-/****************************************************************************
- * Legacy wrapper functions for compatibility
- ****************************************************************************/
-
-/****************************************************************************
- * Name: ra_configgpio
- *
- * Description:
- *   Legacy wrapper for ra_gpio_config
- *
- ****************************************************************************/
-
-void ra_configgpio(gpio_pinset_t cfgset)
-{
-  (void)ra_gpio_config(cfgset);
-}
-
-/****************************************************************************
- * Name: ra_gpiowrite
- *
- * Description:
- *   Legacy wrapper for ra_gpio_write
- *
- ****************************************************************************/
-
-void ra_gpiowrite(gpio_pinset_t pinset, bool value)
-{
-  ra_gpio_write(pinset, value);
-}
-
-/****************************************************************************
- * Name: ra_gpioread
- *
- * Description:
- *   Legacy wrapper for ra_gpio_read
- *
- ****************************************************************************/
-
-bool ra_gpioread(gpio_pinset_t pinset)
-{
-  return ra_gpio_read(pinset);
 }

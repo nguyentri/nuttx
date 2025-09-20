@@ -68,7 +68,7 @@ typedef struct ra_dtc_config_s
   uint32_t             transfer_count;   /* Number of transfers */
   uint32_t             block_count;      /* Number of blocks (block mode) */
 
-  int                  activation_source; /* Hardware trigger source (event link) */
+  int                  elc_src; /* Hardware trigger source (event link) */
 
   ra_dtc_callback_t    callback;         /* Transfer callback */
   void                *user_data;        /* User data for callback */

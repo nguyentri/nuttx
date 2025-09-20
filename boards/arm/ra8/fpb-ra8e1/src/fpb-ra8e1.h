@@ -18,8 +18,8 @@
  *
  ****************************************************************************/
 
-#ifndef __BOARDS_ARM_RA8_FPBA8E1_SRC_H
-#define __BOARDS_ARM_RA8_FPBA8E1_SRC_H
+#ifndef __BOARDS_ARM_RA8_FPB_RA8E1_SRC_H
+#define __BOARDS_ARM_RA8_FPB_RA8E1_SRC_H
 
 /****************************************************************************
  * Included Files
@@ -40,6 +40,9 @@
 /****************************************************************************
  * Public Types
  ****************************************************************************/
+
+/* Forward declarations */
+struct spi_dev_s;
 
 /****************************************************************************
  * Public Data
@@ -95,48 +98,54 @@ void board_autoled_off(int led);
 #endif
 
 /****************************************************************************
- * Name: gy912_register_sensors
- *
- * Description:
- *   Register GY-912 sensors with the sensor framework
- *
+ * Nuttx driver interfaces
  ****************************************************************************/
-
-#ifdef CONFIG_RA8E1_SPI_GY912_EXAMPLE
-struct spi_dev_s;
-int gy912_register_sensors(FAR struct spi_dev_s *spi);
-#endif
-
-/****************************************************************************
- * Name: ra8e1_gpio_initialize
- *
- * Description:
- *   Initialize GPIO drivers for use with /apps/examples/gpio
- *
- * Return Value:
- *   OK on success; a negated errno value on failure.
- *
- ****************************************************************************/
-
-#ifdef CONFIG_RA8E1_GPIO
-int ra8e1_gpio_initialize(void);
-#endif
 
 #ifdef CONFIG_RTC_DRIVER
 int board_rtc_initialize(void);
 #endif
 
-#ifdef CONFIG_RA_SPI
-int ra8e1_spi_initialize(void);
+/****************************************************************************
+ * RA8E1 driver interfaces for use by applications on the fpb-ra8e1 board
+ ****************************************************************************/
+
+#ifdef CONFIG_RA_GPIO
+int ra8e1_gpio_initialize(void);
 #endif
 
-#ifdef CONFIG_RA_SPI_LOOPBACK_EXAMPLE
+#ifdef CONFIG_RA_SPI
+int ra8e1_spi_initialize(void);
+
+#ifdef CONFIG_RA_SPI0
+/* SPI bus-specific board functions required by ra_spi.c */
+void ra_spi0select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected);
+uint8_t ra_spi0status(FAR struct spi_dev_s *dev, uint32_t devid);
+#ifdef CONFIG_SPI_CMDDATA
+int ra_spi0cmddata(FAR struct spi_dev_s *dev, uint32_t devid, bool cmd);
+#endif
+#endif /* CONFIG_RA_SPI0 */
+
+#ifdef CONFIG_RA_SPI1
+void ra_spi1select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected);
+uint8_t ra_spi1status(FAR struct spi_dev_s *dev, uint32_t devid);
+#ifdef CONFIG_SPI_CMDDATA
+int ra_spi1cmddata(FAR struct spi_dev_s *dev, uint32_t devid, bool cmd);
+#endif
+#endif /* CONFIG_RA_SPI1 */
+
+#endif /* CONFIG_RA_SPI */
+
+/****************************************************************************
+ * Example application interfaces
+ ****************************************************************************/
+
+#ifdef CONFIG_RA8E1_SPI_LOOPBACK_EXAMPLE
 int ra8e1_spi_loopback_init(void);
 int ra8e1_spi_loopback_test(void);
 int ra8e1_spi_loopback_main(int argc, char *argv[]);
 #endif
 
-#ifdef CONFIG_RA_ADC_BMS
+#ifdef CONFIG_RA_ADC_BMS_EXAMPLE
 int ra8e1_adc_bms_init(void);
 int ra8e1_adc_bms_main(int argc, FAR char *argv[]);
 #endif
@@ -179,13 +188,21 @@ int ra8e1_i2c_gy912_init(void);
 int ra8e1_i2c_gy912_main(int argc, FAR char *argv[]);
 #endif
 
-#ifdef CONFIG_RAE1_I2C_TEST
-int ra8e1_i2c_test_init(void);
-int ra8e1_i2c_test_main(int argc, char *argv[]);
-#endif
-
 #ifdef CONFIG_RA8E1_RUST_EXAMPLE
 int ra8e1_thread_init(void);
+#endif
+
+/****************************************************************************
+ * Name: gy912_register_sensors
+ *
+ * Description:
+ *   Register GY-912 sensors with the sensor framework
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_RA8E1_SPI_GY912_EXAMPLE
+struct spi_dev_s;
+int gy912_register_sensors(FAR struct spi_dev_s *spi);
 #endif
 
 #endif /* __ASSEMBLY__ */

@@ -40,17 +40,17 @@
  */
 
 /* UART/SCI Pin Definitions */
-#define GPIO_SCI2_RX   GPIO_RXD2_MISO2_SCL2_2  /* P802 - SBUS RX (Drone RC) */
-#define GPIO_SCI2_TX   GPIO_TXD2_MOSI2_SDA2_2  /* P801 */
+#define GPIO_SCI2_RX   GPIO_RXD2_MISO2_SCL2_A  /* P802 - SBUS RX (Drone RC) */
+#define GPIO_SCI2_TX   GPIO_TXD2_MOSI2_SDA2_A  /* P801 */
 
-#define GPIO_SCI1_RX   GPIO_RXD1_MISO1_SCL1_3  /* P502 */
-#define GPIO_SCI1_TX   GPIO_TXD1_MOSI1_SDA1_3  /* P501 */
+#define GPIO_SCI1_RX   GPIO_RXD1_MISO1_SCL1_A  /* P401 */
+#define GPIO_SCI1_TX   GPIO_TXD1_MOSI1_SDA1_A  /* P400 */
 
 #define GPIO_SCI3_RX   GPIO_RXD3_MISO3_SCL3_B  /* P309 - GPS RX */
 #define GPIO_SCI3_TX   GPIO_TXD3_MOSI3_SDA3_B  /* P310 - GPS TX */
 
-#define GPIO_SCI9_RX   GPIO_RXD9_MISO9_SCL9_1  /* P110 */
-#define GPIO_SCI9_TX   GPIO_TXD9_MOSI9_SDA9_1  /* P109 */
+#define GPIO_SCI9_RX   GPIO_RXD9_MISO9_SCL9_A  /* P101 */
+#define GPIO_SCI9_TX   GPIO_TXD9_MOSI9_SDA9_A  /* P102 */
 
 /* SPI0 Pin Definitions (IMU/Barometer on Pmod 1) - Master */
 #define GPIO_SPI0_SCK   GPIO_SCK0_C            /* P611 - SPI Clock */
@@ -59,10 +59,10 @@
 #define GPIO_SPI0_SS0   GPIO_SS0_CTS_RTS0_C    /* P612 - IMU CS (ICM20948) */
 
 /* SPI1 Pin Definitions (Expansion/Loopback) - Slave */
-#define GPIO_SPI1_SCK   GPIO_SCK1_A            /* P500 - SPI1 Clock */
-#define GPIO_SPI1_MOSI  GPIO_MOSI1_TXD1_SDA1_A /* P501 - SPI1 MOSI */
-#define GPIO_SPI1_MISO  GPIO_MISO1_RXD1_SCL1_A /* P502 - SPI1 MISO */
-#define GPIO_SPI1_SS0   GPIO_SS1_CTS_RTS1_A    /* P503 - SPI1 CS */
+#define GPIO_SPI1_SCK   GPIO_RSPCKB_B          /* P412 - SPI1 Clock (RSPCKB_B) */
+#define GPIO_SPI1_MOSI  GPIO_MOSIB_B           /* P411 - SPI1 MOSI (MOSIB_B) */
+#define GPIO_SPI1_MISO  GPIO_MISOB_B           /* P410 - SPI1 MISO (MISOB_B) */
+#define GPIO_SPI1_SSL0  GPIO_SSLB0_B           /* P413 - SPI Slave selection (SSLB0_B) */
 
 /* PWM/GPT Timer Pin Definitions for ESC Control */
 #define GPIO_GPT0_A     GPIO_GTIOC0A_2         /* P415 - ESC 1 PWM (ch 0A) */
@@ -148,27 +148,6 @@
 #define GPIO_COMM_EXP2   GPIO_P801_INPUT        /* P801 - Communication expansion 2 */
 #define GPIO_COMM_EXP3   GPIO_P803_INPUT        /* P803 - Communication expansion 3 */
 #define GPIO_COMM_EXP4   GPIO_P804_INPUT        /* P804 - Communication expansion 4 */
-
-/* GPIO Pin Definitions for Enhanced UART Driver ***********************/
-
-/* SCI2 UART for SBUS RC Receiver (P802 RXD2) */
-#ifdef CONFIG_RA_UART2_SBUS
-#  define GPIO_UART2_RXD    GPIO_UART2_RXD_1
-#  define GPIO_UART2_TXD    GPIO_UART2_TXD_1
-#endif
-
-/* SCI3 UART for GPS Module (P309 RXD3, P310 TXD3) */
-#ifdef CONFIG_RA_UART3_GPS
-#  define GPIO_UART3_RXD    GPIO_UART3_RXD_1
-#  define GPIO_UART3_TXD    GPIO_UART3_TXD_1
-#endif
-
-/* SCI1 UART for Telemetry (MAVLink) - if configured */
-#ifdef CONFIG_RA_UART1_TELEMETRY
-#  define GPIO_UART1_RXD    GPIO_UART1_RXD_1
-#  define GPIO_UART1_TXD    GPIO_UART1_TXD_1
-#endif
-
 
 /* Drone-specific Pin Name Mappings ************************************/
 

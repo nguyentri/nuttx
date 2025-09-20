@@ -40,26 +40,22 @@
 
 #include <arch/board/board.h>
 #include "ra_spi.h"
+#include "ra_gpio.h"
 #include "fpb-ra8e1.h"
-
-/* SPI Configuration */
-#define SPI_LOOPBACK_BUFFER_SIZE    32
-#define SPI_LOOPBACK_FREQUENCY      1000000  /* 1 MHz */
-#define SPI_LOOPBACK_MODE           SPIDEV_MODE0
-
-/* Test Commands */
-#define SPI_TEST_WRITE_AND_READ     1
-#define SPI_TEST_WRITE_READ         2
-#define SPI_TEST_EXIT               3
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* SPI buffer length - matching FSP example */
+/* SPI Configuration for loopback test */
+#define SPI_LOOPBACK_BUFFER_SIZE    32
+#define SPI_LOOPBACK_FREQUENCY      1000000  /* 1 MHz */
+#define SPI_LOOPBACK_MODE           0        /* Mode 0 */
+
+/* SPI buffer length for loopback test */
 #define SPI_BUFF_LEN        32
 #define SPI_FREQUENCY       1000000  /* 1 MHz */
-#define SPI_MODE            SPIDEV_MODE0
+#define SPI_MODE            0        /* Mode 0 */
 
 /* Test patterns */
 #define TEST_PATTERN_1      0x12345678
@@ -67,8 +63,9 @@
 #define TEST_PATTERN_3      0x55AA55AA
 #define TEST_PATTERN_4      0xFF00FF00
 
-/* Max wait count for synchronization */
-#define MAX_WAIT_COUNT      1000000
+/* SPI Device IDs for loopback test */
+#define SPI_DEVICE_SPI0     0x0000
+#define SPI_DEVICE_SPI1     0x0001
 
 /****************************************************************************
  * Private Types
@@ -76,15 +73,12 @@
 
 struct spi_loopback_s
 {
-  FAR struct spi_dev_s *master;
-  FAR struct spi_dev_s *slave;
-  uint32_t master_tx_buff[SPI_BUFF_LEN];
-  uint32_t master_rx_buff[SPI_BUFF_LEN];
-  uint32_t slave_tx_buff[SPI_BUFF_LEN];
-  uint32_t slave_rx_buff[SPI_BUFF_LEN];
-  volatile bool master_complete;
-  volatile bool slave_complete;
-  volatile bool test_running;
+  FAR struct spi_dev_s *spi0;           /* SPI0 master */
+  FAR struct spi_dev_s *spi1;           /* SPI1 master */
+  uint8_t spi0_tx_buff[SPI_BUFF_LEN];   /* SPI0 transmit buffer */
+  uint8_t spi0_rx_buff[SPI_BUFF_LEN];   /* SPI0 receive buffer */
+  uint8_t spi1_tx_buff[SPI_BUFF_LEN];   /* SPI1 transmit buffer */
+  uint8_t spi1_rx_buff[SPI_BUFF_LEN];   /* SPI1 receive buffer */
 };
 
 /****************************************************************************
@@ -98,10 +92,62 @@ static struct spi_loopback_s g_spi_loopback;
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: ra_spi_select (strong override for loopback)
+ *
+ * Description:
+ *   Enable/disable the SPI chip select for loopback test
+ *   For loopback testing, CS is not used
+ *
+ ****************************************************************************/
+
+void ra_spi_select(struct spi_dev_s *dev, uint32_t devid, bool selected)
+{
+  /* No CS control needed for loopback testing */
+  /* MOSI is connected directly to MISO for each SPI controller */
+  UNUSED(dev);
+  UNUSED(devid);
+  UNUSED(selected);
+}
+
+/****************************************************************************
+ * Name: ra_spi_status (strong override for loopback)
+ *
+ * Description:
+ *   Return status information for loopback test
+ *
+ ****************************************************************************/
+
+uint8_t ra_spi_status(struct spi_dev_s *dev, uint32_t devid)
+{
+  /* For loopback test, device is always present */
+  UNUSED(dev);
+  UNUSED(devid);
+  return SPI_STATUS_PRESENT;
+}
+
+/****************************************************************************
+ * Name: ra_spi_cmddata (strong override for loopback)
+ *
+ * Description:
+ *   Control the SPI CMD/DATA GPIO for loopback test
+ *
+ ****************************************************************************/
+
+int ra_spi_cmddata(struct spi_dev_s *dev, uint32_t devid, bool cmd)
+{
+  /* Loopback test doesn't use CMD/DATA line */
+  return 0;
+}
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+/****************************************************************************
  * Name: spi_prepare_test_data
  *
  * Description:
- *   Prepare test data buffers with known patterns
+ *   Prepare test data buffers with known patterns for loopback test
  *
  ****************************************************************************/
 
@@ -110,74 +156,88 @@ static void spi_prepare_test_data(void)
   int i;
 
   /* Clear all buffers */
-  memset(g_spi_loopback.master_tx_buff, 0, sizeof(g_spi_loopback.master_tx_buff));
-  memset(g_spi_loopback.master_rx_buff, 0, sizeof(g_spi_loopback.master_rx_buff));
-  memset(g_spi_loopback.slave_tx_buff, 0, sizeof(g_spi_loopback.slave_tx_buff));
-  memset(g_spi_loopback.slave_rx_buff, 0, sizeof(g_spi_loopback.slave_rx_buff));
+  memset(g_spi_loopback.spi0_tx_buff, 0, sizeof(g_spi_loopback.spi0_tx_buff));
+  memset(g_spi_loopback.spi0_rx_buff, 0, sizeof(g_spi_loopback.spi0_rx_buff));
+  memset(g_spi_loopback.spi1_tx_buff, 0, sizeof(g_spi_loopback.spi1_tx_buff));
+  memset(g_spi_loopback.spi1_rx_buff, 0, sizeof(g_spi_loopback.spi1_rx_buff));
 
-  /* Fill master TX buffer with test patterns */
+  /* Fill SPI0 TX buffer with test patterns */
   for (i = 0; i < SPI_BUFF_LEN; i++)
     {
       switch (i % 4)
         {
           case 0:
-            g_spi_loopback.master_tx_buff[i] = TEST_PATTERN_1 + i;
+            g_spi_loopback.spi0_tx_buff[i] = (TEST_PATTERN_1 + i) & 0xFF;
             break;
           case 1:
-            g_spi_loopback.master_tx_buff[i] = TEST_PATTERN_2 + i;
+            g_spi_loopback.spi0_tx_buff[i] = (TEST_PATTERN_2 + i) & 0xFF;
             break;
           case 2:
-            g_spi_loopback.master_tx_buff[i] = TEST_PATTERN_3 + i;
+            g_spi_loopback.spi0_tx_buff[i] = (TEST_PATTERN_3 + i) & 0xFF;
             break;
           case 3:
-            g_spi_loopback.master_tx_buff[i] = TEST_PATTERN_4 + i;
+            g_spi_loopback.spi0_tx_buff[i] = (TEST_PATTERN_4 + i) & 0xFF;
             break;
         }
     }
 
-  /* Fill slave TX buffer with inverted patterns for loopback response */
+  /* Fill SPI1 TX buffer with different test patterns */
   for (i = 0; i < SPI_BUFF_LEN; i++)
     {
-      g_spi_loopback.slave_tx_buff[i] = ~g_spi_loopback.master_tx_buff[i];
+      switch (i % 4)
+        {
+          case 0:
+            g_spi_loopback.spi1_tx_buff[i] = (~TEST_PATTERN_1 + i) & 0xFF;
+            break;
+          case 1:
+            g_spi_loopback.spi1_tx_buff[i] = (~TEST_PATTERN_2 + i) & 0xFF;
+            break;
+          case 2:
+            g_spi_loopback.spi1_tx_buff[i] = (~TEST_PATTERN_3 + i) & 0xFF;
+            break;
+          case 3:
+            g_spi_loopback.spi1_tx_buff[i] = (~TEST_PATTERN_4 + i) & 0xFF;
+            break;
+        }
     }
 
-  spiinfo("Test data prepared: Master TX[0]=0x%08lx, Slave TX[0]=0x%08lx\n",
-          g_spi_loopback.master_tx_buff[0], g_spi_loopback.slave_tx_buff[0]);
+  spiinfo("Test data prepared: SPI0 TX[0]=0x%02x, SPI1 TX[0]=0x%02x\n",
+          g_spi_loopback.spi0_tx_buff[0], g_spi_loopback.spi1_tx_buff[0]);
 }
 
 /****************************************************************************
- * Name: spi_verify_data
+ * Name: spi_verify_loopback_data
  *
  * Description:
- *   Verify received data against transmitted data
+ *   Verify loopback data - TX data should equal RX data for each SPI
  *
  ****************************************************************************/
 
-static int spi_verify_data(void)
+static int spi_verify_loopback_data(void)
 {
   int i;
   int errors = 0;
 
   spiinfo("Verifying SPI loopback data...\n");
 
-  /* Check if master TX data matches slave RX data */
+  /* Check SPI0: TX data should equal RX data (loopback) */
   for (i = 0; i < SPI_BUFF_LEN; i++)
     {
-      if (g_spi_loopback.master_tx_buff[i] != g_spi_loopback.slave_rx_buff[i])
+      if (g_spi_loopback.spi0_tx_buff[i] != g_spi_loopback.spi0_rx_buff[i])
         {
-          spierr("Master TX / Slave RX mismatch at index %d: 0x%08lx != 0x%08lx\n",
-                 i, g_spi_loopback.master_tx_buff[i], g_spi_loopback.slave_rx_buff[i]);
+          spierr("SPI0 loopback mismatch at index %d: TX=0x%02x != RX=0x%02x\n",
+                 i, g_spi_loopback.spi0_tx_buff[i], g_spi_loopback.spi0_rx_buff[i]);
           errors++;
         }
     }
 
-  /* Check if slave TX data matches master RX data */
+  /* Check SPI1: TX data should equal RX data (loopback) */
   for (i = 0; i < SPI_BUFF_LEN; i++)
     {
-      if (g_spi_loopback.slave_tx_buff[i] != g_spi_loopback.master_rx_buff[i])
+      if (g_spi_loopback.spi1_tx_buff[i] != g_spi_loopback.spi1_rx_buff[i])
         {
-          spierr("Slave TX / Master RX mismatch at index %d: 0x%08lx != 0x%08lx\n",
-                 i, g_spi_loopback.slave_tx_buff[i], g_spi_loopback.master_rx_buff[i]);
+          spierr("SPI1 loopback mismatch at index %d: TX=0x%02x != RX=0x%02x\n",
+                 i, g_spi_loopback.spi1_tx_buff[i], g_spi_loopback.spi1_rx_buff[i]);
           errors++;
         }
     }
@@ -185,11 +245,13 @@ static int spi_verify_data(void)
   if (errors == 0)
     {
       spiinfo("✓ SPI loopback test PASSED - all data verified successfully\n");
+      spiinfo("  SPI0: %d bytes looped back correctly\n", SPI_BUFF_LEN);
+      spiinfo("  SPI1: %d bytes looped back correctly\n", SPI_BUFF_LEN);
       return OK;
     }
   else
     {
-      spierr("✗ SPI loopback test FAILED - %d data mismatches found\n", errors);
+      spierr("✗ SPI loopback test FAILED - %d errors found\n", errors);
       return -EIO;
     }
 }
@@ -198,112 +260,62 @@ static int spi_verify_data(void)
  * Name: spi_configure_devices
  *
  * Description:
- *   Configure SPI master and slave devices
+ *   Configure both SPI devices as masters for loopback testing
  *
  ****************************************************************************/
 
 static int spi_configure_devices(void)
 {
-  /* Configure SPI Master (SPI0) */
-  SPI_LOCK(g_spi_loopback.master, true);
-  SPI_SETMODE(g_spi_loopback.master, SPI_MODE);
-  SPI_SETBITS(g_spi_loopback.master, 32);  /* 32-bit transfers */
-  SPI_SETFREQUENCY(g_spi_loopback.master, SPI_FREQUENCY);
-  SPI_LOCK(g_spi_loopback.master, false);
+  /* Configure SPI0 as master */
+  SPI_LOCK(g_spi_loopback.spi0, true);
+  SPI_SETMODE(g_spi_loopback.spi0, SPI_MODE);
+  SPI_SETBITS(g_spi_loopback.spi0, 8);   /* 8-bit transfers */
+  SPI_SETFREQUENCY(g_spi_loopback.spi0, SPI_FREQUENCY);
+  SPI_LOCK(g_spi_loopback.spi0, false);
 
-  /* Configure SPI Slave (SPI1) */
-  SPI_LOCK(g_spi_loopback.slave, true);
-  SPI_SETMODE(g_spi_loopback.slave, SPI_MODE);
-  SPI_SETBITS(g_spi_loopback.slave, 32);   /* 32-bit transfers */
-  SPI_SETFREQUENCY(g_spi_loopback.slave, SPI_FREQUENCY);
-  SPI_LOCK(g_spi_loopback.slave, false);
+  /* Configure SPI1 as master */
+  SPI_LOCK(g_spi_loopback.spi1, true);
+  SPI_SETMODE(g_spi_loopback.spi1, SPI_MODE);
+  SPI_SETBITS(g_spi_loopback.spi1, 8);   /* 8-bit transfers */
+  SPI_SETFREQUENCY(g_spi_loopback.spi1, SPI_FREQUENCY);
+  SPI_LOCK(g_spi_loopback.spi1, false);
 
-  spiinfo("SPI devices configured: Master=%p, Slave=%p\n",
-          g_spi_loopback.master, g_spi_loopback.slave);
+  spiinfo("SPI devices configured: SPI0=%p, SPI1=%p (both as masters)\n",
+          g_spi_loopback.spi0, g_spi_loopback.spi1);
 
   return OK;
 }
 
 /****************************************************************************
- * Name: spi_test_write_and_read
+ * Name: spi_test_loopback
  *
  * Description:
- *   Test separate write and read operations (matching FSP example)
+ *   Test SPI loopback where MOSI is connected to MISO for each SPI
  *
  ****************************************************************************/
 
-static int spi_test_write_and_read(void)
+static int spi_test_loopback(void)
 {
-  spiinfo("Starting SPI write-and-read test...\n");
+  spiinfo("Starting SPI loopback test...\n");
+  spiinfo("Hardware connections required:\n");
+  spiinfo("  SPI0: Connect P609 (MOSI) to P610 (MISO)\n");
+  spiinfo("  SPI1: Connect P411 (MOSI) to P410 (MISO)\n\n");
 
-  /* Reset completion flags */
-  g_spi_loopback.master_complete = false;
-  g_spi_loopback.slave_complete = false;
+  /* Test SPI0 loopback */
+  spiinfo("Testing SPI0 loopback (MOSI->MISO)...\n");
+  SPI_LOCK(g_spi_loopback.spi0, true);
+  SPI_EXCHANGE(g_spi_loopback.spi0, g_spi_loopback.spi0_tx_buff,
+               g_spi_loopback.spi0_rx_buff, SPI_BUFF_LEN);
+  SPI_LOCK(g_spi_loopback.spi0, false);
 
-  /* Step 1: Slave prepares to receive data from Master */
-  SPI_LOCK(g_spi_loopback.slave, true);
-  SPI_RECVBLOCK(g_spi_loopback.slave, g_spi_loopback.slave_rx_buff,
-                SPI_BUFF_LEN * sizeof(uint32_t));
-  SPI_LOCK(g_spi_loopback.slave, false);
+  /* Test SPI1 loopback */
+  spiinfo("Testing SPI1 loopback (MOSI->MISO)...\n");
+  SPI_LOCK(g_spi_loopback.spi1, true);
+  SPI_EXCHANGE(g_spi_loopback.spi1, g_spi_loopback.spi1_tx_buff,
+               g_spi_loopback.spi1_rx_buff, SPI_BUFF_LEN);
+  SPI_LOCK(g_spi_loopback.spi1, false);
 
-  /* Step 2: Master sends data to Slave */
-  SPI_LOCK(g_spi_loopback.master, true);
-  SPI_SNDBLOCK(g_spi_loopback.master, g_spi_loopback.master_tx_buff,
-               SPI_BUFF_LEN * sizeof(uint32_t));
-  SPI_LOCK(g_spi_loopback.master, false);
-
-  /* Small delay to ensure first transfer completes */
-  usleep(10000);  /* 10ms */
-
-  /* Step 3: Slave sends response data to Master */
-  SPI_LOCK(g_spi_loopback.slave, true);
-  SPI_SNDBLOCK(g_spi_loopback.slave, g_spi_loopback.slave_tx_buff,
-               SPI_BUFF_LEN * sizeof(uint32_t));
-  SPI_LOCK(g_spi_loopback.slave, false);
-
-  /* Step 4: Master receives response from Slave */
-  SPI_LOCK(g_spi_loopback.master, true);
-  SPI_RECVBLOCK(g_spi_loopback.master, g_spi_loopback.master_rx_buff,
-                SPI_BUFF_LEN * sizeof(uint32_t));
-  SPI_LOCK(g_spi_loopback.master, false);
-
-  spiinfo("Write-and-read test completed successfully\n");
-  return OK;
-}
-
-/****************************************************************************
- * Name: spi_test_write_read
- *
- * Description:
- *   Test simultaneous write/read operations (matching FSP example)
- *
- ****************************************************************************/
-
-static int spi_test_write_read(void)
-{
-  spiinfo("Starting SPI write-read (simultaneous) test...\n");
-
-  /* Reset completion flags */
-  g_spi_loopback.master_complete = false;
-  g_spi_loopback.slave_complete = false;
-
-  /* Reset RX buffers for this test */
-  memset(g_spi_loopback.master_rx_buff, 0, sizeof(g_spi_loopback.master_rx_buff));
-  memset(g_spi_loopback.slave_rx_buff, 0, sizeof(g_spi_loopback.slave_rx_buff));
-
-  /* Slave performs simultaneous write/read */
-  SPI_LOCK(g_spi_loopback.slave, true);
-  SPI_EXCHANGE(g_spi_loopback.slave, g_spi_loopback.slave_tx_buff,
-               g_spi_loopback.slave_rx_buff, SPI_BUFF_LEN * sizeof(uint32_t));
-  SPI_LOCK(g_spi_loopback.slave, false);
-
-  /* Master performs simultaneous write/read */
-  SPI_LOCK(g_spi_loopback.master, true);
-  SPI_EXCHANGE(g_spi_loopback.master, g_spi_loopback.master_tx_buff,
-               g_spi_loopback.master_rx_buff, SPI_BUFF_LEN * sizeof(uint32_t));
-  SPI_LOCK(g_spi_loopback.master, false);
-
-  spiinfo("Write-read (simultaneous) test completed successfully\n");
+  spiinfo("Loopback transfers completed\n");
   return OK;
 }
 
@@ -329,18 +341,18 @@ int ra8e1_spi_loopback_init(void)
   memset(&g_spi_loopback, 0, sizeof(g_spi_loopback));
 
   /* Get SPI0 as master */
-  g_spi_loopback.master = ra_spibus_initialize(0);
-  if (!g_spi_loopback.master)
+  g_spi_loopback.spi0 = ra_spibus_initialize(0);
+  if (!g_spi_loopback.spi0)
     {
-      spierr("Failed to initialize SPI0 (master)\n");
+      spierr("Failed to initialize SPI0\n");
       return -ENODEV;
     }
 
-  /* Get SPI1 as slave */
-  g_spi_loopback.slave = ra_spibus_initialize(1);
-  if (!g_spi_loopback.slave)
+  /* Get SPI1 as master */
+  g_spi_loopback.spi1 = ra_spibus_initialize(1);
+  if (!g_spi_loopback.spi1)
     {
-      spierr("Failed to initialize SPI1 (slave)\n");
+      spierr("Failed to initialize SPI1\n");
       return -ENODEV;
     }
 
@@ -368,9 +380,9 @@ int ra8e1_spi_loopback_test(void)
 {
   int ret;
 
-  spiinfo("=== Starting SPI Loopback Demo Tests ===\n");
+  spiinfo("=== Starting SPI Loopback Test ===\n");
 
-  if (!g_spi_loopback.master || !g_spi_loopback.slave)
+  if (!g_spi_loopback.spi0 || !g_spi_loopback.spi1)
     {
       spierr("SPI devices not initialized. Call ra8e1_spi_loopback_init() first.\n");
       return -EINVAL;
@@ -379,42 +391,22 @@ int ra8e1_spi_loopback_test(void)
   /* Prepare test data */
   spi_prepare_test_data();
 
-  /* Test 1: Write-and-Read (separate operations) */
-  spiinfo("\n--- Test 1: Write-and-Read ---\n");
-  ret = spi_test_write_and_read();
+  /* Run loopback test */
+  ret = spi_test_loopback();
   if (ret < 0)
     {
-      spierr("Write-and-read test failed: %d\n", ret);
+      spierr("Loopback test failed: %d\n", ret);
       return ret;
     }
 
-  /* Verify Test 1 results */
-  ret = spi_verify_data();
-  if (ret < 0)
-    {
-      return ret;
-    }
-
-  /* Prepare fresh test data for Test 2 */
-  spi_prepare_test_data();
-
-  /* Test 2: Write-Read (simultaneous operations) */
-  spiinfo("\n--- Test 2: Write-Read (Simultaneous) ---\n");
-  ret = spi_test_write_read();
-  if (ret < 0)
-    {
-      spierr("Write-read test failed: %d\n", ret);
-      return ret;
-    }
-
-  /* Verify Test 2 results */
-  ret = spi_verify_data();
+  /* Verify results */
+  ret = spi_verify_loopback_data();
   if (ret < 0)
     {
       return ret;
     }
 
-  spiinfo("\n=== SPI Loopback Demo Tests COMPLETED SUCCESSFULLY ===\n");
+  spiinfo("\n=== SPI Loopback Test COMPLETED SUCCESSFULLY ===\n");
   return OK;
 }
 
@@ -430,30 +422,32 @@ int ra8e1_spi_loopback_main(int argc, char *argv[])
 {
   int ret;
 
-  printf("RA8E1 SPI Loopback Demo\n");
+  printf("RA8E1 SPI Loopback Test\n");
   printf("=======================\n");
-  printf("This demo tests SPI communication between two SPI units:\n");
-  printf("- SPI0 as Master\n");
-  printf("- SPI1 as Slave\n");
-  printf("Tests both separate and simultaneous write/read operations.\n\n");
+  printf("This test verifies SPI loopback functionality:\n");
+  printf("- SPI0 and SPI1 both configured as masters\n");
+  printf("- Hardware connections required:\n");
+  printf("  * SPI0: Connect P609 (MOSI) to P610 (MISO)\n");
+  printf("  * SPI1: Connect P411 (MOSI) to P410 (MISO)\n");
+  printf("- Verification: TX data should equal RX data\n\n");
 
-  /* Initialize the demo */
+  /* Initialize the test */
   ret = ra8e1_spi_loopback_init();
   if (ret < 0)
     {
-      printf("Demo initialization failed: %d\n", ret);
+      printf("Test initialization failed: %d\n", ret);
       return ret;
     }
 
-  /* Run the tests */
+  /* Run the test */
   ret = ra8e1_spi_loopback_test();
   if (ret < 0)
     {
-      printf("Demo tests failed: %d\n", ret);
+      printf("Test failed: %d\n", ret);
       return ret;
     }
 
-  printf("\nSPI Loopback Demo completed successfully!\n");
+  printf("\nSPI Loopback Test completed successfully!\n");
   return OK;
 }
 

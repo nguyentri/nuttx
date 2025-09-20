@@ -75,52 +75,24 @@
 /* SPI timeout */
 #define SPI_TIMEOUT_MS          1000
 
-/* Sensor-specific frequency limits */
-#define ICM20948_MAX_FREQ       7000000   /* ICM-20948: =7MHz */
-#define BMP388_MAX_FREQ         10000000  /* BMP388: =10MHz */
-
-/* CS timing delays (in RSPCK cycles) */
-#define CS_SETUP_DELAY          1
-#define CS_HOLD_DELAY           1
-#define CS_NEGATION_DELAY       1
-
-/* The max number of chip selects */
-#define RA_SPI_NCS              4
+/* Default CS timing values (used when application doesn't override) */
+#define CS_SETUP_DELAY          1         /* Default CS setup delay cycles */
+#define CS_HOLD_DELAY           1         /* Default CS hold delay cycles */
+#define CS_NEGATION_DELAY       1         /* Default CS negation delay cycles */
 
 /* DTC transfer modes */
 #define DTC_MODE_NORMAL         0x00
 #define DTC_MODE_REPEAT         0x01
 #define DTC_MODE_BLOCK          0x02
 
-/* RA8E1 SPI Pin definitions from board.h */
-#define PIN_SPI0_SCK    GPIO_SPI0_SCK    /* P611 - SPI Clock */
-#define PIN_SPI0_MOSI   GPIO_SPI0_MOSI   /* P609 - SPI MOSI */
-#define PIN_SPI0_MISO   GPIO_SPI0_MISO   /* P610 - SPI MISO */
-#define PIN_SPI0_CS0    GPIO_SPI0_SS0    /* P612 - Hardware SS0 */
-#define PIN_SPI0_CS1    GPIO_BMP_CS      /* P605 - BMP388 CS */
-
-/* SPI1 Pin definitions from board.h */
-#define PIN_SPI1_SCK    GPIO_SPI1_SCK    /* P500 - SPI1 Clock */
-#define PIN_SPI1_MOSI   GPIO_SPI1_MOSI   /* P501 - SPI1 MOSI */
-#define PIN_SPI1_MISO   GPIO_SPI1_MISO   /* P502 - SPI1 MISO */
-#define PIN_SPI1_CS0    GPIO_SPI1_SSL0    /* P413 - SPI1 SSL0 Slave Selection */
-#define PIN_SPI1_CS1    {0, 0, 0}                /* Not defined on FPB-RA8E1 */
-
 /****************************************************************************
  * Private Types
  ****************************************************************************/
 
-/* Chip Select Configuration */
-struct ra_spi_cs_config_s
-{
-  gpio_pinset_t gpio_pin;   /* GPIO pin for CS control */
-  bool     use_hardware;    /* Use hardware SS0 or GPIO */
-  uint8_t  ssl_select;      /* SSL select value (0-3) */
-  uint32_t max_frequency;   /* Maximum frequency for this device */
-  uint8_t  setup_delay;     /* CS setup delay */
-  uint8_t  hold_delay;      /* CS hold delay */
-  uint8_t  negation_delay;  /* CS negation delay */
-};
+/* Note: CS management is now handled by application-specific */
+/* ra_spi_select() function implementations that override the weak */
+/* functions in this driver. Each application defines its own */
+/* device configurations and CS handling logic. */
 
 /* SPI Device hardware configuration */
 struct ra_spi_config_s
@@ -138,15 +110,13 @@ struct ra_spi_config_s
   int  el_eri;            /* Even Link for Error interrupt */
   uint32_t mstpcrb_bit;   /* Module stop control bit */
 
-  /* Pin configuration */
+  /* Pin configuration - hardware specific */
   gpio_pinset_t sck_pin;       /* SCK pin configuration */
   gpio_pinset_t miso_pin;      /* MISO pin configuration */
   gpio_pinset_t mosi_pin;      /* MOSI pin configuration */
-  gpio_pinset_t cs0_pin;       /* CS0 pin configuration */
-  gpio_pinset_t cs1_pin;       /* CS1 pin configuration */
 
-  /* CS device configurations */
-  struct ra_spi_cs_config_s cs_configs[RA_SPI_NCS];  /* Up to 4 CS devices */
+  struct ra_spi_cs_config_s *cs_config;  /* Array of CS configurations */
+  int num_cs;                     /* Number of CS configurations */
 };
 
 /* DTC Transfer Information */
@@ -214,7 +184,6 @@ static uint8_t ra_spi_getreg8(struct ra_spi_priv_s *priv, uint8_t offset);
 static void ra_spi_cs_assert(struct ra_spi_priv_s *priv, uint32_t devid);
 static void ra_spi_cs_deassert(struct ra_spi_priv_s *priv, uint32_t devid);
 static void ra_spi_cs_configure(struct ra_spi_priv_s *priv, uint32_t devid);
-static uint32_t ra_spi_get_device_max_freq(uint32_t devid);
 
 /* DTC support */
 static int ra_spi_dtc_setup(struct ra_spi_priv_s *priv);
@@ -234,6 +203,9 @@ static int ra_spi_rxi_interrupt(int irq, void *context, void *arg);
 static int ra_spi_txi_interrupt(int irq, void *context, void *arg);
 static int ra_spi_tei_interrupt(int irq, void *context, void *arg);
 static int ra_spi_eri_interrupt(int irq, void *context, void *arg);
+
+/* CS configuration */
+const struct ra_spi_cs_config_s * weak_function ra_spi_get_cs_config(struct spi_dev_s *dev, uint32_t devid);
 
 /* SPI methods */
 static int ra_spi_lock(struct spi_dev_s *dev, bool lock);
@@ -313,56 +285,13 @@ static const struct ra_spi_config_s ra_spi0_config =
 
   .mstpcrb_bit = R_MSTP_MSTPCRB_SPI0,
 
-  /* Pin configuration for FPB-RA8E1 */
-  .sck_pin     = PIN_SPI0_SCK,     /* P611 */
-  .miso_pin    = PIN_SPI0_MISO,    /* P610 */
-  .mosi_pin    = PIN_SPI0_MOSI,    /* P609 */
-  .cs0_pin     = PIN_SPI0_CS0,     /* P612 - Hardware SS0 */
-  .cs1_pin     = PIN_SPI0_CS1,     /* P605 - GPIO CS */
+ /* Pin configuration - uses board-specific definitions from board.h */
+  .sck_pin     = GPIO_SPI0_SCK,     /* SPI Clock pin */
+  .miso_pin    = GPIO_SPI0_MISO,    /* SPI MISO pin */
+  .mosi_pin    = GPIO_SPI0_MOSI,    /* SPI MOSI pin */
 
-  /* CS device configurations */
-  .cs_configs = {
-    /* CS0: ICM-20948 IMU - Hardware SS0 */
-    {
-      .gpio_pin = PIN_SPI0_CS0,
-      .use_hardware = true,
-      .ssl_select = 0,
-      .max_frequency = ICM20948_MAX_FREQ,
-      .setup_delay = CS_SETUP_DELAY,
-      .hold_delay = CS_HOLD_DELAY,
-      .negation_delay = CS_NEGATION_DELAY,
-    },
-    /* CS1: BMP388 Barometer - GPIO CS */
-    {
-      .gpio_pin = PIN_SPI0_CS1,
-      .use_hardware = true,
-      .ssl_select = 1,
-      .max_frequency = BMP388_MAX_FREQ,
-      .setup_delay = CS_SETUP_DELAY,
-      .hold_delay = CS_HOLD_DELAY,
-      .negation_delay = CS_NEGATION_DELAY,
-    },
-    /* CS2: Reserved */
-    {
-      .gpio_pin = {0, 0, 0},
-      .use_hardware = false,
-      .ssl_select = 2,
-      .max_frequency = RA_SPI_MAX_FREQUENCY,
-      .setup_delay = CS_SETUP_DELAY,
-      .hold_delay = CS_HOLD_DELAY,
-      .negation_delay = CS_NEGATION_DELAY,
-    },
-    /* CS3: Reserved */
-    {
-      .gpio_pin = {0, 0, 0},
-      .use_hardware = false,
-      .ssl_select = 3,
-      .max_frequency = RA_SPI_MAX_FREQUENCY,
-      .setup_delay = CS_SETUP_DELAY,
-      .hold_delay = CS_HOLD_DELAY,
-      .negation_delay = CS_NEGATION_DELAY,
-    },
-  },
+  .cs_config = NULL,  /* Application-specific CS configurations will be initialized by the runtime */
+  .num_cs = 0,        /* Number of CS configurations will be set at runtime */
 };
 
 static struct ra_spi_priv_s ra_spi0_priv =
@@ -397,52 +326,13 @@ static const struct ra_spi_config_s ra_spi1_config =
 
   .mstpcrb_bit = R_MSTP_MSTPCRB_SPI1,
 
-  /* Pin configuration for FPB-RA8E1 */
-  .sck_pin     = PIN_SPI1_SCK,
-  .miso_pin    = PIN_SPI1_MISO,
-  .mosi_pin    = PIN_SPI1_MOSI,
-  .cs0_pin     = PIN_SPI1_CS0,
-  .cs1_pin     = {0, 0, 0}, /* Not defined on FPB-RA8E1 */
+  /* Pin configuration - uses board-specific definitions from board.h */
+  .sck_pin     = GPIO_SPI1_SCK,     /* SPI Clock pin */
+  .miso_pin    = GPIO_SPI1_MISO,    /* SPI MISO pin */
+  .mosi_pin    = GPIO_SPI1_MOSI,    /* SPI MOSI pin */
 
-  /* CS device configurations */
-  .cs_configs = {
-    {
-      .gpio_pin = PIN_SPI1_CS0,
-      .use_hardware = true,
-      .ssl_select = 0,
-      .max_frequency = RA_SPI_MAX_FREQUENCY,
-      .setup_delay = CS_SETUP_DELAY,
-      .hold_delay = CS_HOLD_DELAY,
-      .negation_delay = CS_NEGATION_DELAY,
-    },
-    {
-      .gpio_pin = {0, 0, 0}, /* Not defined */
-      .use_hardware = false,
-      .ssl_select = 1,
-      .max_frequency = RA_SPI_MAX_FREQUENCY,
-      .setup_delay = CS_SETUP_DELAY,
-      .hold_delay = CS_HOLD_DELAY,
-      .negation_delay = CS_NEGATION_DELAY,
-    },
-    {
-      .gpio_pin = {0, 0, 0},
-      .use_hardware = false,
-      .ssl_select = 2,
-      .max_frequency = RA_SPI_MAX_FREQUENCY,
-      .setup_delay = CS_SETUP_DELAY,
-      .hold_delay = CS_HOLD_DELAY,
-      .negation_delay = CS_NEGATION_DELAY,
-    },
-    {
-      .gpio_pin = {0, 0, 0},
-      .use_hardware = false,
-      .ssl_select = 3,
-      .max_frequency = RA_SPI_MAX_FREQUENCY,
-      .setup_delay = CS_SETUP_DELAY,
-      .hold_delay = CS_HOLD_DELAY,
-      .negation_delay = CS_NEGATION_DELAY,
-    },
-  },
+  .cs_config = NULL,  /* Application-specific CS configurations will be initialized by the runtime */
+  .num_cs = 0,        /* Number of CS configurations will be set at runtime */
 };
 
 static struct ra_spi_priv_s ra_spi1_priv =
@@ -513,27 +403,6 @@ static uint16_t ra_spi_getreg16(struct ra_spi_priv_s *priv, uint8_t offset)
 //}
 
 /****************************************************************************
- * Name: ra_spi_get_device_max_freq
- *
- * Description:
- *   Get maximum frequency for a specific device
- *
- ****************************************************************************/
-
-static uint32_t ra_spi_get_device_max_freq(uint32_t devid)
-{
-  switch (devid)
-    {
-      case SPIDEV_IMU(0):
-        return ICM20948_MAX_FREQ;
-      case SPIDEV_BAROMETER(0):
-        return BMP388_MAX_FREQ;
-      default:
-        return RA_SPI_MAX_FREQUENCY;
-    }
-}
-
-/****************************************************************************
  * Name: ra_spi_cs_configure
  *
  * Description:
@@ -543,48 +412,79 @@ static uint32_t ra_spi_get_device_max_freq(uint32_t devid)
 
 static void ra_spi_cs_configure(struct ra_spi_priv_s *priv, uint32_t devid)
 {
-  const struct ra_spi_cs_config_s *cs_config = NULL;
   uint16_t spcmd;
-  uint8_t cs_index;
+  uint8_t setup_delay = CS_SETUP_DELAY;
+  uint8_t hold_delay = CS_HOLD_DELAY;
+  uint8_t negation_delay = CS_NEGATION_DELAY;
+  uint8_t ssl_select = 0;  /* Default to SSL0 */
+  bool use_hardware = false;
 
-  /* Determine CS index from device ID */
-  switch (devid)
+  /* Get device-specific CS configuration if available */
+  const struct ra_spi_cs_config_s *cs_config = ra_spi_get_cs_config((struct spi_dev_s *)priv, devid);
+
+  if (cs_config != NULL)
     {
-      case SPIDEV_IMU(0):
-        cs_index = 0;
-        break;
-      case SPIDEV_BAROMETER(0):
-        cs_index = 1;
-        break;
-      default:
-        cs_index = 0;
-        break;
+      /* Use device-specific configuration */
+      setup_delay = cs_config->setup_delay;
+      hold_delay = cs_config->hold_delay;
+      negation_delay = cs_config->negation_delay;
+      ssl_select = cs_config->ssl_select & 0x07;  /* Limit to 0-7 */
+      use_hardware = cs_config->use_hardware;
+
+      spiinfo("SPI%d: Using device-specific CS config for devid=0x%x: SSL=%d, delays=%d/%d/%d, hw=%d\n",
+              priv->config->bus, devid, ssl_select, setup_delay, hold_delay, negation_delay, use_hardware);
+    }
+  else
+    {
+      spiinfo("SPI%d: Using default CS config for devid=0x%x\n", priv->config->bus, devid);
     }
 
-  cs_config = &priv->config->cs_configs[cs_index];
-
-  /* Configure SPCMD register for this CS */
+  /* Configure SPCMD register */
   spcmd = ra_spi_getreg16(priv, RA_SPI_SPCMD0_OFFSET);
 
   /* Clear SSL selection bits */
   spcmd &= ~RA_SPI_SPCMD_SSLA_MASK;
 
   /* Set SSL selection */
-  spcmd |= (cs_config->ssl_select << RA_SPI_SPCMD_SSLA_SHIFT) & RA_SPI_SPCMD_SSLA_MASK;
+  spcmd |= (ssl_select << RA_SPI_SPCMD_SSLA_SHIFT) & RA_SPI_SPCMD_SSLA_MASK;
 
-  /* Enable timing delays */
-  spcmd |= RA_SPI_SPCMD_SCKDEN | RA_SPI_SPCMD_SLNDEN | RA_SPI_SPCMD_SPNDEN;
+  /* Enable timing delays if configured */
+  if (setup_delay > 0)
+    {
+      spcmd |= RA_SPI_SPCMD_SCKDEN;
+    }
+  else
+    {
+      spcmd &= ~RA_SPI_SPCMD_SCKDEN;
+    }
+
+  if (negation_delay > 0)
+    {
+      spcmd |= RA_SPI_SPCMD_SLNDEN;
+    }
+  else
+    {
+      spcmd &= ~RA_SPI_SPCMD_SLNDEN;
+    }
+
+  if (hold_delay > 0)
+    {
+      spcmd |= RA_SPI_SPCMD_SPNDEN;
+    }
+  else
+    {
+      spcmd &= ~RA_SPI_SPCMD_SPNDEN;
+    }
 
   ra_spi_putreg16(priv, RA_SPI_SPCMD0_OFFSET, spcmd);
 
-  /* Configure timing delays */
-  ra_spi_putreg8(priv, RA_SPI_SPCKD_OFFSET, cs_config->setup_delay);
-  ra_spi_putreg8(priv, RA_SPI_SSLND_OFFSET, cs_config->negation_delay);
-  ra_spi_putreg8(priv, RA_SPI_SPND_OFFSET, cs_config->hold_delay);
+  /* Configure timing delay registers */
+  ra_spi_putreg8(priv, RA_SPI_SPCKD_OFFSET, setup_delay & 0x07);      /* Max 7 cycles */
+  ra_spi_putreg8(priv, RA_SPI_SSLND_OFFSET, negation_delay & 0x07);   /* Max 7 cycles */
+  ra_spi_putreg8(priv, RA_SPI_SPND_OFFSET, hold_delay & 0x07);        /* Max 7 cycles */
 
-  spiinfo("SPI%d CS%d configured: SSL=%d, delays=%d/%d/%d\n",
-          priv->config->bus, cs_index, cs_config->ssl_select,
-          cs_config->setup_delay, cs_config->hold_delay, cs_config->negation_delay);
+  spiinfo("SPI%d CS configured: SSL=%d, delays=%d/%d/%d\n",
+          priv->config->bus, ssl_select, setup_delay, hold_delay, negation_delay);
 }
 
 /****************************************************************************
@@ -597,35 +497,22 @@ static void ra_spi_cs_configure(struct ra_spi_priv_s *priv, uint32_t devid)
 
 static void ra_spi_cs_assert(struct ra_spi_priv_s *priv, uint32_t devid)
 {
-  const struct ra_spi_cs_config_s *cs_config = NULL;
-  uint8_t cs_index;
+  const struct ra_spi_cs_config_s *cs_config = ra_spi_get_cs_config((struct spi_dev_s *)priv, devid);
 
-  /* Determine CS index from device ID */
-  switch (devid)
+  if (cs_config != NULL && !cs_config->use_hardware)
     {
-      case SPIDEV_IMU(0):
-        cs_index = 0;
-        break;
-      case SPIDEV_BAROMETER(0):
-        cs_index = 1;
-        break;
-      default:
-        cs_index = 0;
-        break;
-    }
+      /* Use GPIO-based CS control */
+      bool assert_level = !cs_config->active_low;  /* Invert if active low */
+      ra_gpiowrite(cs_config->cs_gpio, assert_level);
 
-  cs_config = &priv->config->cs_configs[cs_index];
-
-  if (cs_config->use_hardware)
-    {
-      /* Hardware SS0 - controlled by SPI peripheral */
-      spiinfo("SPI%d Hardware CS%d asserted\n", priv->config->bus, cs_index);
+      spiinfo("SPI%d CS GPIO assert for device 0x%x: pin=0x%08x, level=%d\n",
+              priv->config->bus, devid, cs_config->cs_gpio, assert_level);
     }
   else
     {
-      /* GPIO CS - manually control */
-      ra_gpiowrite(cs_config->gpio_pin, false); /* Active low */
-      spiinfo("SPI%d GPIO CS%d asserted\n", priv->config->bus, cs_index);
+      /* Hardware CS or no configuration - delegated to application ra_spi_select() */
+      spiinfo("SPI%d CS assert delegated to application for device 0x%x\n",
+              priv->config->bus, devid);
     }
 }
 
@@ -639,35 +526,59 @@ static void ra_spi_cs_assert(struct ra_spi_priv_s *priv, uint32_t devid)
 
 static void ra_spi_cs_deassert(struct ra_spi_priv_s *priv, uint32_t devid)
 {
-  const struct ra_spi_cs_config_s *cs_config = NULL;
-  uint8_t cs_index;
+  const struct ra_spi_cs_config_s *cs_config = ra_spi_get_cs_config((struct spi_dev_s *)priv, devid);
 
-  /* Determine CS index from device ID */
-  switch (devid)
+  if (cs_config != NULL && !cs_config->use_hardware)
     {
-      case SPIDEV_IMU(0):
-        cs_index = 0;
-        break;
-      case SPIDEV_BAROMETER(0):
-        cs_index = 1;
-        break;
-      default:
-        cs_index = 0;
-        break;
-    }
+      /* Use GPIO-based CS control */
+      bool deassert_level = cs_config->active_low;  /* Normal level when inactive */
+      ra_gpiowrite(cs_config->cs_gpio, deassert_level);
 
-  cs_config = &priv->config->cs_configs[cs_index];
-
-  if (cs_config->use_hardware)
-    {
-      /* Hardware SS0 - controlled by SPI peripheral */
-      spiinfo("SPI%d Hardware CS%d deasserted\n", priv->config->bus, cs_index);
+      spiinfo("SPI%d CS GPIO deassert for device 0x%x: pin=0x%08x, level=%d\n",
+              priv->config->bus, devid, cs_config->cs_gpio, deassert_level);
     }
   else
     {
-      /* GPIO CS - manually control */
-      ra_gpiowrite(cs_config->gpio_pin, true); /* Active low */
-      spiinfo("SPI%d GPIO CS%d deasserted\n", priv->config->bus, cs_index);
+      /* Hardware CS or no configuration - delegated to application ra_spi_select() */
+      spiinfo("SPI%d CS deassert delegated to application for device 0x%x\n",
+              priv->config->bus, devid);
+    }
+}
+
+/****************************************************************************
+ * Name: ra_spi_apply_cs_config
+ *
+ * Description:
+ *   Apply CS-specific configuration (mode, bits, frequency) for a device
+ *
+ ****************************************************************************/
+
+static void ra_spi_apply_cs_config(struct spi_dev_s *dev, uint32_t devid)
+{
+  struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)dev;
+  const struct ra_spi_cs_config_s *cs_config = ra_spi_get_cs_config(dev, devid);
+
+  if (cs_config != NULL)
+    {
+      /* Apply device-specific SPI settings */
+      if (cs_config->max_frequency > 0)
+        {
+          ra_spi_setfrequency(dev, cs_config->max_frequency);
+        }
+
+      if (cs_config->mode >= 0 && cs_config->mode <= 3)
+        {
+          ra_spi_setmode(dev, (enum spi_mode_e)cs_config->mode);
+        }
+
+      if (cs_config->bits > 0)
+        {
+          ra_spi_setbits(dev, cs_config->bits);
+        }
+
+      spiinfo("SPI%d applied CS config for device 0x%x: freq=%u, mode=%u, bits=%u\n",
+              priv->config->bus, devid, cs_config->max_frequency,
+              cs_config->mode, cs_config->bits);
     }
 }
 
@@ -1103,7 +1014,6 @@ static uint32_t ra_spi_setfrequency(struct spi_dev_s *dev, uint32_t frequency)
   uint32_t divisor;
   uint8_t spbr;
   uint8_t brdv = 0;
-  uint32_t max_freq;
 
   spiinfo("SPI%d frequency %d\n", priv->config->bus, frequency);
 
@@ -1113,16 +1023,7 @@ static uint32_t ra_spi_setfrequency(struct spi_dev_s *dev, uint32_t frequency)
       return priv->actual;
     }
 
-  /* Apply device-specific frequency limits */
-  max_freq = ra_spi_get_device_max_freq(priv->current_devid);
-  if (frequency > max_freq)
-    {
-      frequency = max_freq;
-      spiinfo("SPI%d frequency limited to %d for device 0x%08x\n",
-              priv->config->bus, frequency, priv->current_devid);
-    }
-
-  /* Limit to maximum frequency */
+  /* Limit to maximum frequency - applications can implement their own limits */
   if (frequency > RA_SPI_MAX_FREQUENCY)
     {
       frequency = RA_SPI_MAX_FREQUENCY;
@@ -1553,25 +1454,14 @@ static void ra_spi_bus_initialize(struct ra_spi_priv_s *priv)
 {
   uint8_t regval;
   uint16_t regval16;
-  int i;
 
   /* Configure GPIO pins for SPI */
   ra_configgpio(priv->config->sck_pin);
   ra_configgpio(priv->config->miso_pin);
   ra_configgpio(priv->config->mosi_pin);
-  ra_configgpio(priv->config->cs0_pin);
-  ra_configgpio(priv->config->cs1_pin);
 
-  /* Initialize CS pins */
-  for (i = 0; i < RA_SPI_NCS; i++)
-    {
-      if (!priv->config->cs_configs[i].use_hardware)
-        {
-          /* Configure as GPIO output, initially deasserted (high) */
-          ra_configgpio(priv->config->cs_configs[i].gpio_pin);
-          ra_gpiowrite(priv->config->cs_configs[i].gpio_pin, true);
-        }
-    }
+  /* Note: CS pin initialization is now handled by application-specific */
+  /* ra_spi_select() function implementations or via CS configuration */
 
   /* Enable SPI module */
   regval = getreg32(R_MSTP_MSTPCRB);
@@ -1730,6 +1620,9 @@ void ra_spi_select_device(struct spi_dev_s *dev, uint32_t devid, bool selected)
       /* Configure CS and timing for this device */
       ra_spi_cs_configure(priv, devid);
 
+      /* Apply device-specific SPI configuration (mode, bits, frequency) */
+      ra_spi_apply_cs_config(dev, devid);
+
       /* Store current device ID for frequency limiting */
       priv->current_devid = devid;
 
@@ -1756,7 +1649,7 @@ void ra_spi_select_device(struct spi_dev_s *dev, uint32_t devid, bool selected)
  *
  ****************************************************************************/
 
-void weak_function ra_spi_select(struct spi_dev_s *dev, uint32_t devid, 
+void weak_function ra_spi_select(struct spi_dev_s *dev, uint32_t devid,
                                  bool selected)
 {
   /* Default implementation does nothing */
@@ -1794,7 +1687,7 @@ uint8_t weak_function ra_spi_status(struct spi_dev_s *dev, uint32_t devid)
  ****************************************************************************/
 
 #ifdef CONFIG_SPI_CMDDATA
-int weak_function ra_spi_cmddata(struct spi_dev_s *dev, uint32_t devid, 
+int weak_function ra_spi_cmddata(struct spi_dev_s *dev, uint32_t devid,
                                  bool cmd)
 {
   /* Default implementation does nothing */
@@ -1815,8 +1708,26 @@ int weak_function ra_spi_cmddata(struct spi_dev_s *dev, uint32_t devid,
  *
  ****************************************************************************/
 
+/****************************************************************************
+ * Name: ra_spi_get_cs_config
+ *
+ * Description:
+ *   Board-specific function to get CS configuration for a device.
+ *   This is a weak function that can be overridden by board-specific
+ *   implementations to provide device-specific CS configurations.
+ *
+ ****************************************************************************/
+
+const struct ra_spi_cs_config_s * weak_function ra_spi_get_cs_config(struct spi_dev_s *dev, uint32_t devid)
+{
+  /* Default implementation returns NULL - use default settings */
+  UNUSED(dev);
+  UNUSED(devid);
+  return NULL;
+}
+
 #ifdef CONFIG_SPI_CALLBACK
-int weak_function ra_spi_register_callback(struct spi_dev_s *dev, 
+int weak_function ra_spi_register_callback(struct spi_dev_s *dev,
                                            spi_callback_t callback, void *arg)
 {
   /* Default implementation does nothing */

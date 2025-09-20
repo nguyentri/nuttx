@@ -50,7 +50,8 @@ endif
 
 # SPI driver support
 ifeq ($(CONFIG_RA_SPI),y)
-CSRCS += ra8e1_spi.c
+# SPI board functions are now implemented directly in application files
+# that override the weak functions from the ra_spi.c driver
 endif
 
 ############################################################################
@@ -98,10 +99,14 @@ ifeq ($(CONFIG_RA8E1_CODE_FLASH_EXAMPLE),y)
 CSRCS += ra8e1_cf.c
 endif
 
-
 # SPI Loopback Demo
 ifeq ($(CONFIG_RA8E1_SPI_LOOPBACK_EXAMPLE),y)
 CSRCS += ra8e1_spi_loopback.c
+endif
+
+# SPI Loopback Demo
+ifeq ($(CONFIG_RA8E1_SPI_MASTERSLAVE_EXAMPLE),y)
+CSRCS += ra8e1_spi_masterslave.c
 endif
 
 # GY-912 sensor support

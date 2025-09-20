@@ -57,6 +57,7 @@
 #define GPIO_SPI0_MOSI  GPIO_MOSI0_TXD0_SDA0_C /* P609 - SPI MOSI */
 #define GPIO_SPI0_MISO  GPIO_MISO0_RXD0_SCL0_C /* P610 - SPI MISO */
 #define GPIO_SPI0_SS0   GPIO_SS0_CTS_RTS0_C    /* P612 - IMU CS (ICM20948) */
+#define GPIO_SPI0_SS1   GPIO_P605_OUTPUT_HIGH  /* P605 - BMP388 Barometer CS */
 
 /* SPI1 Pin Definitions (Expansion/Loopback) - Slave */
 #define GPIO_SPI1_SCK   GPIO_RSPCKB_B          /* P412 - SPI1 Clock (RSPCKB_B) */
@@ -92,10 +93,6 @@
 #define GPIO_SW1         GPIO_IRQ13_P009
 
 /* Drone-specific GPIO Pin Definitions */
-
-/* IMU and Sensor Control Pins */
-#define GPIO_BMP_CS      GPIO_P605_OUTPUT_HIGH  /* P605 - BMP388 CS */
-#define GPIO_IMU_INT     GPIO_IRQ11_P006        /* P006 - IMU Data Ready (IRQ11) */
 
 /* Buzzer Control */
 #define GPIO_BUZZER      GPIO_P303_OUTPUT_LOW   /* P303 - Piezo Buzzer */
@@ -169,8 +166,11 @@
 #define GPIO_IMU_SCK     GPIO_SPI0_SCK  /* P611 - SPI Clock */
 #define GPIO_IMU_MOSI    GPIO_SPI0_MOSI /* P609 - SPI MOSI */
 #define GPIO_IMU_MISO    GPIO_SPI0_MISO /* P610 - SPI MISO */
-#define GPIO_IMU_CS      GPIO_SPI0_SS0  /* P612 - IMU Chip Select */
-#define GPIO_IMU_DRDY    GPIO_IMU_INT   /* P006 - IMU Data Ready */
+
+/* SPI Chip Select GPIO definitions for applications */
+#define GPIO_IMU_CS      GPIO_SPI0_SS0          /* P612 - IMU CS (ICM20948) */
+#define GPIO_BMP_CS      GPIO_SPI0_SS1          /* P605 - BMP388 Barometer CS */
+#define GPIO_IMU_DRDY    GPIO_IRQ11_P006        /* P006 - IMU Data Ready */
 
 /* Battery Monitoring */
 #define GPIO_BATT_VOLT   GPIO_ADC_AN000 /* P004 - Battery Voltage (5.7:1) */

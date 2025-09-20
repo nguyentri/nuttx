@@ -114,7 +114,6 @@ int ra8e1_gpio_initialize(void);
 #endif
 
 #ifdef CONFIG_RA_SPI
-int ra8e1_spi_initialize(void);
 
 #ifdef CONFIG_RA_SPI0
 /* SPI bus-specific board functions required by ra_spi.c */
@@ -143,6 +142,12 @@ int ra_spi1cmddata(FAR struct spi_dev_s *dev, uint32_t devid, bool cmd);
 int ra8e1_spi_loopback_init(void);
 int ra8e1_spi_loopback_test(void);
 int ra8e1_spi_loopback_main(int argc, char *argv[]);
+ #endif
+
+#ifdef CONFIG_RA8E1_SPI_MASTERSLAVE_EXAMPLE
+int ra8e1_spi_masterslave_init(void);
+int ra8e1_spi_masterslave_test(void);
+int ra8e1_spi_masterslave_main(int argc, char *argv[]);
 #endif
 
 #ifdef CONFIG_RA_ADC_BMS_EXAMPLE

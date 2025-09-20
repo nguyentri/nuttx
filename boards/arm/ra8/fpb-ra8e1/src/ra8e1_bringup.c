@@ -373,20 +373,6 @@ int ra8e1_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_RA_SPI
-  /* Initialize SPI */
-  ret = ra8e1_spi_initialize();
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to initialize SPI: %d\n", ret);
-      return ret;
-    }
-  else
-    {
-      syslog(LOG_INFO, "SPI initialized successfully\n");
-    }
-#endif
-
 #ifdef CONFIG_RA8E1_SPI_LOOPBACK_EXAMPLE
   /* Initialize SPI loopback demo */
   ret = ra8e1_spi_loopback_init();

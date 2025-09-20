@@ -30,6 +30,7 @@
 #include <stdbool.h>
 #include <nuttx/spi/spi.h>
 #include <nuttx/semaphore.h>
+#include "ra_gpio.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -68,52 +69,23 @@ typedef void (*spi_callback_t)(void *arg);
  * Public Types
  ****************************************************************************/
 
-/* SPI device configuration */
-//struct ra_spi_config_s
-//{
-//  uint8_t  bus;              /* SPI bus number */
-//  uint32_t frequency;        /* SPI frequency */
-//  uint8_t  mode;            /* SPI mode (0-3) */
-//  uint8_t  nbits;           /* Number of bits per word */
-//  uint8_t  cs;              /* Chip select line */
-//  bool     use_dma;         /* Use DMA for transfers */
-//};
+ /* Chip Select Configuration */
+struct ra_spi_cs_config_s
+{
+  uint32_t devid;           /* Device ID */
+  uint32_t max_frequency;   /* Maximum frequency for this device */
+  uint8_t  mode;            /* SPI mode */
+  uint8_t  bits;            /* Data bits per transfer */
+  gpio_pinset_t cs_gpio;    /* GPIO Chip Select and Slave Select pin definitions */
+  bool     use_hardware;    /* Use hardware SS0 or GPIO */
+  uint8_t  ssl_select;      /* SSL select value (0-3) */
+  uint8_t  setup_delay;     /* CS setup delay */
+  uint8_t  hold_delay;      /* CS hold delay */
+  uint8_t  negation_delay;  /* CS negation delay */
+  bool     active_low;      /* CS active low */
+  const char *name;         /* Device name for debugging */
+};
 
-/* SPI driver state */
-//struct ra_spi_priv_s
-//{
-//  struct spi_dev_s spidev;   /* Externally visible part of the SPI interface */
-//  uint32_t         base;     /* SPI controller register base address */
-//  uint8_t          bus;      /* SPI bus number */
-//  uint8_t          irq_rxi;  /* RX interrupt number */
-//  uint8_t          irq_txi;  /* TX interrupt number */
-//  uint8_t          irq_tei;  /* Transfer end interrupt number */
-//  uint8_t          irq_eri;  /* Error interrupt number */
-//  sem_t            exclsem;  /* Holds exclusive access to SPI */
-//  sem_t            waitsem;  /* Wait for transfer completion */
-//
-//  /* DTC support */
-//  bool             use_dtc;   /* DTC enabled flag */
-//  uint8_t          dtc_mode;  /* DTC transfer mode */
-//  void            *dtc_tx_handle; /* TX DTC handle */
-//  void            *dtc_rx_handle; /* RX DTC handle */
-//
-//  /* Transfer state */
-//  const uint8_t   *txbuffer;  /* Source data for SPI output */
-//  uint8_t         *rxbuffer;  /* Sink for SPI input */
-//  size_t           ntxwords;  /* Number of words left to transfer */
-//  size_t           nrxwords;  /* Number of words left to receive */
-//
-//  /* Configuration */
-//  uint32_t         frequency; /* Requested clock frequency */
-//  uint32_t         actual;    /* Actual clock frequency */
-//  uint8_t          mode;      /* Mode 0,1,2,3 */
-//  uint8_t          nbits;     /* Width of word in bits (4-16) */
-//
-//  /* Debug */
-//  uint32_t         debug_flags;
-//};
-//
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
@@ -176,5 +148,15 @@ uint8_t ra_spi_status(struct spi_dev_s *dev, uint32_t devid);
 
 int ra_spi_cmddata(struct spi_dev_s *dev, uint32_t devid, bool cmd);
 #endif
+
+/****************************************************************************
+ * Name: ra_spi_get_cs_config
+ *
+ * Description:
+ *   Get CS configuration for a specific device (weak function)
+ *
+ ****************************************************************************/
+
+const struct ra_spi_cs_config_s *ra_spi_get_cs_config(struct spi_dev_s *dev, uint32_t devid);
 
 #endif /* __ARCH_ARM_SRC_RA8_RA_SPI_H */

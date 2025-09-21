@@ -55,15 +55,15 @@ static bool g_led2_state = true; /* Active low, true = off */
 
 static int button_handler_isr(int irq, void *context, void *arg)
 {
+  /* Clear  pending isr */
+  ra_icu clear_irq(irq);
+
   /* Toggle both LEDs */
   g_led1_state = !g_led1_state;
   g_led2_state = !g_led2_state;
 
   ra_gpiowrite(GPIO_LED1, g_led1_state);
   ra_gpiowrite(GPIO_LED2, g_led2_state);
-
-  /* Clear the interrupt flag */
-  ra_icu_clear_irq(irq);
 
   return 0;
 }
@@ -81,6 +81,7 @@ uint32_t board_button_initialize(void)
   ra_configgpio(GPIO_SW1);
 
   /* Attach the button interrupt handler */
-  ra_icu_attach(RA_ELC_ICU_IRQ0, button_handler_isr, NULL);
-  return 1;
+  (void)ra_icu_attach(RA_ELC_ICU_IRQ0, button_handler_isr, NULL);
+
+  return 0;
 }

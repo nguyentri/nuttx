@@ -67,7 +67,6 @@ int ra_icu_set_event(int icu_slot, int event);
 /* ICU configuration functions */
 int ra_icu_config(int icu_irq, uint8_t mode, bool filter_enable,
                   uint8_t filter_clock);
-void ra_icu_clear_irq(int el);
 
 /* Wakeup control functions */
 void ra_icu_enable_wakeup(uint32_t mask);

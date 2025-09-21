@@ -1104,10 +1104,9 @@ static void up_detach(struct uart_dev_s *dev)
 static int up_rxinterrupt(int irq, void *context, void *arg)
 {
   struct uart_dev_s *dev = (struct uart_dev_s *)arg;
-  struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
 
-  ra_icu_clear_irq(priv->irq_rx);
   uart_recvchars(dev);
+
   return OK;
 }
 
@@ -1122,9 +1121,7 @@ static int up_rxinterrupt(int irq, void *context, void *arg)
 static int up_txinterrupt(int irq, void *context, void *arg)
 {
   struct uart_dev_s *dev = (struct uart_dev_s *)arg;
-  struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
 
-  ra_icu_clear_irq(priv->irq_tx);
   uart_xmitchars(dev);
 
   return OK;
@@ -1152,7 +1149,6 @@ static int up_txeinterrupt(int irq, void *context, void *arg)
    * For now, we just clear the interrupt by reading the status.
    */
 
-  ra_icu_clear_irq(priv->irq_txe);
   up_serialin(priv, R_SCI_B_CSR_OFFSET);
 
   return OK;
@@ -1177,9 +1173,6 @@ static int up_erinterrupt(int irq, void *context, void *arg)
   /* Save for error reporting (SCI_B error bits) */
   priv->sr = up_serialin(priv, R_SCI_B_CSR_OFFSET) &
              (R_SCI_B_CSR_PER | R_SCI_B_CSR_FER | R_SCI_B_CSR_ORER);
-
-  /* Clear the interrupt */
-  ra_icu_clear_irq(priv->irq_err);
 
   /* Clear error flags - this also clears the interrupt */
   up_serialout(priv, R_SCI_B_CFCLR_OFFSET,

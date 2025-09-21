@@ -82,6 +82,25 @@ typedef struct
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: ra_icu_clear_irq
+ *
+ * Description:
+ *   Clear interrupt request status. For most RA8 peripherals, interrupt
+ *   clearing is handled by the peripheral itself (e.g., reading data from
+ *   UART, clearing GPT status flags). The ICU IELSR.IR bit is automatically
+ *   cleared when the interrupt is acknowledged.
+ *
+ ****************************************************************************/
+
+static void ra_icu_clear_irq(int irq)
+{
+  uint32_t regaddr;
+  regaddr = irq - RA_IRQ_FIRST;
+  modifyreg32(R_ICU_IELSR(regaddr), R_ICU_IELSR_IR, 0);
+  getreg32(R_ICU_IELSR(regaddr));
+}
+
+/****************************************************************************
  * Name: ra_icu_interrupt
  *
  * Description:
@@ -96,6 +115,8 @@ static int ra_icu_interrupt(int irq, void *context, void *arg)
   /* Call the registered handler if available */
   if (g_icu_handlers[icu_slot].handler != NULL)
     {
+      /* Clear the interrupt  */
+      ra_icu_clear_irq(irq);
       return g_icu_handlers[icu_slot].handler(irq, context, g_icu_handlers[icu_slot].arg);
     }
 
@@ -344,24 +365,4 @@ void ra_icu_enable_nmi(uint16_t mask)
 void ra_icu_disable_nmi(uint16_t mask)
 {
   modifyreg16(R_ICU_NMIER, mask, 0);
-}
-
-
-/****************************************************************************
- * Name: ra_icu_clear_irq
- *
- * Description:
- *   Clear interrupt request status. For most RA8 peripherals, interrupt
- *   clearing is handled by the peripheral itself (e.g., reading data from
- *   UART, clearing GPT status flags). The ICU IELSR.IR bit is automatically
- *   cleared when the interrupt is acknowledged.
- *
- ****************************************************************************/
-
-void ra_icu_clear_irq(int irq)
-{
-  uint32_t regaddr;
-  regaddr = irq - RA_IRQ_FIRST;
-  modifyreg32(R_ICU_IELSR(regaddr), R_ICU_IELSR_IR, 0);
-  getreg32(R_ICU_IELSR(regaddr));
 }

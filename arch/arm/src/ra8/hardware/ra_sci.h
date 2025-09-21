@@ -432,6 +432,7 @@
 #define R_SCI_B_CCR2_BRME                (1 << 16) /* Bit 16: Bit Modulation Enable */
 #define R_SCI_B_CCR2_BRR_SHIFT           (8)       /* Bits 15-8: Bit rate setting */
 #define R_SCI_B_CCR2_BRR_MASK            (0xFF << R_SCI_B_CCR2_BRR_SHIFT)
+#define R_SCI_B_CCR2_ABCSE2              (1 <<  7) /* Bit 7: Asynchronous Mode Extended Base Clock Select 2 */
 #define R_SCI_B_CCR2_ABCSE               (1 <<  6) /* Bit 6: Asynchronous Mode Extended Base Clock Select */
 #define R_SCI_B_CCR2_ABCS                (1 <<  5) /* Bit 5: Asynchronous Mode Base Clock Select */
 #define R_SCI_B_CCR2_BGDM                (1 <<  4) /* Bit 4: Baud Rate Generator Double-Speed Mode Select */

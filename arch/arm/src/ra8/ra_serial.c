@@ -519,6 +519,270 @@ static uart_dev_t  g_uart9port =
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: up_calculate_baud_setting
+ *
+ * Description:
+ *   Calculate baud rate register settings for SCI_B UART.
+ *   Based on Renesas FSP R_SCI_B_UART_BaudCalculate algorithm.
+ *
+ * Input Parameters:
+ *   baudrate - Desired baud rate (bps)
+ *   p_baud_setting - Output structure for baud rate settings
+ *
+ * Returned Value:
+ *   0 on success, negative value on error
+ *
+ ****************************************************************************/
+
+/* Baud rate divisor information (UART mode) - from Renesas FSP */
+static const struct
+{
+  uint8_t bgdm : 1;    /* Baud rate generator double-speed mode */
+  uint8_t abcs : 1;    /* Asynchronous mode base clock select */
+  uint8_t abcse : 1;   /* Asynchronous mode extended base clock select */
+  uint8_t cks : 2;     /* Clock select (n value) */
+} g_async_baud[13] =
+{
+  {0, 0, 1, 0},  /* divisor: 6 */
+  {1, 1, 0, 0},  /* divisor: 8 */
+  {1, 0, 0, 0},  /* divisor: 16 */
+  {0, 0, 1, 1},  /* divisor: 24 */
+  {0, 0, 0, 0},  /* divisor: 32 */
+  {1, 0, 0, 1},  /* divisor: 64 */
+  {0, 0, 1, 2},  /* divisor: 96 */
+  {0, 0, 0, 1},  /* divisor: 128 */
+  {1, 0, 0, 2},  /* divisor: 256 */
+  {0, 0, 1, 3},  /* divisor: 384 */
+  {0, 0, 0, 2},  /* divisor: 512 */
+  {1, 0, 0, 3},  /* divisor: 1024 */
+  {0, 0, 0, 3}   /* divisor: 2048 */
+};
+
+static const uint16_t g_div_coefficient[13] =
+{
+  6, 8, 16, 24, 32, 64, 96, 128, 256, 384, 512, 1024, 2048
+};
+
+/* Common baud rate lookup table for different SCICLK frequencies */
+/* Based on RA8E1 Hardware Manual Table 30.11 and 30.12 examples */
+struct common_baudrate_settings_s
+{
+  uint32_t baud;
+  uint8_t bgdm;
+  uint8_t abcs;
+  uint8_t abcse;
+  uint8_t abcse2;
+  uint8_t cks;
+  uint8_t brr;
+  uint16_t mddr;  /* Changed to uint16_t to accommodate 256 */
+};
+
+struct clock_baud_table_s
+{
+  uint32_t clock_freq;
+  const struct common_baudrate_settings_s *settings;
+  uint32_t num_settings;
+};
+
+/* Baud rate settings for 120MHz SCICLK */
+static const struct common_baudrate_settings_s g_baud_120mhz[] =
+{
+  /* baud,   bgdm, abcs, abcse, abcse2, cks, brr, mddr */
+  {   9600,    1,    0,    0,     0,     1,  195,  128 },  /* BGDM=1, ABCS=0, CKS=1, BRR=195, MDDR=128 */
+  {  19200,    1,    0,    0,     0,     1,   97,  128 },  /* BGDM=1, ABCS=0, CKS=1, BRR=97, MDDR=128 */
+  {  38400,    1,    0,    0,     0,     0,   97,  128 },  /* BGDM=1, ABCS=0, CKS=0, BRR=97, MDDR=128 */
+  {  57600,    1,    0,    0,     0,     0,   64,  128 },  /* BGDM=1, ABCS=0, CKS=0, BRR=64, MDDR=128 */
+  { 115200,    1,    0,    0,     0,     0,   32,  128 },  /* BGDM=1, ABCS=0, CKS=0, BRR=32, MDDR=128 */
+  { 230400,    1,    0,    0,     0,     0,   15,  128 },  /* BGDM=1, ABCS=0, CKS=0, BRR=15, MDDR=128 */
+  { 460800,    1,    0,    0,     0,     0,    7,  128 },  /* BGDM=1, ABCS=0, CKS=0, BRR=7, MDDR=128 */
+  { 921600,    1,    0,    0,     0,     0,    3,  128 },  /* BGDM=1, ABCS=0, CKS=0, BRR=3, MDDR=128 */
+  {1843200,    1,    0,    0,     0,     0,    1,  128 },  /* BGDM=1, ABCS=0, CKS=0, BRR=1, MDDR=128 */
+};
+
+/* Baud rate settings for 90MHz SCICLK (360MHz PLL1P / 4) */
+static const struct common_baudrate_settings_s g_baud_90mhz[] =
+{
+  /* baud,   bgdm, abcs, abcse, abcse2, cks, brr, mddr */
+  {   9600,    1,    0,    0,     0,     1,  146,  128 },  /* BGDM=1, ABCS=0, CKS=1, BRR=146, MDDR=128 */
+  {  19200,    1,    0,    0,     0,     1,   73,  128 },  /* BGDM=1, ABCS=0, CKS=1, BRR=73, MDDR=128 */
+  {  38400,    1,    0,    0,     0,     0,   73,  128 },  /* BGDM=1, ABCS=0, CKS=0, BRR=73, MDDR=128 */
+  {  57600,    1,    0,    0,     0,     0,   48,  128 },  /* BGDM=1, ABCS=0, CKS=0, BRR=48, MDDR=128 */
+  { 115200,    1,    0,    0,     0,     0,   47,  128 },  /* BGDM=1, ABCS=0, CKS=0, BRR=47, MDDR=128 */
+  { 230400,    1,    0,    0,     0,     0,   23,  128 },  /* BGDM=1, ABCS=0, CKS=0, BRR=23, MDDR=128 */
+  { 460800,    1,    0,    0,     0,     0,   11,  128 },  /* BGDM=1, ABCS=0, CKS=0, BRR=11, MDDR=128 */
+  { 921600,    1,    0,    0,     0,     0,    5,  128 },  /* BGDM=1, ABCS=0, CKS=0, BRR=5, MDDR=128 */
+  {1843200,    1,    0,    0,     0,     0,    2,  128 },  /* BGDM=1, ABCS=0, CKS=0, BRR=2, MDDR=128 */
+};
+
+/* Baud rate settings for 80MHz SCICLK */
+static const struct common_baudrate_settings_s g_baud_80mhz[] =
+{
+  /* baud,   bgdm, abcs, abcse, abcse2, cks, brr, mddr */
+  {   9600,    0,    0,    0,     0,     2,  129,  256 },  /* n=2, N=129 */
+  {  19200,    0,    0,    0,     0,     2,   64,  256 },  /* n=2, N=64  */
+  {  38400,    0,    0,    0,     0,     1,   64,  256 },  /* n=1, N=64  */
+  {  57600,    0,    0,    0,     0,     1,   42,  256 },  /* n=1, N=42  */
+  { 115200,    0,    0,    0,     0,     1,   21,  256 },  /* n=1, N=21  */
+  { 230400,    0,    0,    0,     0,     0,   42,  256 },  /* n=0, N=42  */
+  { 460800,    0,    0,    0,     0,     0,   21,  256 },  /* n=0, N=21  */
+  { 921600,    0,    0,    0,     0,     0,   10,  256 },  /* n=0, N=10  */
+  {1250000,    1,    0,    0,     0,     0,   10,  256 },  /* n=0, N=10, BGDM=1 */
+};
+
+/* Baud rate settings for 60MHz SCICLK */
+static const struct common_baudrate_settings_s g_baud_60mhz[] =
+{
+  /* baud,   bgdm, abcs, abcse, abcse2, cks, brr, mddr */
+  {   9600,    0,    0,    0,     0,     2,   97,  256 },  /* n=2, N=97  */
+  {  19200,    0,    0,    0,     0,     2,   48,  256 },  /* n=2, N=48  */
+  {  38400,    0,    0,    0,     0,     1,   48,  256 },  /* n=1, N=48  */
+  {  57600,    0,    0,    0,     0,     1,   32,  256 },  /* n=1, N=32  */
+  { 115200,    0,    0,    0,     0,     1,   16,  256 },  /* n=1, N=16  */
+  { 230400,    0,    0,    0,     0,     0,   32,  256 },  /* n=0, N=32  */
+  { 460800,    0,    0,    0,     0,     0,   16,  256 },  /* n=0, N=16  */
+  { 921600,    0,    0,    0,     0,     0,    8,  256 },  /* n=0, N=8   */
+  {1875000,    1,    0,    0,     0,     0,    8,  256 },  /* n=0, N=8, BGDM=1 */
+};
+
+/* Clock-specific baud rate table */
+static const struct clock_baud_table_s g_common_baud_settings[] =
+{
+  { 120000000, g_baud_120mhz, sizeof(g_baud_120mhz) / sizeof(g_baud_120mhz[0]) },
+  {  90000000, g_baud_90mhz,  sizeof(g_baud_90mhz) / sizeof(g_baud_90mhz[0]) },
+  {  80000000, g_baud_80mhz,  sizeof(g_baud_80mhz) / sizeof(g_baud_80mhz[0]) },
+  {  60000000, g_baud_60mhz,  sizeof(g_baud_60mhz) / sizeof(g_baud_60mhz[0]) },
+};
+
+#define NUM_CLOCK_BAUD_TABLES (sizeof(g_common_baud_settings) / sizeof(g_common_baud_settings[0]))
+
+struct baud_setting
+{
+  uint8_t bgdm;
+  uint8_t abcs;
+  uint8_t abcse;
+  uint8_t abcse2;
+  uint8_t cks;
+  uint8_t brr;
+  uint8_t brme;
+  uint16_t mddr;  /* Changed to uint16_t to accommodate 256 */
+};
+
+static int up_calculate_baud_setting(uint32_t baudrate, struct baud_setting *p_baud_setting)
+{
+  ra_clock_config_t clock_config;
+  uint32_t freq_hz;
+  int32_t hit_bit_err = 100000; /* 100% error as starting point */
+  uint32_t divisor;
+
+  /* Get SCI clock frequency */
+  ra_get_clock_config(&clock_config);
+  freq_hz = clock_config.sciclk_freq;
+
+  if (baudrate == 0 || freq_hz == 0)
+    {
+      return -EINVAL;
+    }
+
+  /* First check common baud rate lookup table for exact matches */
+  for (uint32_t i = 0; i < NUM_CLOCK_BAUD_TABLES; i++)
+    {
+      if (g_common_baud_settings[i].clock_freq == freq_hz)
+        {
+          /* Found matching clock frequency table */
+          const struct common_baudrate_settings_s *settings = g_common_baud_settings[i].settings;
+          uint32_t num_settings = g_common_baud_settings[i].num_settings;
+
+          for (uint32_t j = 0; j < num_settings; j++)
+            {
+              if (settings[j].baud == baudrate)
+                {
+                  p_baud_setting->bgdm = settings[j].bgdm;
+                  p_baud_setting->abcs = settings[j].abcs;
+                  p_baud_setting->abcse = settings[j].abcse;
+                  p_baud_setting->abcse2 = settings[j].abcse2;
+                  p_baud_setting->cks = settings[j].cks;
+                  p_baud_setting->brr = settings[j].brr;
+                  p_baud_setting->brme = 0;
+                  p_baud_setting->mddr = settings[j].mddr;
+                  return 0;
+                }
+            }
+          break; /* Found clock table but no matching baud rate */
+        }
+    }
+
+  /* Initialize with worst case values for calculation */
+  p_baud_setting->brr = 255;
+  p_baud_setting->brme = 0;
+  p_baud_setting->mddr = 256; /* Default value for no bit rate modulation */
+  p_baud_setting->abcse2 = 0; /* Initialize ABCSE2 */
+
+  /* Find the best BRR (bit rate register) value */
+  for (uint32_t select_16_base_clk_cycles = 0;
+       select_16_base_clk_cycles <= 1 && (hit_bit_err > 1500); /* 1.5% max error */
+       select_16_base_clk_cycles++)
+    {
+      for (uint32_t i = 0; i < 13; i++)
+        {
+          /* Skip this calculation for divisors that don't match the clock cycle requirement */
+          if (((uint8_t) select_16_base_clk_cycles) ^ (g_async_baud[i].abcs | g_async_baud[i].abcse))
+            {
+              continue;
+            }
+
+          divisor = (uint32_t) g_div_coefficient[i] * baudrate;
+          uint32_t temp_brr = freq_hz / divisor;
+
+          if (temp_brr <= 256) /* BRR can be 0-255 */
+            {
+              while (temp_brr > 0)
+                {
+                  temp_brr -= 1;
+
+                  /* Calculate the bit rate error. Formula:
+                   * bit rate error[%] = {(PCLK / (baud * div_coefficient * (BRR + 1)) - 1} x 100
+                   */
+                  int32_t err_divisor = (int32_t) (divisor * (temp_brr + 1));
+                  int64_t bit_err_calc = (((int64_t) freq_hz) * 100000) / err_divisor - 100000;
+                  int32_t bit_err = (int32_t) bit_err_calc;
+
+                  uint16_t mddr = 256; /* No bit rate modulation */
+
+                  /* Take the absolute value of the bit rate error */
+                  if (bit_err < 0)
+                    {
+                      bit_err = -bit_err;
+                    }
+
+                  /* If this is the best error so far, save these settings */
+                  if (bit_err < hit_bit_err)
+                    {
+                      p_baud_setting->bgdm = g_async_baud[i].bgdm;
+                      p_baud_setting->abcs = g_async_baud[i].abcs;
+                      p_baud_setting->abcse = g_async_baud[i].abcse;
+                      p_baud_setting->abcse2 = 0; /* Assume ABCSE2=0 for calculation */
+                      p_baud_setting->cks = g_async_baud[i].cks;
+                      p_baud_setting->brr = (uint8_t) temp_brr;
+                      p_baud_setting->mddr = mddr;
+                      hit_bit_err = bit_err;
+                    }
+
+                  break; /* We don't implement bit rate modulation for simplicity */
+                }
+            }
+        }
+    }
+
+  /* Return error if the percent error is too large (>1.5%) */
+  if (hit_bit_err > 1500)
+    {
+      return -EINVAL;
+    }
+
+  return 0;
+}
+
+/****************************************************************************
  * Name: up_serialin
  ****************************************************************************/
 
@@ -593,6 +857,8 @@ static void up_sci_config(struct up_dev_s *priv)
 {
   /* RA8E1 uses SCI_B (version 2) registers */
   uint32_t regval;
+  struct baud_setting baud_setting;
+  int ret;
 
   /* Disable SCI_B first */
   regval = 0;
@@ -606,14 +872,48 @@ static void up_sci_config(struct up_dev_s *priv)
            0;                        /* No CTS flow control for basic UART */
   up_serialout(priv, R_SCI_B_CCR1_OFFSET, regval);
 
-  /* Configure CCR2 for baud rate generation
-   * From working XML: MDDR=128 (0x80), BRR=47, BGDM=1, CKS=0 = 0x80002F10
-   */
-  regval = R_SCI_B_CCR2_BGDM |       /* Baud rate generator double-speed mode */
-           (0 << R_SCI_B_CCR2_CKS_SHIFT) |  /* CKS = 0 (PCLKA) */
-           (47 << R_SCI_B_CCR2_BRR_SHIFT) |  /* BRR = 47 */
-           (128UL << R_SCI_B_CCR2_MDDR_SHIFT); /* MDDR = 128 (from XML) */
+  /* Calculate baud rate settings dynamically */
+  ret = up_calculate_baud_setting(priv->baud, &baud_setting);
+  if (ret < 0)
+    {
+      /* Fallback to default 115200 baud if calculation fails */
+      sinfo("Baud rate calculation failed for %lu, using 115200\n", (unsigned long)priv->baud);
+      ret = up_calculate_baud_setting(115200, &baud_setting);
+      if (ret < 0)
+        {
+          /* Final fallback to hardcoded values for 115200 */
+          baud_setting.bgdm = 0;
+          baud_setting.abcs = 0;
+          baud_setting.abcse = 0;
+          baud_setting.abcse2 = 0;
+          baud_setting.cks = 1;
+          baud_setting.brr = 24;
+          baud_setting.brme = 0;
+          baud_setting.mddr = 256;
+        }
+    }
+
+  /* Configure CCR2 for baud rate generation using calculated values */
+  regval = (baud_setting.bgdm ? R_SCI_B_CCR2_BGDM : 0) |
+           (baud_setting.abcs ? R_SCI_B_CCR2_ABCS : 0) |
+           (baud_setting.abcse ? R_SCI_B_CCR2_ABCSE : 0) |
+           (baud_setting.abcse2 ? R_SCI_B_CCR2_ABCSE2 : 0) |
+           (baud_setting.brme ? R_SCI_B_CCR2_BRME : 0) |
+           ((uint32_t)baud_setting.cks << R_SCI_B_CCR2_CKS_SHIFT) |
+           ((uint32_t)baud_setting.brr << R_SCI_B_CCR2_BRR_SHIFT) |
+           ((uint32_t)baud_setting.mddr << R_SCI_B_CCR2_MDDR_SHIFT);
+
   up_serialout(priv, R_SCI_B_CCR2_OFFSET, regval);
+
+  _info("SCI%d: Baud %lu, CCR2=0x%08lx (BGDM=%d, ABCS=%d, ABCSE=%d, ABCSE2=%d, CKS=%d, BRR=%d, MDDR=%d)\n",
+        priv->scibase == R_SCI0_BASE ? 0 :
+        priv->scibase == R_SCI1_BASE ? 1 :
+        priv->scibase == R_SCI2_BASE ? 2 :
+        priv->scibase == R_SCI3_BASE ? 3 :
+        priv->scibase == R_SCI4_BASE ? 4 : 9,
+        (unsigned long)priv->baud, (unsigned long)regval,
+        baud_setting.bgdm, baud_setting.abcs, baud_setting.abcse, baud_setting.abcse2,
+        baud_setting.cks, baud_setting.brr, baud_setting.mddr);
 
   /* Configure CCR3 for character format
    * From working XML: CHR=2 (8-bit), LSBF=1, RXDESEL=1 = 0x00009200

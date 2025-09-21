@@ -160,7 +160,7 @@ uint32_t g_sys_core_clock = CONFIG_RA_HOCO_FREQUENCY;
  * Private Data
  ****************************************************************************/
 
-static ra_clock_config_t g_fsp_clock_config;
+static ra_clock_config_t g_ra_clock_config;
 
 /* FSP-Compatible clock frequency array */
 static uint32_t g_clock_freq[16];  /* Array size to accommodate all clock sources */
@@ -484,7 +484,7 @@ void ra_clock(void)
  * Private Data
  ****************************************************************************/
 
-static ra_clock_config_t g_fsp_clock_config;
+static ra_clock_config_t g_ra_clock_config;
 
 /****************************************************************************
  * Private Functions
@@ -502,7 +502,9 @@ static void ra_update_clock_config(void)
 {
   uint32_t sckscr;
   uint32_t sckdivcr;
+  uint32_t sckdivcr2;
   uint8_t clock_source;
+  uint32_t source_freq;
 
   /* Read current clock source */
   sckscr = getreg8(R_SYSTEM_SCKSCR);
@@ -510,42 +512,82 @@ static void ra_update_clock_config(void)
 
   /* Read clock dividers */
   sckdivcr = getreg32(R_SYSTEM_SCKDIVCR);
+  sckdivcr2 = getreg16(R_SYSTEM_SCKDIVCR2);
 
   /* Update configuration structure */
-  g_fsp_clock_config.clock_source = clock_source;
+  g_ra_clock_config.clock_source = clock_source;
 
-  /* Calculate frequencies based on clock source */
+  /* Determine source frequency based on clock source */
   switch (clock_source)
     {
       case 0: /* HOCO */
-        g_fsp_clock_config.system_clock_freq = CONFIG_RA_HOCO_FREQUENCY;
-        g_fsp_clock_config.hoco_enabled = true;
+        source_freq = CONFIG_RA_HOCO_FREQUENCY;
+        g_ra_clock_config.hoco_enabled = true;
+        g_ra_clock_config.moco_enabled = false;
+        g_ra_clock_config.pll_enabled = false;
         break;
 
       case 1: /* MOCO */
-        g_fsp_clock_config.system_clock_freq = CONFIG_RA_MOCO_FREQUENCY;
-        g_fsp_clock_config.moco_enabled = true;
+        source_freq = CONFIG_RA_MOCO_FREQUENCY;
+        g_ra_clock_config.hoco_enabled = false;
+        g_ra_clock_config.moco_enabled = true;
+        g_ra_clock_config.pll_enabled = false;
         break;
 
-      case 5: /* PLL */
-        g_fsp_clock_config.system_clock_freq = RA_SYSTEM_CLOCK_FREQUENCY;
-        g_fsp_clock_config.pll_enabled = true;
+      case 5: /* PLL1P */
+        source_freq = RA_SYSTEM_CLOCK_FREQUENCY;
+        g_ra_clock_config.hoco_enabled = false;
+        g_ra_clock_config.moco_enabled = false;
+        g_ra_clock_config.pll_enabled = true;
         break;
 
       default:
-        g_fsp_clock_config.system_clock_freq = CONFIG_RA_HOCO_FREQUENCY;
+        source_freq = CONFIG_RA_HOCO_FREQUENCY;
+        g_ra_clock_config.hoco_enabled = true;
+        g_ra_clock_config.moco_enabled = false;
+        g_ra_clock_config.pll_enabled = false;
         break;
     }
 
-  /* Calculate derived frequencies */
-  uint8_t ick_div = (sckdivcr & R_SYSTEM_SCKDIVCR_ICK_MASK) >> 24;
-  uint8_t pckb_div = (sckdivcr & R_SYSTEM_SCKDIVCR_PCKB_MASK) >> 8;
-  uint8_t pckd_div = (sckdivcr & R_SYSTEM_SCKDIVCR_PCKD_MASK) >> 0;
+  /* Calculate CPU clock frequency (CPUCLK) */
+  uint8_t cpu_div = sckdivcr2 & 0x0F;
+  uint32_t cpu_divisor = RA_DIV_TO_DIVISOR(cpu_div);
+  g_ra_clock_config.cpu_clock_freq = source_freq / cpu_divisor;
+  g_ra_clock_config.system_clock_freq = g_ra_clock_config.cpu_clock_freq;
 
-  g_fsp_clock_config.iclk_freq = g_fsp_clock_config.system_clock_freq >> ick_div;
-  g_fsp_clock_config.pclkb_freq = g_fsp_clock_config.system_clock_freq >> pckb_div;
-  g_fsp_clock_config.pclkd_freq = g_fsp_clock_config.system_clock_freq >> pckd_div;
-  g_fsp_clock_config.hoco_frequency = RA_HOCO_FREQUENCY;
+  /* Calculate peripheral clock frequencies from SCKDIVCR */
+  uint8_t fclk_div = (sckdivcr >> 28) & 0x0F;
+  uint8_t ick_div = (sckdivcr >> 24) & 0x0F;
+  uint8_t pclke_div = (sckdivcr >> 20) & 0x0F;
+  uint8_t bclk_div = (sckdivcr >> 16) & 0x0F;
+  uint8_t pclka_div = (sckdivcr >> 12) & 0x0F;
+  uint8_t pclkb_div = (sckdivcr >> 8) & 0x0F;
+  uint8_t pclkc_div = (sckdivcr >> 4) & 0x0F;
+  uint8_t pclkd_div = (sckdivcr >> 0) & 0x0F;
+
+  g_ra_clock_config.fclk_freq = source_freq / RA_DIV_TO_DIVISOR(fclk_div);
+  g_ra_clock_config.iclk_freq = source_freq / RA_DIV_TO_DIVISOR(ick_div);
+  g_ra_clock_config.pclke_freq = source_freq / RA_DIV_TO_DIVISOR(pclke_div);
+  g_ra_clock_config.bclk_freq = source_freq / RA_DIV_TO_DIVISOR(bclk_div);
+  g_ra_clock_config.pclka_freq = source_freq / RA_DIV_TO_DIVISOR(pclka_div);
+  g_ra_clock_config.pclkb_freq = source_freq / RA_DIV_TO_DIVISOR(pclkb_div);
+  g_ra_clock_config.pclkc_freq = source_freq / RA_DIV_TO_DIVISOR(pclkc_div);
+  g_ra_clock_config.pclkd_freq = source_freq / RA_DIV_TO_DIVISOR(pclkd_div);
+
+  /* Calculate SCICLK frequency
+   * Use predefined macro from ra_clock.h that calculates:
+   * RA_PLL1P_FREQUENCY / RA_DIV_TO_DIVISOR(CONFIG_RA_SCICLK_DIV)
+   */
+#if CONFIG_RA_SCICLK_SOURCE == RA_CLOCKS_SOURCE_CLOCK_PLL1P
+  g_ra_clock_config.sciclk_freq = RA_SCICLK_FREQUENCY;
+#elif CONFIG_RA_SCICLK_SOURCE == RA_CLOCKS_CLOCK_DISABLED
+  g_ra_clock_config.sciclk_freq = 0;
+#else
+  /* Default configuration: PLL1P (360MHz) / 4 = 90MHz */
+  g_ra_clock_config.sciclk_freq = RA_SCICLK_FREQUENCY;
+#endif
+
+  g_ra_clock_config.hoco_frequency = RA_HOCO_FREQUENCY;
 }
 
 /****************************************************************************
@@ -568,7 +610,7 @@ void ra_get_clock_config(ra_clock_config_t *config)
   ra_update_clock_config();
 
   /* Copy to user structure */
-  memcpy(config, &g_fsp_clock_config, sizeof(ra_clock_config_t));
+  memcpy(config, &g_ra_clock_config, sizeof(ra_clock_config_t));
 }
 
 /****************************************************************************
@@ -588,9 +630,16 @@ void ra_print_clock_info(void)
 
   syslog(LOG_INFO, "FSP Clock Configuration:\n");
   syslog(LOG_INFO, "  System Clock: %lu Hz\n", config.system_clock_freq);
+  syslog(LOG_INFO, "  CPU Clock: %lu Hz\n", config.cpu_clock_freq);
   syslog(LOG_INFO, "  ICLK: %lu Hz\n", config.iclk_freq);
+  syslog(LOG_INFO, "  PCLKA: %lu Hz\n", config.pclka_freq);
   syslog(LOG_INFO, "  PCLKB: %lu Hz\n", config.pclkb_freq);
+  syslog(LOG_INFO, "  PCLKC: %lu Hz\n", config.pclkc_freq);
   syslog(LOG_INFO, "  PCLKD: %lu Hz\n", config.pclkd_freq);
+  syslog(LOG_INFO, "  PCLKE: %lu Hz\n", config.pclke_freq);
+  syslog(LOG_INFO, "  BCLK: %lu Hz\n", config.bclk_freq);
+  syslog(LOG_INFO, "  FCLK: %lu Hz\n", config.fclk_freq);
+  syslog(LOG_INFO, "  SCICLK: %lu Hz\n", config.sciclk_freq);
   syslog(LOG_INFO, "  Clock Source: %d\n", config.clock_source);
   syslog(LOG_INFO, "  HOCO: %s\n", config.hoco_enabled ? "Enabled" : "Disabled");
   syslog(LOG_INFO, "  MOCO: %s\n", config.moco_enabled ? "Enabled" : "Disabled");

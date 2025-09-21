@@ -506,38 +506,18 @@
 #  define CONFIG_RA_FCLK_DIV          RA_CLOCKS_SYS_CLOCK_DIV_6   /* FCLK = System clock / 6 */
 #endif
 
-/* Peripheral Clock Sources and Dividers */
-#ifndef CONFIG_RA_SCICLK_SOURCE
-#  define CONFIG_RA_SCICLK_SOURCE     RA_CLOCKS_SOURCE_CLOCK_PLL1P /* SCI clock source */
-#endif
-
-#ifndef CONFIG_RA_SCICLK_DIV
-#  define CONFIG_RA_SCICLK_DIV        RA_CLOCKS_SCI_CLOCK_DIV_4   /* SCI clock div /4 (FSP val 2 = /4) */
-#endif
-
-#ifndef CONFIG_RA_SPICLK_SOURCE
-#  define CONFIG_RA_SPICLK_SOURCE     RA_CLOCKS_CLOCK_DISABLED    /* SPI clock disabled */
-#endif
-
-#ifndef CONFIG_RA_CANFDCLK_SOURCE
-#  define CONFIG_RA_CANFDCLK_SOURCE   RA_CLOCKS_CLOCK_DISABLED    /* CANFD clock disabled */
-#endif
-
-#ifndef CONFIG_RA_USBCLK_SOURCE
-#  define CONFIG_RA_USBCLK_SOURCE     RA_CLOCKS_CLOCK_DISABLED    /* USB clock disabled */
-#endif
-
-#ifndef CONFIG_RA_OCTACLK_SOURCE
-#  define CONFIG_RA_OCTACLK_SOURCE    RA_CLOCKS_CLOCK_DISABLED    /* OCTA clock disabled */
-#endif
-
 /* Peripheral Clock Divider Configurations */
+#ifndef CONFIG_RA_SCICLK_DIV
+#  define CONFIG_RA_SCICLK_DIV        RA_CLOCKS_SCI_CLOCK_DIV_4   /* SCI clock div /4 */
+#endif
+
+
 #ifndef CONFIG_RA_SPICLK_DIV
-#  define CONFIG_RA_SPICLK_DIV        RA_CLOCKS_SPI_CLOCK_DIV_4                           /* SPI clock div /4 (FSP val 2 = /4) */
+#  define CONFIG_RA_SPICLK_DIV        RA_CLOCKS_SPI_CLOCK_DIV_4                           /* SPI clock div /4 */
 #endif
 
 #ifndef CONFIG_RA_CANFDCLK_DIV
-#  define CONFIG_RA_CANFDCLK_DIV      RA_CLOCKS_CANFD_CLOCK_DIV_8                           /* CANFD clock div /4 (FSP val 2 = /4) */
+#  define CONFIG_RA_CANFDCLK_DIV      RA_CLOCKS_CANFD_CLOCK_DIV_8                           /* CANFD clock div /4 */
 #endif
 
 #ifndef CONFIG_RA_OCTACLK_DIV
@@ -548,36 +528,20 @@
 #  define CONFIG_RA_USBCLK_DIV        RA_CLOCKS_USB_CLOCK_DIV_5                           /* USB clock div /4 (FSP val 3 = /4) */
 #endif
 
-#ifndef CONFIG_RA_SCISPICLK_SOURCE
-#  define CONFIG_RA_SCISPICLK_SOURCE  RA_CLOCKS_CLOCK_DISABLED    /* SCISPI clock disabled */
-#endif
-
 #ifndef CONFIG_RA_SCISPICLK_DIV
-#  define CONFIG_RA_SCISPICLK_DIV     2                           /* SCISPI clock div /4 (FSP val 2 = /4) */
-#endif
-
-#ifndef CONFIG_RA_GPTCLK_SOURCE
-#  define CONFIG_RA_GPTCLK_SOURCE     RA_CLOCKS_CLOCK_DISABLED    /* GPT clock disabled */
+#  define CONFIG_RA_SCISPICLK_DIV     RA_CLOCKS_SCISPI_CLOCK_DIV_4                        /* SCISPI clock div /4 */
 #endif
 
 #ifndef CONFIG_RA_GPTCLK_DIV
-#  define CONFIG_RA_GPTCLK_DIV        2                           /* GPT clock div /4 (FSP val 2 = /4) */
-#endif
-
-#ifndef CONFIG_RA_IICCLK_SOURCE
-#  define CONFIG_RA_IICCLK_SOURCE     RA_CLOCKS_CLOCK_DISABLED    /* IIC clock disabled */
+#  define CONFIG_RA_GPTCLK_DIV        RA_CLOCKS_GPT_CLOCK_DIV_4                           /* GPT clock div /4 */
 #endif
 
 #ifndef CONFIG_RA_IICCLK_DIV
-#  define CONFIG_RA_IICCLK_DIV        2                           /* IIC clock div /4 (FSP val 2 = /4) */
-#endif
-
-#ifndef CONFIG_RA_ADCCLK_SOURCE
-#  define CONFIG_RA_ADCCLK_SOURCE     RA_CLOCKS_CLOCK_DISABLED    /* ADC clock disabled */
+#  define CONFIG_RA_IICCLK_DIV        RA_CLOCKS_IIC_CLOCK_DIV_4                           /* IIC clock div /4 */
 #endif
 
 #ifndef CONFIG_RA_ADCCLK_DIV
-#  define CONFIG_RA_ADCCLK_DIV        2                           /* ADC clock div /4 (FSP val 2 = /4) */
+#  define CONFIG_RA_ADCCLK_DIV        RA_CLOCKS_ADC_CLOCK_DIV_4                           /* ADC clock div /4 */
 #endif
 
 /* Clock Divider Shift Positions for Register Settings */
@@ -608,12 +572,8 @@
 #define RA_FCLK_FREQUENCY              (RA_SYSTEM_CLOCK_FREQUENCY / RA_DIV_TO_DIVISOR(CONFIG_RA_FCLK_DIV))
 
 /* Peripheral Clock Frequencies */
-#if CONFIG_RA_SCICLK_SOURCE == RA_CLOCKS_SOURCE_CLOCK_PLL1P
+#ifndef RA_SCICLK_FREQUENCY
 #  define RA_SCICLK_FREQUENCY          (RA_PLL1P_FREQUENCY / RA_DIV_TO_DIVISOR(CONFIG_RA_SCICLK_DIV))
-#elif CONFIG_RA_SCICLK_SOURCE == RA_CLOCKS_CLOCK_DISABLED
-#  define RA_SCICLK_FREQUENCY          0
-#else
-#  define RA_SCICLK_FREQUENCY          RA_PCLKB_FREQUENCY  /* Default to PCLKB */
 #endif
 
 /* FSP-Based Option Function Select Register Settings */

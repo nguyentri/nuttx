@@ -280,78 +280,68 @@ static void ra_peripheral_clock_init(void)
 {
   /* Initialize peripheral clocks based on BSP reference implementation */
 
-  /* Set the CANFD clock if it exists on the MCU */
-#if defined(CONFIG_RA_CANFDCLK_SOURCE) && (CONFIG_RA_CANFDCLK_SOURCE != RA_CLOCKS_CLOCK_DISABLED)
-  ra_peripheral_clock_set((volatile uint8_t *)R_SYSTEM_CANFDCKCR,
-                          (volatile uint8_t *)R_SYSTEM_CANFDCKDIVCR,
-                          CONFIG_RA_CANFDCLK_DIV,
-                          CONFIG_RA_CANFDCLK_SOURCE);
-#endif
-
-  /* Set the SCISPI clock if it exists on the MCU */
-#if defined(CONFIG_RA_SCISPICLK_SOURCE) && (CONFIG_RA_SCISPICLK_SOURCE != RA_CLOCKS_CLOCK_DISABLED)
-  ra_peripheral_clock_set((volatile uint8_t *)R_SYSTEM_SCISPICKCR,
-                          (volatile uint8_t *)R_SYSTEM_SCISPICKDIVCR,
-                          CONFIG_RA_SCISPICLK_DIV,
-                          CONFIG_RA_SCISPICLK_SOURCE);
-#endif
-
-  /* Set the SCI clock if it exists on the MCU */
-#if defined(CONFIG_RA_SCICLK_SOURCE) && (CONFIG_RA_SCICLK_SOURCE != RA_CLOCKS_CLOCK_DISABLED)
+  /* Set the SCI clock if SCI is enabled */
+#ifdef CONFIG_RA_SCI
   ra_peripheral_clock_set((volatile uint8_t *)R_SYSTEM_SCICKCR,
                           (volatile uint8_t *)R_SYSTEM_SCICKDIVCR,
                           CONFIG_RA_SCICLK_DIV,
                           CONFIG_RA_SCICLK_SOURCE);
 #endif
 
-  /* Set the SPI clock if it exists on the MCU */
-#if defined(CONFIG_RA_SPICLK_SOURCE) && (CONFIG_RA_SPICLK_SOURCE != RA_CLOCKS_CLOCK_DISABLED)
+  /* Set the SPI clock if SPI is enabled */
+#ifdef CONFIG_RA_SPI
   ra_peripheral_clock_set((volatile uint8_t *)R_SYSTEM_SPICKCR,
                           (volatile uint8_t *)R_SYSTEM_SPICKDIVCR,
                           CONFIG_RA_SPICLK_DIV,
                           CONFIG_RA_SPICLK_SOURCE);
 #endif
 
-  /* Set the GPT clock if it exists on the MCU */
-#if defined(CONFIG_RA_GPTCLK_SOURCE) && (CONFIG_RA_GPTCLK_SOURCE != RA_CLOCKS_CLOCK_DISABLED)
-  ra_peripheral_clock_set((volatile uint8_t *)R_SYSTEM_GPTCKCR,
-                          (volatile uint8_t *)R_SYSTEM_GPTCKDIVCR,
-                          CONFIG_RA_GPTCLK_DIV,
-                          CONFIG_RA_GPTCLK_SOURCE);
+  /* Set the CANFD clock if CAN is enabled */
+#ifdef CONFIG_RA_CAN
+  ra_peripheral_clock_set((volatile uint8_t *)R_SYSTEM_CANFDCKCR,
+                          (volatile uint8_t *)R_SYSTEM_CANFDCKDIVCR,
+                          CONFIG_RA_CANFDCLK_DIV,
+                          CONFIG_RA_CANFDCLK_SOURCE);
 #endif
 
-  /* Set the IIC clock if it exists on the MCU */
-#if defined(CONFIG_RA_IICCLK_SOURCE) && (CONFIG_RA_IICCLK_SOURCE != RA_CLOCKS_CLOCK_DISABLED)
-  ra_peripheral_clock_set((volatile uint8_t *)R_SYSTEM_IICCKCR,
-                          (volatile uint8_t *)R_SYSTEM_IICCKDIVCR,
-                          CONFIG_RA_IICCLK_DIV,
-                          CONFIG_RA_IICCLK_SOURCE);
-#endif
-
-  /* Set the ADC clock if it exists on the MCU */
-#if defined(CONFIG_RA_ADCCLK_SOURCE) && (CONFIG_RA_ADCCLK_SOURCE != RA_CLOCKS_CLOCK_DISABLED)
-  ra_peripheral_clock_set((volatile uint8_t *)R_SYSTEM_ADCCKCR,
-                          (volatile uint8_t *)R_SYSTEM_ADCCKDIVCR,
-                          CONFIG_RA_ADCCLK_DIV,
-                          CONFIG_RA_ADCCLK_SOURCE);
-#endif
-
-  /* Set the USB clock if it exists on the MCU (requires special handling) */
-#if defined(CONFIG_RA_USBCLK_SOURCE) && (CONFIG_RA_USBCLK_SOURCE != RA_CLOCKS_CLOCK_DISABLED)
-  /* USB clock configuration may need special register handling */
+  /* Set the USB clock if USB is enabled */
+#ifdef CONFIG_RA_USB
   ra_peripheral_clock_set((volatile uint8_t *)R_SYSTEM_USBCKCR,
                           NULL,  /* No divider register for USB on some MCUs */
                           0,     /* No divider */
                           CONFIG_RA_USBCLK_SOURCE);
 #endif
 
-  /* Set the OCTASPI clock if it exists on the MCU */
-#if defined(CONFIG_RA_OCTACLK_SOURCE) && (CONFIG_RA_OCTACLK_SOURCE != RA_CLOCKS_CLOCK_DISABLED)
-  /* OCTASPI clock may require special handling compared to other peripherals */
+  /* Set the OCTASPI clock if OSPI is enabled */
+#ifdef CONFIG_RA_OSPI
   ra_peripheral_clock_set((volatile uint8_t *)R_SYSTEM_OCTACKCR,
                           (volatile uint8_t *)R_SYSTEM_OCTACKDIVCR,
                           CONFIG_RA_OCTACLK_DIV,
                           CONFIG_RA_OCTACLK_SOURCE);
+#endif
+
+  /* Set the GPT clock if GPT is enabled */
+#ifdef CONFIG_RA_GPT
+  ra_peripheral_clock_set((volatile uint8_t *)R_SYSTEM_GPTCKCR,
+                          (volatile uint8_t *)R_SYSTEM_GPTCKDIVCR,
+                          CONFIG_RA_GPTCLK_DIV,
+                          CONFIG_RA_GPTCLK_SOURCE);
+#endif
+
+  /* Set the I2C clock if I2C is enabled */
+#ifdef CONFIG_RA_I2C
+  ra_peripheral_clock_set((volatile uint8_t *)R_SYSTEM_IICCKCR,
+                          (volatile uint8_t *)R_SYSTEM_IICCKDIVCR,
+                          CONFIG_RA_IICCLK_DIV,
+                          CONFIG_RA_IICCLK_SOURCE);
+#endif
+
+  /* Set the ADC clock if ADC is enabled */
+#ifdef CONFIG_RA_ADC
+  ra_peripheral_clock_set((volatile uint8_t *)R_SYSTEM_ADCCKCR,
+                          (volatile uint8_t *)R_SYSTEM_ADCCKDIVCR,
+                          CONFIG_RA_ADCCLK_DIV,
+                          CONFIG_RA_ADCCLK_SOURCE);
 #endif
 }
 
@@ -578,14 +568,7 @@ static void ra_update_clock_config(void)
    * Use predefined macro from ra_clock.h that calculates:
    * RA_PLL1P_FREQUENCY / RA_DIV_TO_DIVISOR(CONFIG_RA_SCICLK_DIV)
    */
-#if CONFIG_RA_SCICLK_SOURCE == RA_CLOCKS_SOURCE_CLOCK_PLL1P
   g_ra_clock_config.sciclk_freq = RA_SCICLK_FREQUENCY;
-#elif CONFIG_RA_SCICLK_SOURCE == RA_CLOCKS_CLOCK_DISABLED
-  g_ra_clock_config.sciclk_freq = 0;
-#else
-  /* Default configuration: PLL1P (360MHz) / 4 = 90MHz */
-  g_ra_clock_config.sciclk_freq = RA_SCICLK_FREQUENCY;
-#endif
 
   g_ra_clock_config.hoco_frequency = RA_HOCO_FREQUENCY;
 }

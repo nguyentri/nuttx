@@ -375,7 +375,7 @@ int ra8e1_bringup(void)
 
 #ifdef CONFIG_RA8E1_SPI_LOOPBACK_EXAMPLE
   /* Initialize SPI loopback demo */
-  ret = ra8e1_spi_loopback_init();
+  ret = ra8e1_spi_loopback_main(0, NULL);
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: Failed to initialize SPI loopback demo: %d\n", ret);

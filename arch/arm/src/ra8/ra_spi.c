@@ -431,12 +431,12 @@ static void ra_spi_cs_configure(struct ra_spi_priv_s *priv, uint32_t devid)
       ssl_select = cs_config->ssl_select & 0x07;  /* Limit to 0-7 */
       use_hardware = cs_config->use_hardware;
 
-      spiinfo("SPI%d: Using device-specific CS config for devid=0x%x: SSL=%d, delays=%d/%d/%d, hw=%d\n",
-              priv->config->bus, devid, ssl_select, setup_delay, hold_delay, negation_delay, use_hardware);
+      spiinfo("SPI%d: Using device-specific CS config for devid=0x%08lx: SSL=%d, delays=%d/%d/%d, hw=%d\n",
+              priv->config->bus, (unsigned long)devid, ssl_select, setup_delay, hold_delay, negation_delay, use_hardware);
     }
   else
     {
-      spiinfo("SPI%d: Using default CS config for devid=0x%x\n", priv->config->bus, devid);
+      spiinfo("SPI%d: Using default CS config for devid=0x%08lx\n", priv->config->bus, (unsigned long)devid);
     }
 
   /* Configure SPCMD register */
@@ -505,14 +505,14 @@ static void ra_spi_cs_assert(struct ra_spi_priv_s *priv, uint32_t devid)
       bool assert_level = !cs_config->active_low;  /* Invert if active low */
       ra_gpiowrite(cs_config->cs_gpio, assert_level);
 
-      spiinfo("SPI%d CS GPIO assert for device 0x%x: pin=0x%08x, level=%d\n",
-              priv->config->bus, devid, cs_config->cs_gpio, assert_level);
+      spiinfo("SPI%d CS GPIO assert for device 0x%08lx: pin=0x%08lx, level=%d\n",
+        priv->config->bus, (unsigned long)devid, (unsigned long)cs_config->cs_gpio.cfg, assert_level);
     }
   else
     {
       /* Hardware CS or no configuration - delegated to application ra_spi_select() */
-      spiinfo("SPI%d CS assert delegated to application for device 0x%x\n",
-              priv->config->bus, devid);
+      spiinfo("SPI%d CS assert delegated to application for device 0x%08lx\n",
+        priv->config->bus, (unsigned long)devid);
     }
 }
 
@@ -534,14 +534,14 @@ static void ra_spi_cs_deassert(struct ra_spi_priv_s *priv, uint32_t devid)
       bool deassert_level = cs_config->active_low;  /* Normal level when inactive */
       ra_gpiowrite(cs_config->cs_gpio, deassert_level);
 
-      spiinfo("SPI%d CS GPIO deassert for device 0x%x: pin=0x%08x, level=%d\n",
-              priv->config->bus, devid, cs_config->cs_gpio, deassert_level);
+      spiinfo("SPI%d CS GPIO deassert for device 0x%08lx: pin=0x%08lx, level=%d\n",
+        priv->config->bus, (unsigned long)devid, (unsigned long)cs_config->cs_gpio.cfg, deassert_level);
     }
   else
     {
       /* Hardware CS or no configuration - delegated to application ra_spi_select() */
-      spiinfo("SPI%d CS deassert delegated to application for device 0x%x\n",
-              priv->config->bus, devid);
+      spiinfo("SPI%d CS deassert delegated to application for device 0x%08lx\n",
+        priv->config->bus, (unsigned long)devid);
     }
 }
 
@@ -576,9 +576,9 @@ static void ra_spi_apply_cs_config(struct spi_dev_s *dev, uint32_t devid)
           ra_spi_setbits(dev, cs_config->bits);
         }
 
-      spiinfo("SPI%d applied CS config for device 0x%x: freq=%u, mode=%u, bits=%u\n",
-              priv->config->bus, devid, cs_config->max_frequency,
-              cs_config->mode, cs_config->bits);
+      spiinfo("SPI%d applied CS config for device 0x%08lx: freq=%lu, mode=%u, bits=%u\n",
+        priv->config->bus, (unsigned long)devid, (unsigned long)cs_config->max_frequency,
+        cs_config->mode, cs_config->bits);
     }
 }
 
@@ -1015,7 +1015,7 @@ static uint32_t ra_spi_setfrequency(struct spi_dev_s *dev, uint32_t frequency)
   uint8_t spbr;
   uint8_t brdv = 0;
 
-  spiinfo("SPI%d frequency %d\n", priv->config->bus, frequency);
+  spiinfo("SPI%d frequency %lu\n", priv->config->bus, (unsigned long)frequency);
 
   if (priv->frequency == frequency)
     {
@@ -1060,8 +1060,8 @@ static uint32_t ra_spi_setfrequency(struct spi_dev_s *dev, uint32_t frequency)
   priv->actual = src_clk / (2 * (spbr + 1) * (2 << brdv));
   priv->frequency = frequency;
 
-  spiinfo("SPI%d SPBR=%d BRDV=%d actual=%d\n",
-          priv->config->bus, spbr, brdv, priv->actual);
+  spiinfo("SPI%d SPBR=%d BRDV=%d actual=%lu\n",
+    priv->config->bus, spbr, brdv, (unsigned long)priv->actual);
 
   /* Set the bit rate register */
   ra_spi_putreg8(priv, RA_SPI_SPBR_OFFSET, spbr);
@@ -1217,7 +1217,7 @@ static int ra_spi_hwfeatures(struct spi_dev_s *dev, spi_hwfeatures_t features)
 {
   struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)dev;
 
-  spiinfo("SPI%d features %08x\n", priv->config->bus, features);
+  spiinfo("SPI%d features %08lx\n", priv->config->bus, (unsigned long)features);
 
   /* Other H/W features are not supported */
   return ((features & ~HWFEAT_FORCE_CS) == 0) ? OK : -ENOSYS;
@@ -1253,8 +1253,8 @@ static uint32_t ra_spi_send(struct spi_dev_s *dev, uint32_t wd)
   /* Read the received word */
   ret = ra_spi_readword(priv);
 
-  spiinfo("SPI%d sent %08x received %04x\n",
-          priv->config->bus, wd, ret);
+  spiinfo("SPI%d sent %08lx received %04x\n",
+    priv->config->bus, (unsigned long)wd, ret);
 
   return (uint32_t)ret;
 }
@@ -1612,8 +1612,8 @@ void ra_spi_select_device(struct spi_dev_s *dev, uint32_t devid, bool selected)
 
   DEBUGASSERT(priv != NULL);
 
-  spiinfo("SPI%d devid=0x%08x selected=%d\n",
-          priv->config->bus, devid, selected);
+  spiinfo("SPI%d devid=0x%08lx selected=%d\n",
+    priv->config->bus, (unsigned long)devid, selected);
 
   if (selected)
     {

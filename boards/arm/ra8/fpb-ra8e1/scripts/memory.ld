@@ -31,11 +31,11 @@ MEMORY
 {
   /* Code Flash */
   kflash (rx)   : ORIGIN = 0x02000000, LENGTH = 1024K
-  
+
   /* Main SRAM for kernel and applications */
   ksram (rwx)   : ORIGIN = 0x22060000, LENGTH = 256K
   usram (rwx)   : ORIGIN = 0x220A0000, LENGTH = 256K
-  
+
   /* Tightly Coupled Memory */
   itcm (rwx)    : ORIGIN = 0x00000000, LENGTH = 16K
   dtcm (rwx)    : ORIGIN = 0x20000000, LENGTH = 16K

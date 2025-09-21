@@ -202,46 +202,51 @@ endmenu
 
 menu "MCU Clocks Configuration"
 
+# High-Level Clock Configuration Aliases
 choice
-   prompt "MCU Clock Source"
+   prompt "Clock Configuration Mode"
    default RA_CLOCK_PLL1P
    help
-     Select the MCU clock source.
+     Select a clock configuration mode. These are aliases for existing 
+     clock configurations to simplify common use cases.
+
+config RA_CLOCK_PLL1P
+   bool "Maximum Performance Mode (PLL1P - 360MHz)"
+   help
+     Configure MCU for maximum performance using PLL1P at 360MHz.
+     This is an alias for RA_CLOCK_PLL1P configuration.
+     Best for applications requiring highest CPU performance.
 
 config RA_CLOCK_HOCO
-   bool "HOCO (High-Speed On-Chip Oscillator)"
+   bool "Balanced Performance Mode (HOCO - 48MHz)"
    help
-     Use High-Speed On-Chip Oscillator as system clock.
-     Frequency configurable from 16MHz to 64MHz.
+     Use HOCO at 48MHz for balanced performance and lower power consumption.
+     Good for most applications with moderate performance requirements.
 
 config RA_CLOCK_MOCO
-   bool "MOCO (Medium-Speed On-Chip Oscillator)"
+   bool "Low Power Mode (MOCO - 8MHz)"
    help
-     Use Medium-Speed On-Chip Oscillator (8MHz) as system clock.
+     Use MOCO at 8MHz for minimal power consumption.
+     Suitable for low-power applications and battery-powered devices.
 
 config RA_CLOCK_LOCO
-   bool "LOCO (Low-Speed On-Chip Oscillator)"
+   bool "Ultra Low Power Mode (LOCO - 32.768kHz)"
    help
-     Use Low-Speed On-Chip Oscillator (32.768kHz) as system clock.
+     Use LOCO at 32.768kHz for ultra-low power consumption.
 
 config RA_CLOCK_MAIN
-   bool "Main Oscillator (External Crystal)"
+   bool "External Crystal Mode (Main OSC)"
    help
      Use external crystal oscillator as system clock.
 
 config RA_CLOCK_PLL
-   bool "PLL (Phase-Locked Loop)"
+   bool "PLL Mode (Legacy - same as PLL1P)"
    help
      Use PLL output as system clock (legacy option, same as PLL1P).
 
-config RA_CLOCK_PLL1P
-   bool "PLL1P (Phase-Locked Loop Output P)"
-   help
-     Use PLL1P output as system clock.
-     Provides highest performance up to 360MHz for RA8E1.
-
 endchoice
 
+# Automatic clock frequency calculation
 config RA_MCU_CLOCK_FREQUENCY
    int "MCU Core Clock Frequency (Hz)"
    default 360000000 if RA_CLOCK_PLL1P
@@ -414,8 +419,20 @@ choice
    help
      Select SCI (Serial Communication Interface) clock source.
 
+config RA_SCICLK_SOURCE_HOCO
+   bool "HOCO (High-Speed On-Chip Oscillator)"
+
+config RA_SCICLK_SOURCE_MOCO
+   bool "MOCO (Medium-Speed On-Chip Oscillator)"
+
+config RA_SCICLK_SOURCE_LOCO
+   bool "LOCO (Low-Speed On-Chip Oscillator)"
+
+config RA_SCICLK_SOURCE_MAIN_OSC
+   bool "Main Oscillator (External Crystal)"
+
 config RA_SCICLK_SOURCE_PLL1P
-   bool "PLL1P"
+   bool "PLL1P (High Performance)"
    depends on RA_CLOCK_PLL || RA_CLOCK_PLL1P
 
 config RA_SCICLK_SOURCE_DISABLED
@@ -438,8 +455,20 @@ choice
    help
      Select SPI clock source.
 
+config RA_SPICLK_SOURCE_HOCO
+   bool "HOCO (High-Speed On-Chip Oscillator)"
+
+config RA_SPICLK_SOURCE_MOCO
+   bool "MOCO (Medium-Speed On-Chip Oscillator)"
+
+config RA_SPICLK_SOURCE_LOCO
+   bool "LOCO (Low-Speed On-Chip Oscillator)"
+
+config RA_SPICLK_SOURCE_MAIN_OSC
+   bool "Main Oscillator (External Crystal)"
+
 config RA_SPICLK_SOURCE_PLL1P
-   bool "PLL1P"
+   bool "PLL1P (High Performance)"
    depends on RA_CLOCK_PLL || RA_CLOCK_PLL1P
 
 config RA_SPICLK_SOURCE_DISABLED
@@ -453,8 +482,20 @@ choice
    help
      Select CAN-FD clock source.
 
+config RA_CANFDCLK_SOURCE_HOCO
+   bool "HOCO (High-Speed On-Chip Oscillator)"
+
+config RA_CANFDCLK_SOURCE_MOCO
+   bool "MOCO (Medium-Speed On-Chip Oscillator)"
+
+config RA_CANFDCLK_SOURCE_LOCO
+   bool "LOCO (Low-Speed On-Chip Oscillator)"
+
+config RA_CANFDCLK_SOURCE_MAIN_OSC
+   bool "Main Oscillator (External Crystal)"
+
 config RA_CANFDCLK_SOURCE_PLL1P
-   bool "PLL1P"
+   bool "PLL1P (High Performance)"
    depends on RA_CLOCK_PLL || RA_CLOCK_PLL1P
 
 config RA_CANFDCLK_SOURCE_DISABLED
@@ -468,8 +509,20 @@ choice
    help
      Select USB clock source.
 
+config RA_USBCLK_SOURCE_HOCO
+   bool "HOCO (High-Speed On-Chip Oscillator)"
+
+config RA_USBCLK_SOURCE_MOCO
+   bool "MOCO (Medium-Speed On-Chip Oscillator)"
+
+config RA_USBCLK_SOURCE_LOCO
+   bool "LOCO (Low-Speed On-Chip Oscillator)"
+
+config RA_USBCLK_SOURCE_MAIN_OSC
+   bool "Main Oscillator (External Crystal)"
+
 config RA_USBCLK_SOURCE_PLL1P
-   bool "PLL1P"
+   bool "PLL1P (High Performance)"
    depends on RA_CLOCK_PLL || RA_CLOCK_PLL1P
 
 config RA_USBCLK_SOURCE_DISABLED
@@ -483,14 +536,252 @@ choice
    help
      Select Octal SPI clock source.
 
+config RA_OCTACLK_SOURCE_HOCO
+   bool "HOCO (High-Speed On-Chip Oscillator)"
+
+config RA_OCTACLK_SOURCE_MOCO
+   bool "MOCO (Medium-Speed On-Chip Oscillator)"
+
+config RA_OCTACLK_SOURCE_LOCO
+   bool "LOCO (Low-Speed On-Chip Oscillator)"
+
+config RA_OCTACLK_SOURCE_MAIN_OSC
+   bool "Main Oscillator (External Crystal)"
+
 config RA_OCTACLK_SOURCE_PLL1P
-   bool "PLL1P"
+   bool "PLL1P (High Performance)"
    depends on RA_CLOCK_PLL || RA_CLOCK_PLL1P
 
 config RA_OCTACLK_SOURCE_DISABLED
    bool "Disabled"
 
 endchoice
+
+choice
+   prompt "SCI SPI Clock Source"
+   default RA_SCISPICLK_SOURCE_DISABLED
+   help
+     Select SCI SPI clock source.
+
+config RA_SCISPICLK_SOURCE_HOCO
+   bool "HOCO (High-Speed On-Chip Oscillator)"
+
+config RA_SCISPICLK_SOURCE_MOCO
+   bool "MOCO (Medium-Speed On-Chip Oscillator)"
+
+config RA_SCISPICLK_SOURCE_LOCO
+   bool "LOCO (Low-Speed On-Chip Oscillator)"
+
+config RA_SCISPICLK_SOURCE_MAIN_OSC
+   bool "Main Oscillator (External Crystal)"
+
+config RA_SCISPICLK_SOURCE_PLL1P
+   bool "PLL1P (High Performance)"
+   depends on RA_CLOCK_PLL || RA_CLOCK_PLL1P
+
+config RA_SCISPICLK_SOURCE_DISABLED
+   bool "Disabled"
+
+endchoice
+
+choice
+   prompt "GPT Clock Source"
+   default RA_GPTCLK_SOURCE_DISABLED
+   help
+     Select GPT (General Purpose Timer) clock source.
+
+config RA_GPTCLK_SOURCE_HOCO
+   bool "HOCO (High-Speed On-Chip Oscillator)"
+
+config RA_GPTCLK_SOURCE_MOCO
+   bool "MOCO (Medium-Speed On-Chip Oscillator)"
+
+config RA_GPTCLK_SOURCE_LOCO
+   bool "LOCO (Low-Speed On-Chip Oscillator)"
+
+config RA_GPTCLK_SOURCE_MAIN_OSC
+   bool "Main Oscillator (External Crystal)"
+
+config RA_GPTCLK_SOURCE_PLL1P
+   bool "PLL1P (High Performance)"
+   depends on RA_CLOCK_PLL || RA_CLOCK_PLL1P
+
+config RA_GPTCLK_SOURCE_DISABLED
+   bool "Disabled"
+
+endchoice
+
+choice
+   prompt "I2C Clock Source"
+   default RA_IICCLK_SOURCE_DISABLED
+   help
+     Select I2C clock source.
+
+config RA_IICCLK_SOURCE_HOCO
+   bool "HOCO (High-Speed On-Chip Oscillator)"
+
+config RA_IICCLK_SOURCE_MOCO
+   bool "MOCO (Medium-Speed On-Chip Oscillator)"
+
+config RA_IICCLK_SOURCE_LOCO
+   bool "LOCO (Low-Speed On-Chip Oscillator)"
+
+config RA_IICCLK_SOURCE_MAIN_OSC
+   bool "Main Oscillator (External Crystal)"
+
+config RA_IICCLK_SOURCE_PLL1P
+   bool "PLL1P (High Performance)"
+   depends on RA_CLOCK_PLL || RA_CLOCK_PLL1P
+
+config RA_IICCLK_SOURCE_DISABLED
+   bool "Disabled"
+
+endchoice
+
+choice
+   prompt "ADC Clock Source"
+   default RA_ADCCLK_SOURCE_DISABLED
+   help
+     Select ADC clock source.
+
+config RA_ADCCLK_SOURCE_HOCO
+   bool "HOCO (High-Speed On-Chip Oscillator)"
+
+config RA_ADCCLK_SOURCE_MOCO
+   bool "MOCO (Medium-Speed On-Chip Oscillator)"
+
+config RA_ADCCLK_SOURCE_LOCO
+   bool "LOCO (Low-Speed On-Chip Oscillator)"
+
+config RA_ADCCLK_SOURCE_MAIN_OSC
+   bool "Main Oscillator (External Crystal)"
+
+config RA_ADCCLK_SOURCE_PLL1P
+   bool "PLL1P (High Performance)"
+   depends on RA_CLOCK_PLL || RA_CLOCK_PLL1P
+
+config RA_ADCCLK_SOURCE_DISABLED
+   bool "Disabled"
+
+endchoice
+
+# Peripheral Clock Source Configuration (Automatic from choice selections)
+config RA_SCICLK_SOURCE
+   int
+   default 0 if RA_SCICLK_SOURCE_HOCO
+   default 1 if RA_SCICLK_SOURCE_MOCO
+   default 2 if RA_SCICLK_SOURCE_LOCO
+   default 3 if RA_SCICLK_SOURCE_MAIN_OSC
+   default 5 if RA_SCICLK_SOURCE_PLL1P
+   default 15 if RA_SCICLK_SOURCE_DISABLED
+   default 5
+   help
+     SCI clock source selection (automatically set from choice)
+     Values: 0=HOCO, 1=MOCO, 2=LOCO, 3=Main OSC, 5=PLL1P, 15=Disabled
+
+config RA_SPICLK_SOURCE
+   int
+   default 0 if RA_SPICLK_SOURCE_HOCO
+   default 1 if RA_SPICLK_SOURCE_MOCO
+   default 2 if RA_SPICLK_SOURCE_LOCO
+   default 3 if RA_SPICLK_SOURCE_MAIN_OSC
+   default 5 if RA_SPICLK_SOURCE_PLL1P
+   default 15 if RA_SPICLK_SOURCE_DISABLED
+   default 15
+   help
+     SPI clock source selection (automatically set from choice)
+     Values: 0=HOCO, 1=MOCO, 2=LOCO, 3=Main OSC, 5=PLL1P, 15=Disabled
+
+config RA_CANFDCLK_SOURCE
+   int
+   default 0 if RA_CANFDCLK_SOURCE_HOCO
+   default 1 if RA_CANFDCLK_SOURCE_MOCO
+   default 2 if RA_CANFDCLK_SOURCE_LOCO
+   default 3 if RA_CANFDCLK_SOURCE_MAIN_OSC
+   default 5 if RA_CANFDCLK_SOURCE_PLL1P
+   default 15 if RA_CANFDCLK_SOURCE_DISABLED
+   default 15
+   help
+     CAN-FD clock source selection (automatically set from choice)
+     Values: 0=HOCO, 1=MOCO, 2=LOCO, 3=Main OSC, 5=PLL1P, 15=Disabled
+
+config RA_USBCLK_SOURCE
+   int
+   default 0 if RA_USBCLK_SOURCE_HOCO
+   default 1 if RA_USBCLK_SOURCE_MOCO
+   default 2 if RA_USBCLK_SOURCE_LOCO
+   default 3 if RA_USBCLK_SOURCE_MAIN_OSC
+   default 5 if RA_USBCLK_SOURCE_PLL1P
+   default 15 if RA_USBCLK_SOURCE_DISABLED
+   default 15
+   help
+     USB clock source selection (automatically set from choice)
+     Values: 0=HOCO, 1=MOCO, 2=LOCO, 3=Main OSC, 5=PLL1P, 15=Disabled
+
+config RA_OCTACLK_SOURCE
+   int
+   default 0 if RA_OCTACLK_SOURCE_HOCO
+   default 1 if RA_OCTACLK_SOURCE_MOCO
+   default 2 if RA_OCTACLK_SOURCE_LOCO
+   default 3 if RA_OCTACLK_SOURCE_MAIN_OSC
+   default 5 if RA_OCTACLK_SOURCE_PLL1P
+   default 15 if RA_OCTACLK_SOURCE_DISABLED
+   default 15
+   help
+     Octal SPI clock source selection (automatically set from choice)
+     Values: 0=HOCO, 1=MOCO, 2=LOCO, 3=Main OSC, 5=PLL1P, 15=Disabled
+
+config RA_SCISPICLK_SOURCE
+   int
+   default 0 if RA_SCISPICLK_SOURCE_HOCO
+   default 1 if RA_SCISPICLK_SOURCE_MOCO
+   default 2 if RA_SCISPICLK_SOURCE_LOCO
+   default 3 if RA_SCISPICLK_SOURCE_MAIN_OSC
+   default 5 if RA_SCISPICLK_SOURCE_PLL1P
+   default 15 if RA_SCISPICLK_SOURCE_DISABLED
+   default 15
+   help
+     SCI SPI clock source selection (automatically set from choice)
+     Values: 0=HOCO, 1=MOCO, 2=LOCO, 3=Main OSC, 5=PLL1P, 15=Disabled
+
+config RA_GPTCLK_SOURCE
+   int
+   default 0 if RA_GPTCLK_SOURCE_HOCO
+   default 1 if RA_GPTCLK_SOURCE_MOCO
+   default 2 if RA_GPTCLK_SOURCE_LOCO
+   default 3 if RA_GPTCLK_SOURCE_MAIN_OSC
+   default 5 if RA_GPTCLK_SOURCE_PLL1P
+   default 15 if RA_GPTCLK_SOURCE_DISABLED
+   default 15
+   help
+     GPT clock source selection (automatically set from choice)
+     Values: 0=HOCO, 1=MOCO, 2=LOCO, 3=Main OSC, 5=PLL1P, 15=Disabled
+
+config RA_IICCLK_SOURCE
+   int
+   default 0 if RA_IICCLK_SOURCE_HOCO
+   default 1 if RA_IICCLK_SOURCE_MOCO
+   default 2 if RA_IICCLK_SOURCE_LOCO
+   default 3 if RA_IICCLK_SOURCE_MAIN_OSC
+   default 5 if RA_IICCLK_SOURCE_PLL1P
+   default 15 if RA_IICCLK_SOURCE_DISABLED
+   default 15
+   help
+     I2C clock source selection (automatically set from choice)
+     Values: 0=HOCO, 1=MOCO, 2=LOCO, 3=Main OSC, 5=PLL1P, 15=Disabled
+
+config RA_ADCCLK_SOURCE
+   int
+   default 0 if RA_ADCCLK_SOURCE_HOCO
+   default 1 if RA_ADCCLK_SOURCE_MOCO
+   default 2 if RA_ADCCLK_SOURCE_LOCO
+   default 3 if RA_ADCCLK_SOURCE_MAIN_OSC
+   default 5 if RA_ADCCLK_SOURCE_PLL1P
+   default 15 if RA_ADCCLK_SOURCE_DISABLED
+   default 15
+   help
+     ADC clock source selection (automatically set from choice)
+     Values: 0=HOCO, 1=MOCO, 2=LOCO, 3=Main OSC, 5=PLL1P, 15=Disabled
 
 endmenu
 
@@ -705,10 +996,16 @@ config RA_HAVE_SCI9_UART
    bool
    default n
 
+config RA_SCI
+   bool
+   default n
+   select SERIAL
+
 config RA_SCI0_UART
    bool "SCI0 UART support"
    default n
    depends on RA_HAVE_SCI0_UART
+   select RA_SCI
    select SCI0_SERIALDRIVER
    ---help---
       Enable support for SCI0 UART peripheral.
@@ -717,6 +1014,7 @@ config RA_SCI1_UART
    bool "SCI1 UART support"
    default n
    depends on RA_HAVE_SCI1_UART
+   select RA_SCI
    select SCI1_SERIALDRIVER
    ---help---
       Enable support for SCI1 UART peripheral.
@@ -725,6 +1023,7 @@ config RA_SCI2_UART
    bool "SCI2 UART support"
    default n
    depends on RA_HAVE_SCI2_UART
+   select RA_SCI
    select SCI2_SERIALDRIVER
    ---help---
       Enable support for SCI2 UART peripheral.
@@ -733,6 +1032,7 @@ config RA_SCI3_UART
    bool "SCI3 UART support"
    default n
    depends on RA_HAVE_SCI3_UART
+   select RA_SCI
    select SCI3_SERIALDRIVER
    ---help---
       Enable support for SCI3 UART peripheral.
@@ -741,6 +1041,7 @@ config RA_SCI4_UART
    bool "SCI4 UART support"
    default n
    depends on RA_HAVE_SCI4_UART
+   select RA_SCI
    select SCI4_SERIALDRIVER
    ---help---
       Enable support for SCI4 UART peripheral.
@@ -749,6 +1050,7 @@ config RA_SCI9_UART
    bool "SCI9 UART support"
    default n
    depends on RA_HAVE_SCI9_UART
+   select RA_SCI
    select SCI9_SERIALDRIVER
    ---help---
       Enable support for SCI9 UART peripheral.
@@ -1164,42 +1466,50 @@ config RA_GPT
 config RA_GPT0
    bool "GPT0 PWM support"
    default n
-   depends on RA_GPT && RA_HAVE_GPT0
+   depends on RA_HAVE_GPT0
+   select RA_GPT
 
 config RA_GPT1
    bool "GPT1 PWM support"
    default n
-   depends on RA_GPT && RA_HAVE_GPT1
+   depends on RA_HAVE_GPT1
+   select RA_GPT
 
 config RA_GPT2
    bool "GPT2 PWM support"
    default n
-   depends on RA_GPT && RA_HAVE_GPT2
+   depends on RA_HAVE_GPT2
+   select RA_GPT
 
 config RA_GPT3
    bool "GPT3 PWM support"
    default n
-   depends on RA_GPT && RA_HAVE_GPT3
+   depends on RA_HAVE_GPT3
+   select RA_GPT
 
 config RA_GPT4
    bool "GPT4 PWM support"
    default n
-   depends on RA_GPT && RA_HAVE_GPT4
+   depends on RA_HAVE_GPT4
+   select RA_GPT
 
 config RA_GPT5
    bool "GPT5 PWM support"
    default n
-   depends on RA_GPT && RA_HAVE_GPT5
+   depends on RA_HAVE_GPT5
+   select RA_GPT
 
 config RA_GPT6
    bool "GPT6 PWM support"
    default n
-   depends on RA_GPT && RA_HAVE_GPT6
+   depends on RA_HAVE_GPT6
+   select RA_GPT
 
 config RA_GPT7
    bool "GPT7 PWM support"
    default n
-   depends on RA_GPT && RA_HAVE_GPT7
+   depends on RA_HAVE_GPT7
+   select RA_GPT
 
 endmenu
 
@@ -1287,10 +1597,16 @@ config RA_HAVE_CAN0
    bool
    default n
 
+config RA_CAN
+   bool
+   default n
+   select CAN
+
 config RA_CAN0
    bool "CAN0"
    default n
    depends on RA_HAVE_CAN0
+   select RA_CAN
 endmenu
 
 menu "Ethernet"
@@ -1322,6 +1638,7 @@ config RA_USBFS
    bool "USB Full Speed"
    default n
    depends on RA_HAVE_USBFS
+   select RA_USB
 endmenu
 
 menu "Octal SPI"
@@ -1358,15 +1675,6 @@ config RA_HAVE_AGT
 config RA_HAVE_ULPT
    bool
    default n
-
-config RA_GPT
-   bool "General PWM Timer"
-   default n
-   depends on RA_HAVE_GPT
-   select PWM
-   help
-     Enable General Purpose Timer (GPT) support.
-     Provides basic timer functionality for PWM and other timing tasks.
 
 config RA_AGT
    bool "Asynchronous General Purpose Timer"

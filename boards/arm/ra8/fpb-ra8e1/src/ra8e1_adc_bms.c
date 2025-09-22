@@ -770,7 +770,7 @@ int ra8e1_adc_sample(void)
   int ret;
   int sample_count = 10;
 
-  printf("\n=== FPB-RA8E1 ADC Battery Monitoring Demo ===\n");
+  syslog(LOG_INFO, "\n=== FPB-RA8E1 ADC Battery Monitoring Demo ===\n");
 
   /* Initialize ADC if not already done */
 
@@ -779,31 +779,31 @@ int ra8e1_adc_sample(void)
       ra8e1_adc_initialize();
     }
 
-  printf("Taking %d battery measurements...\n\n", sample_count);
+  syslog(LOG_INFO, "Taking %d battery measurements...\n\n", sample_count);
 
   for (int i = 0; i < sample_count; i++)
     {
       ret = ra8e1_get_battery_status(&status);
       if (ret < 0)
         {
-          printf("Sample %d: ERROR reading battery status (%d)\n", i + 1, ret);
+          syslog(LOG_INFO, "Sample %d: ERROR reading battery status (%d)\n", i + 1, ret);
           continue;
         }
 
-      printf("Sample %d:\n", i + 1);
-      printf("  Voltage:    %lu mV\n", status.voltage_mv);
-      printf("  Current:    %ld mA %s\n", abs(status.current_ma),
+      syslog(LOG_INFO, "Sample %d:\n", i + 1);
+      syslog(LOG_INFO, "  Voltage:    %lu mV\n", status.voltage_mv);
+      syslog(LOG_INFO, "  Current:    %ld mA %s\n", abs(status.current_ma),
              status.is_charging ? "(Charging)" : "(Discharging)");
-      printf("  Power:      %lu mW\n", status.power_mw);
-      printf("  Percentage: %d%%\n", status.percentage);
-      printf("  Status:     %s\n\n", status.is_valid ? "Valid" : "Invalid");
+      syslog(LOG_INFO, "  Power:      %lu mW\n", status.power_mw);
+      syslog(LOG_INFO, "  Percentage: %d%%\n", status.percentage);
+      syslog(LOG_INFO, "  Status:     %s\n\n", status.is_valid ? "Valid" : "Invalid");
 
       /* Wait between samples */
 
       usleep(500000);  /* 500ms delay */
     }
 
-  printf("=== Demo Complete ===\n");
+  syslog(LOG_INFO, "=== Demo Complete ===\n");
   return OK;
 }
 
@@ -832,18 +832,18 @@ int ra8e1_adc_sample(void)
 
 static void show_usage(FAR const char *progname, int exitcode)
 {
-  printf("USAGE: %s [OPTIONS]\n", progname);
-  printf("\nWhere OPTIONS include:\n");
-  printf("  -h      Show this help message and exit\n");
-  printf("  -c <n>  Number of samples to take (default: 10)\n");
-  printf("  -d <ms> Delay between samples in milliseconds (default: 1000)\n");
-  printf("  -v      Verbose output\n");
-  printf("  -s      Single sample mode\n");
-  printf("  -m      Continuous monitoring mode\n");
-  printf("\nExamples:\n");
-  printf("  %s -c 5 -d 500    Take 5 samples with 500ms delay\n", progname);
-  printf("  %s -s             Take a single sample\n", progname);
-  printf("  %s -m             Continuous monitoring (Ctrl+C to stop)\n", progname);
+  syslog(LOG_INFO, "USAGE: %s [OPTIONS]\n", progname);
+  syslog(LOG_INFO, "\nWhere OPTIONS include:\n");
+  syslog(LOG_INFO, "  -h      Show this help message and exit\n");
+  syslog(LOG_INFO, "  -c <n>  Number of samples to take (default: 10)\n");
+  syslog(LOG_INFO, "  -d <ms> Delay between samples in milliseconds (default: 1000)\n");
+  syslog(LOG_INFO, "  -v      Verbose output\n");
+  syslog(LOG_INFO, "  -s      Single sample mode\n");
+  syslog(LOG_INFO, "  -m      Continuous monitoring mode\n");
+  syslog(LOG_INFO, "\nExamples:\n");
+  syslog(LOG_INFO, "  %s -c 5 -d 500    Take 5 samples with 500ms delay\n", progname);
+  syslog(LOG_INFO, "  %s -s             Take a single sample\n", progname);
+  syslog(LOG_INFO, "  %s -m             Continuous monitoring (Ctrl+C to stop)\n", progname);
   exit(exitcode);
 }
 
@@ -877,20 +877,20 @@ static void print_battery_status(FAR struct battery_status_s *status, bool verbo
 
   if (verbose)
     {
-      printf("=== Battery Status ===\n");
-      printf("Voltage:     %lu mV\n", status->voltage_mv);
-      printf("Current:     %ld mA (%s)\n",
+      syslog(LOG_INFO, "=== Battery Status ===\n");
+      syslog(LOG_INFO, "Voltage:     %lu mV\n", status->voltage_mv);
+      syslog(LOG_INFO, "Current:     %ld mA (%s)\n",
              abs(status->current_ma),
              status->is_charging ? "Charging" : "Discharging");
-      printf("Power:       %lu mW\n", status->power_mw);
-      printf("Charge:      %d%% (%s)\n", status->percentage, charge_level);
-      printf("Status:      %s\n", status->is_valid ? "Valid" : "Invalid");
-      printf("Charging:    %s\n", status->is_charging ? "Yes" : "No");
-      printf("======================\n");
+      syslog(LOG_INFO, "Power:       %lu mW\n", status->power_mw);
+      syslog(LOG_INFO, "Charge:      %d%% (%s)\n", status->percentage, charge_level);
+      syslog(LOG_INFO, "Status:      %s\n", status->is_valid ? "Valid" : "Invalid");
+      syslog(LOG_INFO, "Charging:    %s\n", status->is_charging ? "Yes" : "No");
+      syslog(LOG_INFO, "======================\n");
     }
   else
     {
-      printf("%lu mV | %ld mA | %lu mW | %d%% | %s\n",
+      syslog(LOG_INFO, "%lu mV | %ld mA | %lu mW | %d%% | %s\n",
              status->voltage_mv, status->current_ma, status->power_mw,
              status->percentage, status->is_charging ? "CHG" : "DIS");
     }
@@ -992,8 +992,8 @@ int ra8e1_adc_bms_main(int argc, FAR char *argv[])
       show_usage(argv[0], EXIT_FAILURE);
     }
 
-  printf("FPB-RA8E1 ADC Battery Monitor\n");
-  printf("=====================================\n");
+  syslog(LOG_INFO, "FPB-RA8E1 ADC Battery Monitor\n");
+  syslog(LOG_INFO, "=====================================\n");
 
   /* Initialize ADC */
 
@@ -1003,7 +1003,7 @@ int ra8e1_adc_bms_main(int argc, FAR char *argv[])
     {
       /* Single sample mode */
 
-      printf("Taking single battery measurement...\n");
+      syslog(LOG_INFO, "Taking single battery measurement...\n");
       ret = ra8e1_get_battery_status(&status);
       if (ret < 0)
         {
@@ -1017,11 +1017,11 @@ int ra8e1_adc_bms_main(int argc, FAR char *argv[])
     {
       /* Continuous monitoring mode */
 
-      printf("Continuous monitoring mode (Ctrl+C to stop)\n");
+      syslog(LOG_INFO, "Continuous monitoring mode (Ctrl+C to stop)\n");
       if (!verbose)
         {
-          printf("Format: Voltage | Current | Power | Charge | Status\n");
-          printf("--------|--------|-------|-------|--------\n");
+          syslog(LOG_INFO, "Format: Voltage | Current | Power | Charge | Status\n");
+          syslog(LOG_INFO, "--------|--------|-------|-------|--------\n");
         }
 
       i = 0;
@@ -1037,11 +1037,11 @@ int ra8e1_adc_bms_main(int argc, FAR char *argv[])
 
           if (verbose)
             {
-              printf("\n--- Sample %d ---\n", ++i);
+              syslog(LOG_INFO, "\n--- Sample %d ---\n", ++i);
             }
           else
             {
-              printf("%3d: ", ++i);
+              syslog(LOG_INFO, "%3d: ", ++i);
             }
 
           print_battery_status(&status, verbose);
@@ -1053,13 +1053,13 @@ int ra8e1_adc_bms_main(int argc, FAR char *argv[])
     {
       /* Multiple sample mode */
 
-      printf("Taking %d battery measurements with %dms delay...\n",
+      syslog(LOG_INFO, "Taking %d battery measurements with %dms delay...\n",
              sample_count, delay_ms);
 
       if (!verbose)
         {
-          printf("Sample | Voltage | Current | Power | Charge | Status\n");
-          printf("-------|---------|---------|-------|--------|--------\n");
+          syslog(LOG_INFO, "Sample | Voltage | Current | Power | Charge | Status\n");
+          syslog(LOG_INFO, "-------|---------|---------|-------|--------|--------\n");
         }
 
       for (i = 0; i < sample_count; i++)
@@ -1074,11 +1074,11 @@ int ra8e1_adc_bms_main(int argc, FAR char *argv[])
 
           if (verbose)
             {
-              printf("\n--- Sample %d of %d ---\n", i + 1, sample_count);
+              syslog(LOG_INFO, "\n--- Sample %d of %d ---\n", i + 1, sample_count);
             }
           else
             {
-              printf("%3d:   ", i + 1);
+              syslog(LOG_INFO, "%3d:   ", i + 1);
             }
 
           print_battery_status(&status, verbose);
@@ -1090,12 +1090,12 @@ int ra8e1_adc_bms_main(int argc, FAR char *argv[])
         }
     }
 
-  printf("\nBattery monitoring complete.\n");
+  syslog(LOG_INFO, "\nBattery monitoring complete.\n");
   return EXIT_SUCCESS;
 
 #else
-  printf("Error: ADC battery monitoring not enabled in configuration\n");
-  printf("Please enable CONFIG_RA_ADC_BATTERY_MONITOR\n");
+  syslog(LOG_INFO, "Error: ADC battery monitoring not enabled in configuration\n");
+  syslog(LOG_INFO, "Please enable CONFIG_RA_ADC_BATTERY_MONITOR\n");
   return EXIT_FAILURE;
 #endif
 }

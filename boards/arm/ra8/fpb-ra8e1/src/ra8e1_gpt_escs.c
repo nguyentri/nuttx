@@ -440,7 +440,7 @@ static int esc_pwm_open(int esc_index)
                                       O_RDONLY);
   if (g_esc_channels[esc_index].fd < 0)
     {
-      printf("ERROR: Failed to open %s: %d\n",
+      syslog(LOG_INFO, "ERROR: Failed to open %s: %d\n",
              g_esc_channels[esc_index].device_path, errno);
       return -errno;
     }
@@ -454,13 +454,13 @@ static int esc_pwm_open(int esc_index)
               (unsigned long)&info);
   if (ret < 0)
     {
-      printf("ERROR: Failed to configure PWM%d: %d\n", esc_index, errno);
+      syslog(LOG_INFO, "ERROR: Failed to configure PWM%d: %d\n", esc_index, errno);
       close(g_esc_channels[esc_index].fd);
       g_esc_channels[esc_index].fd = -1;
       return -errno;
     }
 
-  printf("ESC%d: PWM device opened and configured\n", esc_index + 1);
+  syslog(LOG_INFO, "ESC%d: PWM device opened and configured\n", esc_index + 1);
   return OK;
 }
 
@@ -514,7 +514,7 @@ static int esc_set_throttle_us(int esc_index, uint32_t pulse_us)
 
   if (g_esc_channels[esc_index].fd < 0)
     {
-      printf("ERROR: ESC%d PWM device not open\n", esc_index + 1);
+      syslog(LOG_INFO, "ERROR: ESC%d PWM device not open\n", esc_index + 1);
       return -ENODEV;
     }
 
@@ -540,7 +540,7 @@ static int esc_set_throttle_us(int esc_index, uint32_t pulse_us)
               (unsigned long)&info);
   if (ret < 0)
     {
-      printf("ERROR: Failed to set PWM duty for ESC%d: %d\n",
+      syslog(LOG_INFO, "ERROR: Failed to set PWM duty for ESC%d: %d\n",
              esc_index + 1, errno);
       return -errno;
     }
@@ -549,12 +549,12 @@ static int esc_set_throttle_us(int esc_index, uint32_t pulse_us)
   ret = ioctl(g_esc_channels[esc_index].fd, PWMIOC_START, 0);
   if (ret < 0)
     {
-      printf("ERROR: Failed to start PWM for ESC%d: %d\n",
+      syslog(LOG_INFO, "ERROR: Failed to start PWM for ESC%d: %d\n",
              esc_index + 1, errno);
       return -errno;
     }
 
-  printf("ESC%d: Set to %lu µs (duty: %lu%%)\n",
+  syslog(LOG_INFO, "ESC%d: Set to %lu µs (duty: %lu%%)\n",
          esc_index + 1, pulse_us, duty_percentage);
 
   return OK;
@@ -602,7 +602,7 @@ static int esc_arm(int esc_index)
   if (ret == OK)
     {
       g_esc_channels[esc_index].armed = true;
-      printf("ESC%d: Armed\n", esc_index + 1);
+      syslog(LOG_INFO, "ESC%d: Armed\n", esc_index + 1);
     }
 
   return ret;
@@ -625,14 +625,14 @@ static int esc_disarm(int esc_index)
       ret = ioctl(g_esc_channels[esc_index].fd, PWMIOC_STOP, 0);
       if (ret < 0)
         {
-          printf("ERROR: Failed to stop PWM for ESC%d: %d\n",
+          syslog(LOG_INFO, "ERROR: Failed to stop PWM for ESC%d: %d\n",
                  esc_index + 1, errno);
         }
       else
         {
           g_esc_channels[esc_index].armed = false;
           g_esc_channels[esc_index].current_throttle = 0;
-          printf("ESC%d: Disarmed\n", esc_index + 1);
+          syslog(LOG_INFO, "ESC%d: Disarmed\n", esc_index + 1);
         }
     }
 
@@ -652,14 +652,14 @@ static int esc_arm_all(void)
   int ret = OK;
   int i;
 
-  printf("Arming all ESCs...\n");
+  syslog(LOG_INFO, "Arming all ESCs...\n");
 
   for (i = 0; i < NUM_ESC_CHANNELS; i++)
     {
       ret = esc_arm(i);
       if (ret < 0)
         {
-          printf("ERROR: Failed to arm ESC%d\n", i + 1);
+          syslog(LOG_INFO, "ERROR: Failed to arm ESC%d\n", i + 1);
           break;
         }
       usleep(100000);  /* 100ms delay between arming */
@@ -667,7 +667,7 @@ static int esc_arm_all(void)
 
   if (ret == OK)
     {
-      printf("All ESCs armed successfully\n");
+      syslog(LOG_INFO, "All ESCs armed successfully\n");
     }
 
   return ret;
@@ -685,14 +685,14 @@ static int esc_disarm_all(void)
 {
   int i;
 
-  printf("Disarming all ESCs...\n");
+  syslog(LOG_INFO, "Disarming all ESCs...\n");
 
   for (i = 0; i < NUM_ESC_CHANNELS; i++)
     {
       esc_disarm(i);
     }
 
-  printf("All ESCs disarmed\n");
+  syslog(LOG_INFO, "All ESCs disarmed\n");
   return OK;
 }
 
@@ -706,30 +706,30 @@ static int esc_disarm_all(void)
 
 static void print_menu(void)
 {
-  printf("\n=== RA8E1 ESC PWM Control Demo ===\n");
-  printf("Commands:\n");
-  printf("  help      - Show this menu\n");
-  printf("  status    - Show ESC status\n");
-  printf("  arm       - Arm all ESCs\n");
-  printf("  disarm    - Disarm all ESCs\n");
-  printf("  arm<N>    - Arm ESC N (1-4)\n");
-  printf("  esc<N> <%%> - Set ESC N throttle (0-100%%)\n");
-  printf("  test      - Run automatic test sequence\n");
-  printf("  stop      - Stop demo\n");
-  printf("\nExamples:\n");
-  printf("  esc1 50   - Set ESC1 to 50%% throttle\n");
-  printf("  esc2 0    - Set ESC2 to 0%% throttle\n");
-  printf("  arm1      - Arm ESC1 only\n");
-  printf("\nCurrent Status:\n");
+  syslog(LOG_INFO, "\n=== RA8E1 ESC PWM Control Demo ===\n");
+  syslog(LOG_INFO, "Commands:\n");
+  syslog(LOG_INFO, "  help      - Show this menu\n");
+  syslog(LOG_INFO, "  status    - Show ESC status\n");
+  syslog(LOG_INFO, "  arm       - Arm all ESCs\n");
+  syslog(LOG_INFO, "  disarm    - Disarm all ESCs\n");
+  syslog(LOG_INFO, "  arm<N>    - Arm ESC N (1-4)\n");
+  syslog(LOG_INFO, "  esc<N> <%%> - Set ESC N throttle (0-100%%)\n");
+  syslog(LOG_INFO, "  test      - Run automatic test sequence\n");
+  syslog(LOG_INFO, "  stop      - Stop demo\n");
+  syslog(LOG_INFO, "\nExamples:\n");
+  syslog(LOG_INFO, "  esc1 50   - Set ESC1 to 50%% throttle\n");
+  syslog(LOG_INFO, "  esc2 0    - Set ESC2 to 0%% throttle\n");
+  syslog(LOG_INFO, "  arm1      - Arm ESC1 only\n");
+  syslog(LOG_INFO, "\nCurrent Status:\n");
 
   for (int i = 0; i < NUM_ESC_CHANNELS; i++)
     {
-      printf("  ESC%d: %s, %d%% throttle\n",
+      syslog(LOG_INFO, "  ESC%d: %s, %d%% throttle\n",
              i + 1,
              g_esc_channels[i].armed ? "ARMED" : "DISARMED",
              g_esc_channels[i].current_throttle);
     }
-  printf("\n");
+  syslog(LOG_INFO, "\n");
 }
 
 /****************************************************************************
@@ -796,7 +796,7 @@ static void process_rtt_command(const char *command)
       return;
     }
 
-  printf("Command: %s\n", command);
+  syslog(LOG_INFO, "Command: %s\n", command);
 
   /* Check for simple commands */
   if (strcmp(command, "help") == 0)
@@ -821,7 +821,7 @@ static void process_rtt_command(const char *command)
     }
   else if (strcmp(command, "stop") == 0)
     {
-      printf("Stopping demo...\n");
+      syslog(LOG_INFO, "Stopping demo...\n");
       g_running = false;
     }
   else
@@ -837,7 +837,7 @@ static void process_rtt_command(const char *command)
             }
           else
             {
-              printf("ERROR: Throttle value must be 0-100%%\n");
+              syslog(LOG_INFO, "ERROR: Throttle value must be 0-100%%\n");
             }
         }
       else if (cmd_type == 2)  /* ARM command */
@@ -846,7 +846,7 @@ static void process_rtt_command(const char *command)
         }
       else
         {
-          printf("ERROR: Unknown command '%s'. Type 'help' for commands.\n",
+          syslog(LOG_INFO, "ERROR: Unknown command '%s'. Type 'help' for commands.\n",
                  command);
         }
     }
@@ -885,19 +885,19 @@ int ra8e1_gpt_escs_main(int argc, char *argv[])
   int cmd_len = 0;
   char ch;
 
-  printf("\n=== RA8E1 ESC PWM Control Demo ===\n");
-  printf("Initializing PWM devices...\n");
+  syslog(LOG_INFO, "\n=== RA8E1 ESC PWM Control Demo ===\n");
+  syslog(LOG_INFO, "Initializing PWM devices...\n");
 
   /* Initialize PWM subsystem first */
   ret = ra8e1_gpt_initialize();
   if (ret < 0)
     {
-      printf("ERROR: Failed to initialize PWM subsystem: %d\n", ret);
+      syslog(LOG_INFO, "ERROR: Failed to initialize PWM subsystem: %d\n", ret);
       return ret;
     }
 
   /* Initialize RTT */
-  printf("RTT initialized - ready for commands\n");
+  syslog(LOG_INFO, "RTT initialized - ready for commands\n");
 
   /* Initialize all ESC channels */
   for (i = 0; i < NUM_ESC_CHANNELS; i++)
@@ -905,12 +905,12 @@ int ra8e1_gpt_escs_main(int argc, char *argv[])
       ret = esc_pwm_open(i);
       if (ret < 0)
         {
-          printf("ERROR: Failed to initialize ESC%d: %d\n", i + 1, ret);
+          syslog(LOG_INFO, "ERROR: Failed to initialize ESC%d: %d\n", i + 1, ret);
           goto cleanup;
         }
     }
 
-  printf("All PWM devices initialized successfully\n");
+  syslog(LOG_INFO, "All PWM devices initialized successfully\n");
 
   /* Safety: Disarm all ESCs initially */
   esc_disarm_all();
@@ -920,7 +920,7 @@ int ra8e1_gpt_escs_main(int argc, char *argv[])
   g_running = true;
 
   /* Main command loop */
-  printf("Ready for commands (type 'help' for menu):\n> ");
+  syslog(LOG_INFO, "Ready for commands (type 'help' for menu):\n> ");
 
   while (g_running)
     {
@@ -935,7 +935,7 @@ int ra8e1_gpt_escs_main(int argc, char *argv[])
                   g_rtt_command[cmd_len] = '\0';
                   process_rtt_command(g_rtt_command);
                   cmd_len = 0;
-                  printf("> ");
+                  syslog(LOG_INFO, "> ");
                 }
             }
           else if (ch == '\b' || ch == 127)  /* Backspace */
@@ -943,13 +943,13 @@ int ra8e1_gpt_escs_main(int argc, char *argv[])
               if (cmd_len > 0)
                 {
                   cmd_len--;
-                  printf("\b \b");
+                  syslog(LOG_INFO, "\b \b");
                 }
             }
           else if (cmd_len < RTT_COMMAND_MAX - 1)
             {
               g_rtt_command[cmd_len++] = ch;
-              printf("%c", ch);
+              syslog(LOG_INFO, "%c", ch);
             }
         }
 
@@ -958,7 +958,7 @@ int ra8e1_gpt_escs_main(int argc, char *argv[])
 
 cleanup:
   /* Cleanup: Disarm all ESCs and close devices */
-  printf("Cleaning up...\n");
+  syslog(LOG_INFO, "Cleaning up...\n");
   esc_disarm_all();
 
   for (i = 0; i < NUM_ESC_CHANNELS; i++)
@@ -966,7 +966,7 @@ cleanup:
       esc_pwm_close(i);
     }
 
-  printf("Demo stopped\n");
+  syslog(LOG_INFO, "Demo stopped\n");
   return ret;
 }
 
@@ -1009,7 +1009,7 @@ int ra8e1_gpt_escs_test(void)
   int ret;
   int i;
 
-  printf("Starting ESC test sequence...\n");
+  syslog(LOG_INFO, "Starting ESC test sequence...\n");
 
   /* Test sequence:
    * 1. Arm all ESCs
@@ -1021,7 +1021,7 @@ int ra8e1_gpt_escs_test(void)
   ret = esc_arm_all();
   if (ret < 0)
     {
-      printf("ERROR: Failed to arm ESCs\n");
+      syslog(LOG_INFO, "ERROR: Failed to arm ESCs\n");
       return ret;
     }
 
@@ -1030,7 +1030,7 @@ int ra8e1_gpt_escs_test(void)
   /* Gradually increase throttle to 25% */
   for (i = 0; i <= 25; i += 5)
     {
-      printf("Setting all ESCs to %d%% throttle\n", i);
+      syslog(LOG_INFO, "Setting all ESCs to %d%% throttle\n", i);
 
       for (int j = 0; j < NUM_ESC_CHANNELS; j++)
         {
@@ -1045,7 +1045,7 @@ int ra8e1_gpt_escs_test(void)
   /* Gradually decrease throttle to 0% */
   for (i = 25; i >= 0; i -= 5)
     {
-      printf("Setting all ESCs to %d%% throttle\n", i);
+      syslog(LOG_INFO, "Setting all ESCs to %d%% throttle\n", i);
 
       for (int j = 0; j < NUM_ESC_CHANNELS; j++)
         {
@@ -1060,7 +1060,7 @@ int ra8e1_gpt_escs_test(void)
   /* Disarm all ESCs */
   esc_disarm_all();
 
-  printf("ESC test sequence completed\n");
+  syslog(LOG_INFO, "ESC test sequence completed\n");
   return OK;
 }
 

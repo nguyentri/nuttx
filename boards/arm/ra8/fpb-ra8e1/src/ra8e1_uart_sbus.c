@@ -199,11 +199,11 @@ static int sbus_uart_initialize(void)
   ret = ra_sci_initialize(&g_sbus_uart);
   if (ret < 0)
     {
-      printf("SBUS: Failed to initialize UART: %d\n", ret);
+      syslog(LOG_INFO, "SBUS: Failed to initialize UART: %d\n", ret);
       return ret;
     }
 
-  printf("SBUS: UART2 initialized for 100kbps, even parity, 2 stop bits\n");
+  syslog(LOG_INFO, "SBUS: UART2 initialized for 100kbps, even parity, 2 stop bits\n");
   return OK;
 }
 
@@ -281,7 +281,7 @@ static void sbus_uart_callback(ra_sci_dev_t *dev, uint32_t event)
   if (event & (RA_UART_EVENT_ERR_PARITY | RA_UART_EVENT_ERR_FRAMING | RA_UART_EVENT_ERR_OVERFLOW))
     {
       g_sbus_parser.error_count++;
-      printf("SBUS: UART error event: 0x%08x\n", event);
+      syslog(LOG_INFO, "SBUS: UART error event: 0x%08x\n", event);
     }
 }
 
@@ -362,17 +362,17 @@ static void sbus_print_channels(const struct sbus_data_s *data)
 {
   int i;
 
-  printf("SBUS Channels:\n");
+  syslog(LOG_INFO, "SBUS Channels:\n");
   for (i = 0; i < SBUS_NUM_CHANNELS; i += 4)
     {
-      printf("  CH%02d:%4d  CH%02d:%4d  CH%02d:%4d  CH%02d:%4d\n",
+      syslog(LOG_INFO, "  CH%02d:%4d  CH%02d:%4d  CH%02d:%4d  CH%02d:%4d\n",
                  i+1, data->channels[i],
                  i+2, (i+1 < SBUS_NUM_CHANNELS) ? data->channels[i+1] : 0,
                  i+3, (i+2 < SBUS_NUM_CHANNELS) ? data->channels[i+2] : 0,
                  i+4, (i+3 < SBUS_NUM_CHANNELS) ? data->channels[i+3] : 0);
     }
 
-  printf("Digital: CH17=%d CH18=%d  Status: FrameLost=%d Failsafe=%d\n",
+  syslog(LOG_INFO, "Digital: CH17=%d CH18=%d  Status: FrameLost=%d Failsafe=%d\n",
              data->ch17, data->ch18, data->frame_lost, data->failsafe);
 }
 
@@ -389,11 +389,11 @@ static void sbus_print_status(void)
   uint32_t current_time = up_systime();
   uint32_t time_since_last = current_time - g_sbus_data.timestamp;
 
-  printf("\nSBUS Status:\n");
-  printf("  Frames received: %u\n", g_sbus_parser.frame_count);
-  printf("  Errors: %u\n", g_sbus_parser.error_count);
-  printf("  Last frame: %u ms ago\n", time_since_last);
-  printf("  Frame rate: %.1f Hz\n",
+  syslog(LOG_INFO, "\nSBUS Status:\n");
+  syslog(LOG_INFO, "  Frames received: %u\n", g_sbus_parser.frame_count);
+  syslog(LOG_INFO, "  Errors: %u\n", g_sbus_parser.error_count);
+  syslog(LOG_INFO, "  Last frame: %u ms ago\n", time_since_last);
+  syslog(LOG_INFO, "  Frame rate: %.1f Hz\n",
              g_sbus_parser.frame_count > 0 ? (float)g_sbus_parser.frame_count * 1000.0f / current_time : 0.0f);
 }
 
@@ -407,12 +407,12 @@ static void sbus_print_status(void)
 
 static void print_menu(void)
 {
-  printf("\nSBUS Demo Commands:\n");
-  printf("  c - Show channels\n");
-  printf("  s - Show status\n");
-  printf("  r - Reset counters\n");
-  printf("  h - Show this menu\n");
-  printf("  q - Quit demo\n");
+  syslog(LOG_INFO, "\nSBUS Demo Commands:\n");
+  syslog(LOG_INFO, "  c - Show channels\n");
+  syslog(LOG_INFO, "  s - Show status\n");
+  syslog(LOG_INFO, "  r - Reset counters\n");
+  syslog(LOG_INFO, "  h - Show this menu\n");
+  syslog(LOG_INFO, "  q - Quit demo\n");
 }
 
 /****************************************************************************
@@ -446,7 +446,7 @@ static void process_rtt_command(const char *command)
       case 'R':
         g_sbus_parser.frame_count = 0;
         g_sbus_parser.error_count = 0;
-        printf("Counters reset\n");
+        syslog(LOG_INFO, "Counters reset\n");
         break;
 
       case 'h':
@@ -457,11 +457,11 @@ static void process_rtt_command(const char *command)
       case 'q':
       case 'Q':
         g_running = false;
-        printf("Exiting SBUS demo\n");
+        syslog(LOG_INFO, "Exiting SBUS demo\n");
         break;
 
       default:
-        printf("Unknown command: %c\n", command[0]);
+        syslog(LOG_INFO, "Unknown command: %c\n", command[0]);
         print_menu();
         break;
     }
@@ -499,9 +499,9 @@ int ra8e1_sbus_main(int argc, char *argv[])
   int key;
   uint8_t cmd_pos = 0;
 
-  printf("\nRA8E1 SBUS Demo Starting...\n");
-  printf("SBUS: P802 (RXD2) <- RC Receiver SBUS output\n");
-  printf("Configuration: 100kbps, 8E2, inverted\n\n");
+  syslog(LOG_INFO, "\nRA8E1 SBUS Demo Starting...\n");
+  syslog(LOG_INFO, "SBUS: P802 (RXD2) <- RC Receiver SBUS output\n");
+  syslog(LOG_INFO, "Configuration: 100kbps, 8E2, inverted\n\n");
 
   /* Initialize SBUS parser */
   memset(&g_sbus_parser, 0, sizeof(g_sbus_parser));
@@ -511,7 +511,7 @@ int ra8e1_sbus_main(int argc, char *argv[])
   ret = sbus_uart_initialize();
   if (ret < 0)
     {
-      printf("SBUS: Failed to initialize UART: %d\n", ret);
+      syslog(LOG_INFO, "SBUS: Failed to initialize UART: %d\n", ret);
       return ret;
     }
 
@@ -558,7 +558,7 @@ int ra8e1_sbus_main(int argc, char *argv[])
 
   /* Cleanup */
   ra_sci_finalize(&g_sbus_uart);
-  printf("SBUS demo finished\n");
+  syslog(LOG_INFO, "SBUS demo finished\n");
 
   return OK;
 }

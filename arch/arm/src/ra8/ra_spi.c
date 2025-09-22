@@ -53,6 +53,7 @@
 #include "hardware/ra_memorymap.h"
 #include "hardware/ra_icu.h"
 #include "hardware/ra_mstp.h"
+#include "ra_mstp.h"
 #include "ra_spi.h"
 
 #ifdef CONFIG_RA_SPI
@@ -656,9 +657,7 @@ static int ra_spi_dtc_setup(struct ra_spi_priv_s *priv)
   spiinfo("DTC setup for SPI%d\n", priv->config->bus);
 
   /* Enable DTC module clock */
-  uint32_t regval = getreg32(R_MSTP_MSTPCRB);
-  regval &= ~R_MSTP_MSTPCRB_DTC;
-  putreg32(regval, R_MSTP_MSTPCRB);
+  ra_mstp_start(RA_MSTP_DMAC_DTC);
 
   /* Initialize DTC control register */
   putreg32(0x00000001, R_DTC_BASE + R_DTC_DTCST_OFFSET);
@@ -1464,10 +1463,19 @@ static void ra_spi_bus_initialize(struct ra_spi_priv_s *priv)
   /* ra_spi_select() function implementations or via CS configuration */
 
   /* Enable SPI module */
-  regval = getreg32(R_MSTP_MSTPCRB);
-  regval &= ~priv->config->mstpcrb_bit;
-  putreg32(regval, R_MSTP_MSTPCRB);
-
+  if (priv->config->base == RA_SPI0_BASE)
+    {
+      ra_mstp_start(RA_MSTP_SPI0);
+    }
+  else if (priv->config->base == RA_SPI1_BASE)
+    {
+      ra_mstp_start(RA_MSTP_SPI1);
+    }
+  else
+    {
+      spierr("SPI%d invalid module\n", priv->config->bus);
+      return;
+    }
   /* Disable SPI function */
   ra_spi_putreg8(priv, RA_SPI_SPCR_OFFSET, 0);
 

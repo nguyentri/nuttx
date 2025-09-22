@@ -609,12 +609,12 @@ int ra8e1_i2c_acc_main(int argc, char *argv[])
   int ret;
   int sample_count = 0;
 
-  printf("RA8E1 I2C Accelerometer Demo\n");
-  printf("=============================\n");
-  printf("Reading ADXL345 accelerometer via I2C (SCI0)\n");
-  printf("I2C Address: 0x%02X\n", ACCEL_I2C_ADDR);
-  printf("Sample Rate: 12.5 Hz\n");
-  printf("Press Ctrl+C to stop...\n\n");
+  syslog(LOG_INFO, "RA8E1 I2C Accelerometer Demo\n");
+  syslog(LOG_INFO, "=============================\n");
+  syslog(LOG_INFO, "Reading ADXL345 accelerometer via I2C (SCI0)\n");
+  syslog(LOG_INFO, "I2C Address: 0x%02X\n", ACCEL_I2C_ADDR);
+  syslog(LOG_INFO, "Sample Rate: 12.5 Hz\n");
+  syslog(LOG_INFO, "Press Ctrl+C to stop...\n\n");
 
   /* Initialize if not already done */
   if (!g_accel_dev.initialized)
@@ -622,7 +622,7 @@ int ra8e1_i2c_acc_main(int argc, char *argv[])
       ret = ra8e1_i2c_accel_initialize();
       if (ret < 0)
         {
-          printf("Failed to initialize accelerometer: %d\n", ret);
+          syslog(LOG_INFO, "Failed to initialize accelerometer: %d\n", ret);
           return ret;
         }
     }
@@ -633,25 +633,25 @@ int ra8e1_i2c_acc_main(int argc, char *argv[])
       ret = ra8e1_i2c_accel_read(&accel_data);
       if (ret < 0)
         {
-          printf("Failed to read accelerometer data: %d\n", ret);
+          syslog(LOG_INFO, "Failed to read accelerometer data: %d\n", ret);
           continue;
         }
 
       /* Display acceleration data */
-      printf("Sample %3d: X=%6.3fg  Y=%6.3fg  Z=%6.3fg  ",
+      syslog(LOG_INFO, "Sample %3d: X=%6.3fg  Y=%6.3fg  Z=%6.3fg  ",
              ++sample_count, accel_data.x_g, accel_data.y_g, accel_data.z_g);
 
       /* Calculate magnitude */
       float magnitude = sqrtf(accel_data.x_g * accel_data.x_g +
                              accel_data.y_g * accel_data.y_g +
                              accel_data.z_g * accel_data.z_g);
-      printf("Mag=%.3fg\n", magnitude);
+      syslog(LOG_INFO, "Mag=%.3fg\n", magnitude);
 
       /* Wait for next sample (approximately 80ms for 12.5Hz) */
       usleep(80000);
     }
 
-  printf("\nI2C Accelerometer demo completed successfully!\n");
+  syslog(LOG_INFO, "\nI2C Accelerometer demo completed successfully!\n");
   return OK;
 }
 

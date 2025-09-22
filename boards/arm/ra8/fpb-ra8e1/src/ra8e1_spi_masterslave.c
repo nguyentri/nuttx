@@ -659,18 +659,18 @@ int ra8e1_spi_masterslave_main(int argc, char *argv[])
 {
   int ret;
 
-  printf("RA8E1 SPI Master-Slave Communication Demo\n");
-  printf("=========================================\n");
-  printf("This demo tests SPI communication between:\n");
-  printf("- SPI0 as Master\n");
-  printf("- SPI1 as Slave\n");
-  printf("Communication uses command/response protocol with data verification.\n\n");
+  syslog(LOG_INFO, "RA8E1 SPI Master-Slave Communication Demo\n");
+  syslog(LOG_INFO, "=========================================\n");
+  syslog(LOG_INFO, "This demo tests SPI communication between:\n");
+  syslog(LOG_INFO, "- SPI0 as Master\n");
+  syslog(LOG_INFO, "- SPI1 as Slave\n");
+  syslog(LOG_INFO, "Communication uses command/response protocol with data verification.\n\n");
 
   /* Initialize the demo */
   ret = ra8e1_spi_masterslave_init();
   if (ret < 0)
     {
-      printf("Demo initialization failed: %d\n", ret);
+      syslog(LOG_INFO, "Demo initialization failed: %d\n", ret);
       return ret;
     }
 
@@ -678,7 +678,7 @@ int ra8e1_spi_masterslave_main(int argc, char *argv[])
   ret = ra8e1_spi_masterslave_test();
   if (ret < 0)
     {
-      printf("Demo tests failed: %d\n", ret);
+      syslog(LOG_INFO, "Demo tests failed: %d\n", ret);
       return ret;
     }
 
@@ -686,7 +686,7 @@ int ra8e1_spi_masterslave_main(int argc, char *argv[])
   pthread_cond_destroy(&g_spi_ms.sync_cond);
   pthread_mutex_destroy(&g_spi_ms.sync_mutex);
 
-  printf("\nSPI Master-Slave Communication Demo completed successfully!\n");
+  syslog(LOG_INFO, "\nSPI Master-Slave Communication Demo completed successfully!\n");
   return OK;
 }
 

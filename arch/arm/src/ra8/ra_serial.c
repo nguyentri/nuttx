@@ -905,15 +905,15 @@ static void up_sci_config(struct up_dev_s *priv)
 
   up_serialout(priv, R_SCI_B_CCR2_OFFSET, regval);
 
-  _info("SCI%d: Baud %lu, CCR2=0x%08lx (BGDM=%d, ABCS=%d, ABCSE=%d, ABCSE2=%d, CKS=%d, BRR=%d, MDDR=%d)\n",
-        priv->scibase == R_SCI0_BASE ? 0 :
-        priv->scibase == R_SCI1_BASE ? 1 :
-        priv->scibase == R_SCI2_BASE ? 2 :
-        priv->scibase == R_SCI3_BASE ? 3 :
-        priv->scibase == R_SCI4_BASE ? 4 : 9,
-        (unsigned long)priv->baud, (unsigned long)regval,
-        baud_setting.bgdm, baud_setting.abcs, baud_setting.abcse, baud_setting.abcse2,
-        baud_setting.cks, baud_setting.brr, baud_setting.mddr);
+ // _info("SCI%d: Baud %lu, CCR2=0x%08lx (BGDM=%d, ABCS=%d, ABCSE=%d, ABCSE2=%d, CKS=%d, BRR=%d, MDDR=%d)\n",
+  //       priv->scibase == R_SCI0_BASE ? 0 :
+  //       priv->scibase == R_SCI1_BASE ? 1 :
+  //       priv->scibase == R_SCI2_BASE ? 2 :
+  //       priv->scibase == R_SCI3_BASE ? 3 :
+  //       priv->scibase == R_SCI4_BASE ? 4 : 9,
+  //       (unsigned long)priv->baud, (unsigned long)regval,
+  //       baud_setting.bgdm, baud_setting.abcs, baud_setting.abcse, baud_setting.abcse2,
+  //       baud_setting.cks, baud_setting.brr, baud_setting.mddr);
 
   /* Configure CCR3 for character format
    * From working XML: CHR=2 (8-bit), LSBF=1, RXDESEL=1 = 0x00009200

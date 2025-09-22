@@ -67,18 +67,18 @@ int ra8e1_data_flash_init(void)
 {
   int ret;
 
-  printf("RA8E1 Data Flash Demo Initialization\n");
+  syslog(LOG_INFO, "RA8E1 Data Flash Demo Initialization\n");
 
   /* Initialize the data flash MTD device */
 
   g_data_flash_mtd = ra_flash_initialize(true);
   if (g_data_flash_mtd == NULL)
     {
-      printf("ERROR: Failed to initialize data flash MTD\n");
+      syslog(LOG_INFO, "ERROR: Failed to initialize data flash MTD\n");
       return -ENODEV;
     }
 
-  printf("Data flash MTD device initialized successfully\n");
+  syslog(LOG_INFO, "Data flash MTD device initialized successfully\n");
 
 #ifdef CONFIG_FS_NXFFS
   /* Initialize NXFFS on the data flash */
@@ -86,7 +86,7 @@ int ra8e1_data_flash_init(void)
   ret = nxffs_initialize(g_data_flash_mtd);
   if (ret < 0)
     {
-      printf("ERROR: NXFFS initialization failed: %d\n", ret);
+      syslog(LOG_INFO, "ERROR: NXFFS initialization failed: %d\n", ret);
       return ret;
     }
 
@@ -95,11 +95,11 @@ int ra8e1_data_flash_init(void)
   ret = nx_mount(NULL, DATA_FLASH_MOUNT_POINT, "nxffs", 0, NULL);
   if (ret < 0)
     {
-      printf("ERROR: Failed to mount NXFFS: %d\n", ret);
+      syslog(LOG_INFO, "ERROR: Failed to mount NXFFS: %d\n", ret);
       return ret;
     }
 
-  printf("NXFFS mounted on %s\n", DATA_FLASH_MOUNT_POINT);
+  syslog(LOG_INFO, "NXFFS mounted on %s\n", DATA_FLASH_MOUNT_POINT);
 #endif
 
   return OK;
@@ -117,11 +117,11 @@ int ra8e1_data_flash_test(void)
   int ret;
   int i;
 
-  printf("\n=== RA8E1 Data Flash Demo Test ===\n");
+  syslog(LOG_INFO, "\n=== RA8E1 Data Flash Demo Test ===\n");
 
   if (g_data_flash_mtd == NULL)
     {
-      printf("ERROR: Data flash MTD not initialized\n");
+      syslog(LOG_INFO, "ERROR: Data flash MTD not initialized\n");
       return -ENODEV;
     }
 
@@ -130,15 +130,15 @@ int ra8e1_data_flash_test(void)
   ret = MTD_IOCTL(g_data_flash_mtd, MTDIOC_GEOMETRY, (unsigned long)&geo);
   if (ret < 0)
     {
-      printf("ERROR: MTD_IOCTL failed: %d\n", ret);
+      syslog(LOG_INFO, "ERROR: MTD_IOCTL failed: %d\n", ret);
       return ret;
     }
 
-  printf("Data Flash Geometry:\n");
-  printf("  Block size: %lu bytes\n", (unsigned long)geo.blocksize);
-  printf("  Erase size: %lu bytes\n", (unsigned long)geo.erasesize);
-  printf("  Blocks: %lu\n", (unsigned long)geo.neraseblocks);
-  printf("  Total size: %lu bytes\n",
+  syslog(LOG_INFO, "Data Flash Geometry:\n");
+  syslog(LOG_INFO, "  Block size: %lu bytes\n", (unsigned long)geo.blocksize);
+  syslog(LOG_INFO, "  Erase size: %lu bytes\n", (unsigned long)geo.erasesize);
+  syslog(LOG_INFO, "  Blocks: %lu\n", (unsigned long)geo.neraseblocks);
+  syslog(LOG_INFO, "  Total size: %lu bytes\n",
          (unsigned long)(geo.blocksize * geo.neraseblocks));
 
   /* Prepare test data */
@@ -150,58 +150,58 @@ int ra8e1_data_flash_test(void)
 
   /* Erase first block */
 
-  printf("\nErasing first block...\n");
+  syslog(LOG_INFO, "\nErasing first block...\n");
   ret = MTD_ERASE(g_data_flash_mtd, 0, 1);
   if (ret < 0)
     {
-      printf("ERROR: MTD_ERASE failed: %d\n", ret);
+      syslog(LOG_INFO, "ERROR: MTD_ERASE failed: %d\n", ret);
       return ret;
     }
 
-  printf("Erase completed successfully\n");
+  syslog(LOG_INFO, "Erase completed successfully\n");
 
   /* Write test data */
 
-  printf("Writing test data...\n");
+  syslog(LOG_INFO, "Writing test data...\n");
   ret = MTD_WRITE(g_data_flash_mtd, 0, DATA_FLASH_TEST_SIZE, write_buffer);
   if (ret != DATA_FLASH_TEST_SIZE)
     {
-      printf("ERROR: MTD_WRITE failed: %d\n", ret);
+      syslog(LOG_INFO, "ERROR: MTD_WRITE failed: %d\n", ret);
       return ret;
     }
 
-  printf("Write completed successfully\n");
+  syslog(LOG_INFO, "Write completed successfully\n");
 
   /* Read back and verify */
 
-  printf("Reading back data...\n");
+  syslog(LOG_INFO, "Reading back data...\n");
   memset(read_buffer, 0, sizeof(read_buffer));
   ret = MTD_READ(g_data_flash_mtd, 0, DATA_FLASH_TEST_SIZE, read_buffer);
   if (ret != DATA_FLASH_TEST_SIZE)
     {
-      printf("ERROR: MTD_READ failed: %d\n", ret);
+      syslog(LOG_INFO, "ERROR: MTD_READ failed: %d\n", ret);
       return ret;
     }
 
   /* Verify data */
 
-  printf("Verifying data...\n");
+  syslog(LOG_INFO, "Verifying data...\n");
   for (i = 0; i < DATA_FLASH_TEST_SIZE; i++)
     {
       if (read_buffer[i] != write_buffer[i])
         {
-          printf("ERROR: Data mismatch at offset %d: expected 0x%02x, got 0x%02x\n",
+          syslog(LOG_INFO, "ERROR: Data mismatch at offset %d: expected 0x%02x, got 0x%02x\n",
                  i, write_buffer[i], read_buffer[i]);
           return -EIO;
         }
     }
 
-  printf("Data verification successful!\n");
+  syslog(LOG_INFO, "Data verification successful!\n");
 
 #ifdef CONFIG_FS_NXFFS
   /* Test file system operations */
 
-  printf("\nTesting file system operations...\n");
+  syslog(LOG_INFO, "\nTesting file system operations...\n");
 
   const char *test_file = DATA_FLASH_MOUNT_POINT "/test.txt";
   const char *test_data = "Hello, RA8E1 Data Flash!";
@@ -213,27 +213,27 @@ int ra8e1_data_flash_test(void)
   fd = open(test_file, O_WRONLY | O_CREAT | O_TRUNC, 0666);
   if (fd < 0)
     {
-      printf("ERROR: Failed to open file for writing: %d\n", errno);
+      syslog(LOG_INFO, "ERROR: Failed to open file for writing: %d\n", errno);
       return -errno;
     }
 
   ret = write(fd, test_data, strlen(test_data));
   if (ret != (int)strlen(test_data))
     {
-      printf("ERROR: Failed to write to file: %d\n", ret);
+      syslog(LOG_INFO, "ERROR: Failed to write to file: %d\n", ret);
       close(fd);
       return ret;
     }
 
   close(fd);
-  printf("File write successful\n");
+  syslog(LOG_INFO, "File write successful\n");
 
   /* Read from file */
 
   fd = open(test_file, O_RDONLY);
   if (fd < 0)
     {
-      printf("ERROR: Failed to open file for reading: %d\n", errno);
+      syslog(LOG_INFO, "ERROR: Failed to open file for reading: %d\n", errno);
       return -errno;
     }
 
@@ -241,7 +241,7 @@ int ra8e1_data_flash_test(void)
   ret = read(fd, read_data, sizeof(read_data) - 1);
   if (ret < 0)
     {
-      printf("ERROR: Failed to read from file: %d\n", ret);
+      syslog(LOG_INFO, "ERROR: Failed to read from file: %d\n", ret);
       close(fd);
       return ret;
     }
@@ -250,16 +250,16 @@ int ra8e1_data_flash_test(void)
 
   if (strcmp(test_data, read_data) != 0)
     {
-      printf("ERROR: File data mismatch\n");
-      printf("  Expected: %s\n", test_data);
-      printf("  Got: %s\n", read_data);
+      syslog(LOG_INFO, "ERROR: File data mismatch\n");
+      syslog(LOG_INFO, "  Expected: %s\n", test_data);
+      syslog(LOG_INFO, "  Got: %s\n", read_data);
       return -EIO;
     }
 
-  printf("File read successful: %s\n", read_data);
+  syslog(LOG_INFO, "File read successful: %s\n", read_data);
 #endif
 
-  printf("\n=== Data Flash Demo Test Completed Successfully ===\n");
+  syslog(LOG_INFO, "\n=== Data Flash Demo Test Completed Successfully ===\n");
   return OK;
 }
 
@@ -271,14 +271,14 @@ int ra8e1_data_flash_main(int argc, char *argv[])
 {
   int ret;
 
-  printf("Starting RA8E1 Data Flash Demo\n");
+  syslog(LOG_INFO, "Starting RA8E1 Data Flash Demo\n");
 
   /* Initialize data flash */
 
   ret = ra8e1_data_flash_init();
   if (ret < 0)
     {
-      printf("ERROR: Data flash initialization failed: %d\n", ret);
+      syslog(LOG_INFO, "ERROR: Data flash initialization failed: %d\n", ret);
       return ret;
     }
 
@@ -287,7 +287,7 @@ int ra8e1_data_flash_main(int argc, char *argv[])
   ret = ra8e1_data_flash_test();
   if (ret < 0)
     {
-      printf("ERROR: Data flash test failed: %d\n", ret);
+      syslog(LOG_INFO, "ERROR: Data flash test failed: %d\n", ret);
       return ret;
     }
 

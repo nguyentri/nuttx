@@ -65,13 +65,13 @@ static int test_pwm_device(const char *devpath, int channel)
   uint32_t pulse_widths[] = {1000, 1250, 1500, 1750, 2000}; /* Test pulse widths in us */
   int num_tests = sizeof(pulse_widths) / sizeof(pulse_widths[0]);
 
-  printf("Testing PWM device: %s (Channel %d)\n", devpath, channel);
+  syslog(LOG_INFO, "Testing PWM device: %s (Channel %d)\n", devpath, channel);
 
   /* Open the PWM device */
   fd = open(devpath, O_RDONLY);
   if (fd < 0)
     {
-      printf("ERROR: Failed to open %s: %d\n", devpath, fd);
+      syslog(LOG_INFO, "ERROR: Failed to open %s: %d\n", devpath, fd);
       return fd;
     }
 
@@ -82,12 +82,12 @@ static int test_pwm_device(const char *devpath, int channel)
   ret = ioctl(fd, PWMIOC_SETCHARACTERISTICS, (unsigned long)&info);
   if (ret < 0)
     {
-      printf("ERROR: Failed to set characteristics for %s: %d\n", devpath, ret);
+      syslog(LOG_INFO, "ERROR: Failed to set characteristics for %s: %d\n", devpath, ret);
       close(fd);
       return ret;
     }
 
-  printf("PWM configured: %d Hz\n", PWM_FREQUENCY);
+  syslog(LOG_INFO, "PWM configured: %d Hz\n", PWM_FREQUENCY);
 
   /* Test different pulse widths */
   for (int i = 0; i < num_tests; i++)
@@ -105,7 +105,7 @@ static int test_pwm_device(const char *devpath, int channel)
       ret = ioctl(fd, PWMIOC_SETCHARACTERISTICS, (unsigned long)&info);
       if (ret < 0)
         {
-          printf("ERROR: Failed to set duty cycle for %s: %d\n", devpath, ret);
+          syslog(LOG_INFO, "ERROR: Failed to set duty cycle for %s: %d\n", devpath, ret);
           break;
         }
 
@@ -113,11 +113,11 @@ static int test_pwm_device(const char *devpath, int channel)
       ret = ioctl(fd, PWMIOC_START, 0);
       if (ret < 0)
         {
-          printf("ERROR: Failed to start PWM for %s: %d\n", devpath, ret);
+          syslog(LOG_INFO, "ERROR: Failed to start PWM for %s: %d\n", devpath, ret);
           break;
         }
 
-      printf("  Pulse width: %u us, Duty: %u/65536 (%u%%) - ACTIVE\n",
+      syslog(LOG_INFO, "  Pulse width: %u us, Duty: %u/65536 (%u%%) - ACTIVE\n",
              pulse_us, duty, (duty * 100) / 65536);
 
       /* Keep this setting for 2 seconds */
@@ -127,16 +127,16 @@ static int test_pwm_device(const char *devpath, int channel)
       ret = ioctl(fd, PWMIOC_STOP, 0);
       if (ret < 0)
         {
-          printf("ERROR: Failed to stop PWM for %s: %d\n", devpath, ret);
+          syslog(LOG_INFO, "ERROR: Failed to stop PWM for %s: %d\n", devpath, ret);
           break;
         }
 
-      printf("  PWM stopped\n");
+      syslog(LOG_INFO, "  PWM stopped\n");
       sleep(1);
     }
 
   close(fd);
-  printf("Test completed for %s\n\n", devpath);
+  syslog(LOG_INFO, "Test completed for %s\n\n", devpath);
   return ret;
 }
 
@@ -156,27 +156,27 @@ int ra8e1_gpt_test_main(int argc, char *argv[])
 {
   int ret = OK;
 
-  printf("RA8E1 PWM ESC Test Application\n");
-  printf("==============================\n\n");
+  syslog(LOG_INFO, "RA8E1 PWM ESC Test Application\n");
+  syslog(LOG_INFO, "==============================\n\n");
 
-  printf("Testing ESC PWM channels:\n");
-  printf("ESC1: /dev/pwm3 (P300/GPT3A)\n");
-  printf("ESC2: /dev/pwm0 (P415/GPT0A)\n");
-  printf("ESC3: /dev/pwm2 (P114/GPT2B)\n");
-  printf("ESC4: /dev/pwm4 (P302/GPT4A)\n\n");
+  syslog(LOG_INFO, "Testing ESC PWM channels:\n");
+  syslog(LOG_INFO, "ESC1: /dev/pwm3 (P300/GPT3A)\n");
+  syslog(LOG_INFO, "ESC2: /dev/pwm0 (P415/GPT0A)\n");
+  syslog(LOG_INFO, "ESC3: /dev/pwm2 (P114/GPT2B)\n");
+  syslog(LOG_INFO, "ESC4: /dev/pwm4 (P302/GPT4A)\n\n");
 
-  printf("Test sequence:\n");
-  printf("- 1000us (0%% throttle, armed)\n");
-  printf("- 1250us (25%% throttle)\n");
-  printf("- 1500us (50%% throttle)\n");
-  printf("- 1750us (75%% throttle)\n");
-  printf("- 2000us (100%% throttle)\n\n");
+  syslog(LOG_INFO, "Test sequence:\n");
+  syslog(LOG_INFO, "- 1000us (0%% throttle, armed)\n");
+  syslog(LOG_INFO, "- 1250us (25%% throttle)\n");
+  syslog(LOG_INFO, "- 1500us (50%% throttle)\n");
+  syslog(LOG_INFO, "- 1750us (75%% throttle)\n");
+  syslog(LOG_INFO, "- 2000us (100%% throttle)\n\n");
 
   /* Test ESC1 (GPT3A) */
   ret = test_pwm_device("/dev/pwm3", 3);
   if (ret < 0)
     {
-      printf("Test failed for ESC1\n");
+      syslog(LOG_INFO, "Test failed for ESC1\n");
       return ret;
     }
 
@@ -184,7 +184,7 @@ int ra8e1_gpt_test_main(int argc, char *argv[])
   ret = test_pwm_device("/dev/pwm0", 0);
   if (ret < 0)
     {
-      printf("Test failed for ESC2\n");
+      syslog(LOG_INFO, "Test failed for ESC2\n");
       return ret;
     }
 
@@ -192,7 +192,7 @@ int ra8e1_gpt_test_main(int argc, char *argv[])
   ret = test_pwm_device("/dev/pwm2", 2);
   if (ret < 0)
     {
-      printf("Test failed for ESC3\n");
+      syslog(LOG_INFO, "Test failed for ESC3\n");
       return ret;
     }
 
@@ -200,12 +200,12 @@ int ra8e1_gpt_test_main(int argc, char *argv[])
   ret = test_pwm_device("/dev/pwm4", 4);
   if (ret < 0)
     {
-      printf("Test failed for ESC4\n");
+      syslog(LOG_INFO, "Test failed for ESC4\n");
       return ret;
     }
 
-  printf("All PWM ESC tests completed successfully!\n");
-  printf("You can now use the interactive ESC demo: ra8e1_gpt_escs\n");
+  syslog(LOG_INFO, "All PWM ESC tests completed successfully!\n");
+  syslog(LOG_INFO, "You can now use the interactive ESC demo: ra8e1_gpt_escs\n");
 
   return OK;
 }

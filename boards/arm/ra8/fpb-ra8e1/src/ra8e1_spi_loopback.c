@@ -422,20 +422,20 @@ int ra8e1_spi_loopback_main(int argc, char *argv[])
 {
   int ret;
 
-  printf("RA8E1 SPI Loopback Test\n");
-  printf("=======================\n");
-  printf("This test verifies SPI loopback functionality:\n");
-  printf("- SPI0 and SPI1 both configured as masters\n");
-  printf("- Hardware connections required:\n");
-  printf("  * SPI0: Connect P609 (MOSI) to P610 (MISO)\n");
-  printf("  * SPI1: Connect P411 (MOSI) to P410 (MISO)\n");
-  printf("- Verification: TX data should equal RX data\n\n");
+  syslog(LOG_INFO, "RA8E1 SPI Loopback Test\n");
+  syslog(LOG_INFO, "=======================\n");
+  syslog(LOG_INFO, "This test verifies SPI loopback functionality:\n");
+  syslog(LOG_INFO, "- SPI0 and SPI1 both configured as masters\n");
+  syslog(LOG_INFO, "- Hardware connections required:\n");
+  syslog(LOG_INFO, "  * SPI0: Connect P609 (MOSI) to P610 (MISO)\n");
+  syslog(LOG_INFO, "  * SPI1: Connect P411 (MOSI) to P410 (MISO)\n");
+  syslog(LOG_INFO, "- Verification: TX data should equal RX data\n\n");
 
   /* Initialize the test */
   ret = ra8e1_spi_loopback_init();
   if (ret < 0)
     {
-      printf("Test initialization failed: %d\n", ret);
+      syslog(LOG_INFO, "Test initialization failed: %d\n", ret);
       return ret;
     }
 
@@ -443,11 +443,11 @@ int ra8e1_spi_loopback_main(int argc, char *argv[])
   ret = ra8e1_spi_loopback_test();
   if (ret < 0)
     {
-      printf("Test failed: %d\n", ret);
+      syslog(LOG_INFO, "Test failed: %d\n", ret);
       return ret;
     }
 
-  printf("\nSPI Loopback Test completed successfully!\n");
+  syslog(LOG_INFO, "\nSPI Loopback Test completed successfully!\n");
   return OK;
 }
 

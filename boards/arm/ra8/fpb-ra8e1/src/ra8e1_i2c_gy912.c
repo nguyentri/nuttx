@@ -580,16 +580,16 @@ void ra8e1_gy912_print_data(const struct gy912_data_s *data)
       return;
     }
 
-  printf("GY-912 Sensor Data:\n");
-  printf("  ICM-20948 IMU:\n");
-  printf("    Accel: X=%6d, Y=%6d, Z=%6d\n",
+  syslog(LOG_INFO, "GY-912 Sensor Data:\n");
+  syslog(LOG_INFO, "  ICM-20948 IMU:\n");
+  syslog(LOG_INFO, "    Accel: X=%6d, Y=%6d, Z=%6d\n",
          data->accel_x, data->accel_y, data->accel_z);
-  printf("    Gyro:  X=%6d, Y=%6d, Z=%6d\n",
+  syslog(LOG_INFO, "    Gyro:  X=%6d, Y=%6d, Z=%6d\n",
          data->gyro_x, data->gyro_y, data->gyro_z);
-  printf("    Temp:  %d\n", data->temperature_imu);
-  printf("  BMP388 Pressure Sensor:\n");
-  printf("    Pressure: %lu\n", (unsigned long)data->pressure);
-  printf("    Temp:     %ld\n", (long)data->temperature_bmp);
+  syslog(LOG_INFO, "    Temp:  %d\n", data->temperature_imu);
+  syslog(LOG_INFO, "  BMP388 Pressure Sensor:\n");
+  syslog(LOG_INFO, "    Pressure: %lu\n", (unsigned long)data->pressure);
+  syslog(LOG_INFO, "    Temp:     %ld\n", (long)data->temperature_bmp);
 }
 
 /****************************************************************************
@@ -626,7 +626,7 @@ int ra8e1_i2c_gy912_test(void)
           return ret;
         }
 
-      printf("\n--- Sample %d ---\n", i + 1);
+      syslog(LOG_INFO, "\n--- Sample %d ---\n", i + 1);
       ra8e1_gy912_print_data(&data);
 
       /* Wait 500ms between readings */

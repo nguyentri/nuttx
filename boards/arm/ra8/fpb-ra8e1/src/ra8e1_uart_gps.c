@@ -624,22 +624,22 @@ static int nmea_parse_int(const char *field)
 
 static void gps_print_position(void)
 {
-  printf("\nGPS Position:\n");
-  printf("  Fix: %s (Type: %d)\n", 
+  syslog(LOG_INFO, "\nGPS Position:\n");
+  syslog(LOG_INFO, "  Fix: %s (Type: %d)\n", 
              g_gps_data.fix_valid ? "Valid" : "Invalid", g_gps_data.fix_type);
-  printf("  Latitude:  %.6f°\n", g_gps_data.latitude);
-  printf("  Longitude: %.6f°\n", g_gps_data.longitude);
-  printf("  Altitude:  %.1f m\n", g_gps_data.altitude);
-  printf("  Speed:     %.1f km/h\n", g_gps_data.speed_kmh);
-  printf("  Course:    %.1f°\n", g_gps_data.course);
-  printf("  Time:      %02d:%02d:%02d UTC\n", 
+  syslog(LOG_INFO, "  Latitude:  %.6f°\n", g_gps_data.latitude);
+  syslog(LOG_INFO, "  Longitude: %.6f°\n", g_gps_data.longitude);
+  syslog(LOG_INFO, "  Altitude:  %.1f m\n", g_gps_data.altitude);
+  syslog(LOG_INFO, "  Speed:     %.1f km/h\n", g_gps_data.speed_kmh);
+  syslog(LOG_INFO, "  Course:    %.1f°\n", g_gps_data.course);
+  syslog(LOG_INFO, "  Time:      %02d:%02d:%02d UTC\n", 
              g_gps_data.hour, g_gps_data.minute, g_gps_data.second);
-  printf("  Date:      %02d/%02d/%04d\n", 
+  syslog(LOG_INFO, "  Date:      %02d/%02d/%04d\n", 
              g_gps_data.day, g_gps_data.month, g_gps_data.year);
-  printf("  Satellites: %d\n", g_gps_data.satellites_used);
-  printf("  HDOP:      %.1f\n", g_gps_data.hdop);
-  printf("  VDOP:      %.1f\n", g_gps_data.vdop);
-  printf("  PDOP:      %.1f\n", g_gps_data.pdop);
+  syslog(LOG_INFO, "  Satellites: %d\n", g_gps_data.satellites_used);
+  syslog(LOG_INFO, "  HDOP:      %.1f\n", g_gps_data.hdop);
+  syslog(LOG_INFO, "  VDOP:      %.1f\n", g_gps_data.vdop);
+  syslog(LOG_INFO, "  PDOP:      %.1f\n", g_gps_data.pdop);
 }
 
 /****************************************************************************
@@ -655,11 +655,11 @@ static void gps_print_status(void)
   uint32_t current_time = up_systime();
   uint32_t time_since_last = current_time - g_gps_data.timestamp;
   
-  printf("\nGPS Status:\n");
-  printf("  Sentences received: %u\n", g_nmea_parser.sentence_count);
-  printf("  Parse errors: %u\n", g_nmea_parser.parse_errors);
-  printf("  Last update: %u ms ago\n", time_since_last);
-  printf("  Message rate: %.1f Hz\n", 
+  syslog(LOG_INFO, "\nGPS Status:\n");
+  syslog(LOG_INFO, "  Sentences received: %u\n", g_nmea_parser.sentence_count);
+  syslog(LOG_INFO, "  Parse errors: %u\n", g_nmea_parser.parse_errors);
+  syslog(LOG_INFO, "  Last update: %u ms ago\n", time_since_last);
+  syslog(LOG_INFO, "  Message rate: %.1f Hz\n", 
              g_nmea_parser.sentence_count > 0 ? (float)g_nmea_parser.sentence_count * 1000.0f / current_time : 0.0f);
 }
 
@@ -673,12 +673,12 @@ static void gps_print_status(void)
 
 static void print_menu(void)
 {
-  printf("\nGPS Demo Commands:\n");
-  printf("  p - Show position\n");
-  printf("  s - Show status\n");
-  printf("  r - Reset counters\n");
-  printf("  h - Show this menu\n");
-  printf("  q - Quit demo\n");
+  syslog(LOG_INFO, "\nGPS Demo Commands:\n");
+  syslog(LOG_INFO, "  p - Show position\n");
+  syslog(LOG_INFO, "  s - Show status\n");
+  syslog(LOG_INFO, "  r - Reset counters\n");
+  syslog(LOG_INFO, "  h - Show this menu\n");
+  syslog(LOG_INFO, "  q - Quit demo\n");
 }
 
 /****************************************************************************
@@ -712,7 +712,7 @@ static void process_rtt_command(const char *command)
       case 'R':
         g_nmea_parser.sentence_count = 0;
         g_nmea_parser.parse_errors = 0;
-        printf("Counters reset\n");
+        syslog(LOG_INFO, "Counters reset\n");
         break;
         
       case 'h':
@@ -727,7 +727,7 @@ static void process_rtt_command(const char *command)
         break;
         
       default:
-        printf("Unknown command: %c\n", command[0]);
+        syslog(LOG_INFO, "Unknown command: %c\n", command[0]);
         print_menu();
         break;
     }
@@ -765,10 +765,10 @@ int ra8e1_gps_main(int argc, char *argv[])
   int key;
   uint8_t cmd_pos = 0;
   
-  printf("\nRA8E1 GPS Demo Starting...\n");
-  printf("GPS TX: P310 (TXD3) -> GPS RX\n");
-  printf("GPS RX: P309 (RXD3) <- GPS TX\n");
-  printf("Configuration: 38400 baud, 8N1\n\n");
+  syslog(LOG_INFO, "\nRA8E1 GPS Demo Starting...\n");
+  syslog(LOG_INFO, "GPS TX: P310 (TXD3) -> GPS RX\n");
+  syslog(LOG_INFO, "GPS RX: P309 (RXD3) <- GPS TX\n");
+  syslog(LOG_INFO, "Configuration: 38400 baud, 8N1\n\n");
   
   /* Initialize NMEA parser */
   memset(&g_nmea_parser, 0, sizeof(g_nmea_parser));

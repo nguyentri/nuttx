@@ -298,7 +298,7 @@ static int spi_test_loopback(void)
 {
   spiinfo("Starting SPI loopback test...\n");
   spiinfo("Hardware connections required:\n");
-  spiinfo("  SPI0: Connect P609 (MOSI) to P610 (MISO)\n");
+  spiinfo("  SPI0: Connect P609 (MOSI) to P611 (MISO)\n");
   spiinfo("  SPI1: Connect P411 (MOSI) to P410 (MISO)\n\n");
 
   /* Test SPI0 loopback */
@@ -427,7 +427,7 @@ int ra8e1_spi_loopback_main(int argc, char *argv[])
   syslog(LOG_INFO, "This test verifies SPI loopback functionality:\n");
   syslog(LOG_INFO, "- SPI0 and SPI1 both configured as masters\n");
   syslog(LOG_INFO, "- Hardware connections required:\n");
-  syslog(LOG_INFO, "  * SPI0: Connect P609 (MOSI) to P610 (MISO)\n");
+  syslog(LOG_INFO, "  * SPI0: Connect P609 (MOSI) to P611 (MISO)\n");
   syslog(LOG_INFO, "  * SPI1: Connect P411 (MOSI) to P410 (MISO)\n");
   syslog(LOG_INFO, "- Verification: TX data should equal RX data\n\n");
 

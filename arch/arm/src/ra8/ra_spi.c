@@ -725,7 +725,7 @@ static int ra_spi_dtc_configure_transfer(struct ra_spi_priv_s *priv,
 
 static void ra_spi_dtc_start(struct ra_spi_priv_s *priv)
 {
-  volatile uint32_t spcr;
+  uint32_t spcr;
 
   spiinfo("DTC start for SPI%d - TX IRQ=%d, RX IRQ=%d, TEI IRQ=%d, ERI IRQ=%d\n",
           priv->config->bus, priv->irq_txi, priv->irq_rxi, priv->irq_tei, priv->irq_eri);

@@ -60,7 +60,7 @@ extern "C"
 
 /* ICU driver API */
 void ra_icu_initialize(void);
-int ra_icu_attach(int event, xcpt_t handler, void *arg);
+int ra_icu_attach(int event, xcpt_t handler, void *arg, bool irq_enable);
 int ra_icu_detach(int icu_irq);
 int ra_icu_set_event(int icu_slot, int event);
 
@@ -77,6 +77,10 @@ void ra_icu_clear_nmi_status(uint16_t mask);
 void ra_icu_enable_nmi(uint16_t mask);
 void ra_icu_disable_nmi(uint16_t mask);
 uint16_t ra_icu_get_nmi_status(void);
+
+/* DTC control functions */
+void ra_icu_enable_dtc(int icu_irq);
+void ra_icu_disable_dtc(int icu_irq);
 
 #ifdef __cplusplus
 }

@@ -207,7 +207,7 @@ choice
    prompt "Clock Configuration Mode"
    default RA_CLOCK_PLL1P
    help
-     Select a clock configuration mode. These are aliases for existing 
+     Select a clock configuration mode. These are aliases for existing
      clock configurations to simplify common use cases.
 
 config RA_CLOCK_PLL1P
@@ -415,7 +415,9 @@ menu "Peripheral Clock Sources"
 
 choice
    prompt "SCI Clock Source"
-   default RA_SCICLK_SOURCE_PLL1P
+   default RA_SCICLK_SOURCE_PLL1P if RA_SCI && (RA_CLOCK_PLL || RA_CLOCK_PLL1P)
+   default RA_SCICLK_SOURCE_HOCO if RA_SCI
+   default RA_SCICLK_SOURCE_DISABLED
    help
      Select SCI (Serial Communication Interface) clock source.
 
@@ -451,6 +453,8 @@ config RA_SCICLK_DIV
 
 choice
    prompt "SPI Clock Source"
+   default RA_SPICLK_SOURCE_PLL1P if RA_SPI && (RA_CLOCK_PLL || RA_CLOCK_PLL1P)
+   default RA_SPICLK_SOURCE_HOCO if RA_SPI
    default RA_SPICLK_SOURCE_DISABLED
    help
      Select SPI clock source.
@@ -478,6 +482,8 @@ endchoice
 
 choice
    prompt "CAN-FD Clock Source"
+   default RA_CANFDCLK_SOURCE_PLL1P if RA_CAN && (RA_CLOCK_PLL || RA_CLOCK_PLL1P)
+   default RA_CANFDCLK_SOURCE_HOCO if RA_CAN
    default RA_CANFDCLK_SOURCE_DISABLED
    help
      Select CAN-FD clock source.
@@ -505,6 +511,8 @@ endchoice
 
 choice
    prompt "USB Clock Source"
+   default RA_USBCLK_SOURCE_PLL1P if RA_USB && (RA_CLOCK_PLL || RA_CLOCK_PLL1P)
+   default RA_USBCLK_SOURCE_HOCO if RA_USB
    default RA_USBCLK_SOURCE_DISABLED
    help
      Select USB clock source.
@@ -532,6 +540,8 @@ endchoice
 
 choice
    prompt "Octal SPI Clock Source"
+   default RA_OCTACLK_SOURCE_PLL1P if RA_OSPI && (RA_CLOCK_PLL || RA_CLOCK_PLL1P)
+   default RA_OCTACLK_SOURCE_HOCO if RA_OSPI
    default RA_OCTACLK_SOURCE_DISABLED
    help
      Select Octal SPI clock source.
@@ -559,6 +569,8 @@ endchoice
 
 choice
    prompt "SCI SPI Clock Source"
+   default RA_SCISPICLK_SOURCE_PLL1P if RA_SCI && (RA_CLOCK_PLL || RA_CLOCK_PLL1P)
+   default RA_SCISPICLK_SOURCE_HOCO if RA_SCI
    default RA_SCISPICLK_SOURCE_DISABLED
    help
      Select SCI SPI clock source.
@@ -586,6 +598,8 @@ endchoice
 
 choice
    prompt "GPT Clock Source"
+   default RA_GPTCLK_SOURCE_PLL1P if RA_GPT && (RA_CLOCK_PLL || RA_CLOCK_PLL1P)
+   default RA_GPTCLK_SOURCE_HOCO if RA_GPT
    default RA_GPTCLK_SOURCE_DISABLED
    help
      Select GPT (General Purpose Timer) clock source.
@@ -613,6 +627,8 @@ endchoice
 
 choice
    prompt "I2C Clock Source"
+   default RA_IICCLK_SOURCE_PLL1P if RA_I2C && (RA_CLOCK_PLL || RA_CLOCK_PLL1P)
+   default RA_IICCLK_SOURCE_HOCO if RA_I2C
    default RA_IICCLK_SOURCE_DISABLED
    help
      Select I2C clock source.
@@ -640,6 +656,8 @@ endchoice
 
 choice
    prompt "ADC Clock Source"
+   default RA_ADCCLK_SOURCE_PLL1P if (RA_ADC0 || RA_ADC1 || RA_ADC12) && (RA_CLOCK_PLL || RA_CLOCK_PLL1P)
+   default RA_ADCCLK_SOURCE_HOCO if (RA_ADC0 || RA_ADC1 || RA_ADC12)
    default RA_ADCCLK_SOURCE_DISABLED
    help
      Select ADC clock source.
@@ -1208,7 +1226,7 @@ config RA_UART_DMA_CHANNELS
      Number of DMA channels to reserve for UART operations.
      2 = RX only, 4 = RX+TX for both UARTs.
 
-config RA_UART_DMA_IRQ_PRIORITY
+config RA_UART_DMAC_IRQ_PRIORITY
    int "DMA interrupt priority for UART"
    default 3
    range 0 15
@@ -1796,7 +1814,7 @@ config RA_DMA_CHANNELS
      Number of available DMA channels (0-7).
      RA8E1 has 8 DMAC channels that can be used for various peripherals.
 
-config RA_DMA_IRQ_PRIORITY
+config RA_DMAC_IRQ_PRIORITY
    int "DMA interrupt priority"
    default 3
    range 0 15

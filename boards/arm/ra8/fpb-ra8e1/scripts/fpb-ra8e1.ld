@@ -157,7 +157,7 @@ SECTIONS
         __ddsc_RAM_START = .;
 
     }> RAM
-    __ram_dtc_vector$$ (NOLOAD) :
+    __ram_dtc_vector$$ ALIGN(.,1024) (NOLOAD) :
     {
         __ram_dtc_vector$$Base = .;
         *(.fsp_dtc_vector_table)
@@ -279,9 +279,8 @@ SECTIONS
 
     }> FLASH
     /* MCU vector table */
-    __flash_vectors$$ :
+    __flash_vectors$$ ALIGN(.,512):
     {
-        . = ALIGN(32);
         __flash_vectors$$Base = .; _VECTORS = .;
         KEEP(*(.vectors))
         KEEP(*(.application_vectors))
@@ -314,7 +313,7 @@ SECTIONS
         __ospi0_cs0_noinit_nocache$$Limit = .;
     }> OSPI0_CS0
     /* Zeroed, non-cached ospi0_cs0 */
-    __ospi0_cs0_zero_nocache$$ (NOLOAD) :
+    __ospi0_cs0_zero_nocache$$ ALIGN(.,32) (NOLOAD) :
     {
         __ospi0_cs0_zero_nocache$$Base = .;
         /* section.ospi0_cs0.zero_nocache */
@@ -432,12 +431,11 @@ SECTIONS
         __ram_noinit_nocache$$Limit = .;
     }> RAM
     /* Zeroed, non-cached ram */
-    __ram_zero_nocache$$ (NOLOAD) :
+    __ram_zero_nocache$$ ALIGN(.,32) (NOLOAD) :
     {
         __ram_zero_nocache$$Base = .;
         /* section.ram.zero_nocache */
         *(.ram_nocache)
-        . = ALIGN(32);
         __ram_zero_nocache$$Limit = .;
     }> RAM
     /* Non-initialized ram */
@@ -452,15 +450,13 @@ SECTIONS
         __ram_noinit$$Limit = .;
     }> RAM
     /* Zeroed ram */
-    __ram_zero$$ (NOLOAD) :
+    __ram_zero$$ ALIGN(.,32) (NOLOAD) :
     {
         __ram_zero$$Base = .;
-        . = ALIGN(32);
         _sbss = .;
         /* section.ram.zero */
         *(.ram)
         *(.bss*)
-        . = ALIGN(32);
         __ram_zero$$Limit = .;
     }> RAM
     /* Initialized thread local storage */

@@ -68,7 +68,8 @@ typedef struct ra_dtc_config_s
   uint32_t             transfer_count;   /* Number of transfers */
   uint32_t             block_count;      /* Number of blocks (block mode) */
 
-  int                  elc_src; /* Hardware trigger source (event link) */
+  int                  elc_src;         /* Hardware trigger source (event link) */
+  int                  irq_src;         /* Dynamic ICU slot IRQ number (RA_IRQ_FIRST + slot) */
 
   ra_dtc_callback_t    callback;         /* Transfer callback */
   void                *user_data;        /* User data for callback */
@@ -94,6 +95,10 @@ int ra_dtc_disable(ra_dtc_handle_t handle);
 int ra_dtc_software_start(ra_dtc_handle_t handle);
 int ra_dtc_reset(ra_dtc_handle_t handle, uint32_t src_addr,
                  uint32_t dest_addr, uint32_t transfer_count);
+
+/* DTC vector table management */
+int ra_dtc_set_vector(int icu_slot, ra_dtc_info_t *transfer_info);
+int ra_dtc_clear_vector(int icu_slot);
 
 /* DTC status functions */
 uint32_t ra_dtc_get_remaining_count(ra_dtc_handle_t handle);

@@ -43,7 +43,6 @@
 #include "chip.h"
 #include "hardware/ra_dtc.h"
 #include "hardware/ra8e1/ra8e1_memorymap.h"
-#include "ra8e1_irq.h"
 #include "ra_dtc.h"
 #include "ra_icu.h"
 
@@ -69,8 +68,10 @@ typedef struct ra_dtc_ctrl_s
   uint32_t             open_id;        /* Open identifier */
   bool                 in_use;         /* Context in use flag */
   ra_dtc_config_t      config;         /* Configuration */
-  ra_dtc_info_t       *info;           /* Transfer information */
+  ra_dtc_info_t        info;           /* Transfer information */
   int                  irq;            /* IRQ number */
+  bool                 slot_allocated; /* True if we allocated an ICU slot for trigger */
+  int                  trigger_irq;    /* IRQ number allocated for elc_src -> slot mapping */
 } ra_dtc_ctrl_t;
 
 /****************************************************************************
@@ -78,10 +79,14 @@ typedef struct ra_dtc_ctrl_s
  ****************************************************************************/
 
 /* DTC context control blocks */
-static ra_dtc_ctrl_t g_dtc_contexts[RA_DTC_MAX_CONTEXTS];
+ra_dtc_ctrl_t g_dtc_contexts[RA_DTC_MAX_CONTEXTS];
 
 /* DTC vector table (aligned to 1024 bytes) */
-static ra_dtc_info_t *g_dtc_vector_table[RA_DTC_VECTOR_TABLE_ENTRIES]
+/* Place the DTC vector table into the linker section that the linker
+ * script names __ram_dtc_vector$$ (section name: .fsp_dtc_vector_table)
+ */
+ra_dtc_info_t *g_dtc_vector_table[RA_DTC_VECTOR_TABLE_ENTRIES]
+  __attribute__((section(".fsp_dtc_vector_table")))
   __attribute__((aligned(RA_DTC_VECTOR_TABLE_ALIGN)));
 
 /* DTC module initialized flag */
@@ -191,17 +196,19 @@ static int ra_dtc_validate_config(const ra_dtc_config_t *config)
 
 static int ra_dtc_setup_transfer_info(ra_dtc_ctrl_t *ctrl)
 {
-  ra_dtc_info_t *info = ctrl->info;
+  ra_dtc_info_t *info = &ctrl->info;
   const ra_dtc_config_t *config = &ctrl->config;
 
   /* Clear transfer information */
   memset(info, 0, sizeof(ra_dtc_info_t));
 
-  /* Setup Mode Register A */
+  /* Setup Mode Register A - source addressing only */
   info->mra = (config->mode << RA_DTC_MRA_MD_SHIFT) |
               (config->size << RA_DTC_MRA_SZ_SHIFT) |
-              (config->src_addr_mode << RA_DTC_MRA_SM_SHIFT) |
-              (config->dest_addr_mode << RA_DTC_MRA_DM_SHIFT);
+              (config->src_addr_mode << RA_DTC_MRA_SM_SHIFT);
+
+  /* Setup Mode Register B - destination addressing */
+  info->mrb = (config->dest_addr_mode << RA_DTC_MRB_DM_SHIFT);
 
   /* Setup addresses */
   info->sar = config->src_addr;
@@ -345,13 +352,18 @@ int ra_dtc_initialize(void)
   memset(g_dtc_vector_table, 0, sizeof(g_dtc_vector_table));
 
   /* Set vector table base address */
-  putreg32((uint32_t)g_dtc_vector_table, RA_DTC_DTCVBR);
+  putreg32((uint32_t)g_dtc_vector_table, RA_DTC_DTCVBR_SEC);
 
   /* Disable read skip initially */
-  putreg32(DTC_DTCCR_RRS_DISABLE, RA_DTC_DTCCR);
+  putreg32(0, RA_DTC_DTCCR_SEC);
 
   /* Enable read skip for performance */
-  putreg32(DTC_DTCCR_RRS_ENABLE, RA_DTC_DTCCR);
+  putreg32(RA_DTC_DTCCR_RRSS, RA_DTC_DTCCR_SEC);
+
+  /* Start the DTC module by setting DTCST.DTCST = 1 */
+  putreg8(1, RA_DTC_DTCST);
+
+  _info("DTC module started with DTCST=1\n");
 
   g_dtc_initialized = true;
   return OK;
@@ -403,12 +415,10 @@ int ra_dtc_open(ra_dtc_handle_t *handle, const ra_dtc_config_t *config)
       return -ENOMEM;
     }
 
-  /* Allocate transfer information structure */
-  ctrl->info = kmm_memalign(RA_DTC_TRANSFER_INFO_SIZE, RA_DTC_TRANSFER_INFO_SIZE);
-  if (ctrl->info == NULL)
-    {
-      return -ENOMEM;
-    }
+  /* Initialize control defaults for this context */
+  ctrl->slot_allocated = false;
+  ctrl->trigger_irq = -1;
+  ctrl->irq = -1;
 
   /* Copy configuration */
   memcpy(&ctrl->config, config, sizeof(ra_dtc_config_t));
@@ -417,12 +427,11 @@ int ra_dtc_open(ra_dtc_handle_t *handle, const ra_dtc_config_t *config)
   ret = ra_dtc_setup_transfer_info(ctrl);
   if (ret < 0)
     {
-      kmm_free(ctrl->info);
       return ret;
     }
 
-  /* Setup hardware trigger if used */
-  if (!config->software_trigger && config->elc_src >= 0)
+  /* Setup hardware trigger if used: prefer irq_src (IRQ number), fall back to elc_src */
+  if (!config->software_trigger && (config->irq_src >= 0 || config->elc_src >= 0))
     {
       /* For event link triggered transfers, DTC hardware uses the event link
        * number as index into vector table, NOT the ICU IRQ slot number.
@@ -430,25 +439,63 @@ int ra_dtc_open(ra_dtc_handle_t *handle, const ra_dtc_config_t *config)
        * since DTC handles the transfer automatically on the event.
        */
 
-      /* Validate event link number is within vector table bounds */
-      if (config->elc_src >= RA_DTC_VECTOR_TABLE_ENTRIES)
+      /* Decide which index to use in the vector table:
+       * - If irq_src is provided, it contains the full IRQ number (RA_IRQ_FIRST + slot).
+       *   Convert to slot by subtracting RA_IRQ_FIRST and use that as the vector index.
+       * - Otherwise use the elc_src (event link) index directly.
+       */
+      int vec_index = -1;
+      if (config->irq_src >= 0)
         {
-          kmm_free(ctrl->info);
-          return -EINVAL;
+          int slot = config->irq_src - RA_IRQ_FIRST;
+          if (slot < 0 || slot >= RA_DTC_VECTOR_TABLE_ENTRIES)
+            {
+              return -EINVAL;
+            }
+          /* Use provided IRQ as the trigger IRQ for indexing/cleanup */
+          ctrl->trigger_irq = config->irq_src;
+          ctrl->slot_allocated = false; /* caller provided slot, we didn't allocate it */
+          vec_index = slot;
+        }
+      else
+        {
+          /* Attach an ICU slot for this elc_src so we have a stable ICU slot
+           * index to place into the dtc vector table. ra_icu_attach returns
+           * the IRQ number (RA_IRQ_FIRST + slot) on success. Store it in
+           * ctrl->trigger_irq so we don't modify the const config pointer.
+           */
+          /* Attach the ICU slot for the event without a handler (we only need
+           * the slot so the DTC can be mapped). ra_icu_attach returns the IRQ
+           * number (RA_IRQ_FIRST + slot) on success.
+           */
+          ret = ra_icu_attach(config->elc_src, NULL, NULL, false);
+          if (ret < 0)
+            {
+              return ret;
+            }
+          ctrl->trigger_irq = ret;
+          /* Enable DTC trigger on this ICU slot so the DTC hardware will be
+           * started by the peripheral event.
+           */
+          ra_icu_enable_dtc(ctrl->trigger_irq);
+          /* Use the slot (IRQ - RA_IRQ_FIRST) as the vector index */
+          vec_index = ctrl->trigger_irq - RA_IRQ_FIRST;
+          ctrl->slot_allocated = true;
         }
 
-      /* Set vector table entry using the event link number */
-      g_dtc_vector_table[config->elc_src] = ctrl->info;
+      /* Update vector table safely: disable read-skip before update and re-enable */
+      putreg32(0, RA_DTC_DTCCR_SEC);
+      g_dtc_vector_table[vec_index] = &ctrl->info;
+      putreg32(RA_DTC_DTCCR_RRSS, RA_DTC_DTCCR_SEC);
 
       /* If completion callback is needed, attach DTC completion interrupt */
       if (config->callback)
         {
           /* Use DTC completion interrupt for notification */
-          ret = ra_icu_attach(RA_ELC_DTC_COMPLETE, ra_dtc_interrupt_handler, ctrl);
+          ret = ra_icu_attach(RA_ELC_DTC_COMPLETE, ra_dtc_interrupt_handler, ctrl, false);
           if (ret < 0)
             {
-              g_dtc_vector_table[config->elc_src] = NULL;
-              kmm_free(ctrl->info);
+              g_dtc_vector_table[vec_index] = NULL;
               return ret;
             }
           ctrl->irq = ret;  /* Store the assigned IRQ slot for completion */
@@ -503,17 +550,42 @@ int ra_dtc_close(ra_dtc_handle_t handle)
     }
 
   /* Clear vector table entry if hardware trigger was used */
-  if (!ctrl->config.software_trigger && ctrl->config.elc_src >= 0)
+  if (!ctrl->config.software_trigger && (ctrl->config.irq_src >= 0 || ctrl->config.elc_src >= 0 || ctrl->slot_allocated))
     {
-      g_dtc_vector_table[ctrl->config.elc_src] = NULL;
+      int vec_index = -1;
+      if (ctrl->slot_allocated)
+        {
+          vec_index = ctrl->trigger_irq - RA_IRQ_FIRST;
+        }
+      else if (ctrl->config.irq_src >= 0)
+        {
+          vec_index = ctrl->config.irq_src - RA_IRQ_FIRST;
+        }
+      else
+        {
+          vec_index = ctrl->config.elc_src;
+        }
+
+      if (vec_index >= 0 && vec_index < RA_DTC_VECTOR_TABLE_ENTRIES)
+        {
+          /* Protect with read-skip disable/enable in case DTC is active */
+          putreg32(0, RA_DTC_DTCCR_SEC);
+          g_dtc_vector_table[vec_index] = NULL;
+          putreg32(RA_DTC_DTCCR_RRSS, RA_DTC_DTCCR_SEC);
+        }
+
+      /* If we allocated the slot for this context, detach it now */
+      if (ctrl->slot_allocated)
+        {
+          /* Disable DTC trigger first, then detach the allocated ICU slot */
+          ra_icu_disable_dtc(ctrl->trigger_irq);
+          ra_icu_detach(ctrl->trigger_irq);
+          ctrl->slot_allocated = false;
+          ctrl->trigger_irq = -1;
+        }
     }
 
-  /* Free transfer information */
-  if (ctrl->info)
-    {
-      kmm_free(ctrl->info);
-      ctrl->info = NULL;
-    }
+  /* No dynamic transfer info to free because it's embedded in the context */
 
   /* Clear control block */
   memset(ctrl, 0, sizeof(ra_dtc_ctrl_t));
@@ -651,21 +723,21 @@ int ra_dtc_reset(ra_dtc_handle_t handle, uint32_t src_addr,
   ra_dtc_wait_for_completion(ctrl);
 
   /* Disable read skip for register updates */
-  putreg32(DTC_DTCCR_RRS_DISABLE, RA_DTC_DTCCR);
+  putreg32(0, RA_DTC_DTCCR_SEC);
 
   /* Update transfer information */
-  ctrl->info->sar = src_addr;
-  ctrl->info->dar = dest_addr;
+  ctrl->info.sar = src_addr;
+  ctrl->info.dar = dest_addr;
 
   switch (ctrl->config.mode)
     {
       case RA_DTC_MODE_NORMAL:
-        ctrl->info->cra = transfer_count;
+  ctrl->info.cra = transfer_count;
         break;
 
       case RA_DTC_MODE_REPEAT:
       case RA_DTC_MODE_BLOCK:
-        ctrl->info->cra = transfer_count;
+  ctrl->info.cra = transfer_count;
         /* Keep existing block count */
         break;
     }
@@ -676,7 +748,7 @@ int ra_dtc_reset(ra_dtc_handle_t handle, uint32_t src_addr,
   ctrl->config.transfer_count = transfer_count;
 
   /* Re-enable read skip */
-  putreg32(DTC_DTCCR_RRS_ENABLE, RA_DTC_DTCCR);
+  putreg32(RA_DTC_DTCCR_RRSS, RA_DTC_DTCCR_SEC);
 
   return OK;
 }
@@ -705,5 +777,65 @@ uint32_t ra_dtc_get_remaining_count(ra_dtc_handle_t handle)
     }
 
   /* Return current transfer count from CRA register */
-  return ctrl->info->cra;
+  return ctrl->info.cra;
+}
+
+/****************************************************************************
+ * Name: ra_dtc_set_vector
+ *
+ * Description:
+ *   Set DTC vector table entry for the specified ICU slot
+ *
+ * Input Parameters:
+ *   icu_slot - ICU slot number assigned by ra_icu_attach
+ *   transfer_info - Pointer to transfer information structure
+ *
+ * Returned Value:
+ *   OK on success; a negated errno value on failure
+ *
+ ****************************************************************************/
+
+int ra_dtc_set_vector(int icu_slot, ra_dtc_info_t *transfer_info)
+{
+  if (icu_slot < 0 || icu_slot >= RA_DTC_VECTOR_TABLE_ENTRIES)
+    {
+      return -EINVAL;
+    }
+
+  if (transfer_info == NULL)
+    {
+      return -EINVAL;
+    }
+
+  /* Set vector table entry */
+  g_dtc_vector_table[icu_slot] = transfer_info;
+
+  return OK;
+}
+
+/****************************************************************************
+ * Name: ra_dtc_clear_vector
+ *
+ * Description:
+ *   Clear DTC vector table entry for the specified ICU slot
+ *
+ * Input Parameters:
+ *   icu_slot - ICU slot number assigned by ra_icu_attach
+ *
+ * Returned Value:
+ *   OK on success; a negated errno value on failure
+ *
+ ****************************************************************************/
+
+int ra_dtc_clear_vector(int icu_slot)
+{
+  if (icu_slot < 0 || icu_slot >= RA_DTC_VECTOR_TABLE_ENTRIES)
+    {
+      return -EINVAL;
+    }
+
+  /* Clear vector table entry */
+  g_dtc_vector_table[icu_slot] = NULL;
+
+  return OK;
 }

@@ -44,14 +44,6 @@
 #define RA_SPI_BUS_0             0
 #define RA_SPI_BUS_1             1
 
-/* Chip Select definitions for GY-912 sensors */
-#define RA_SPI_CS_IMU            0        /* P612 - ICM20948 IMU */
-#define RA_SPI_CS_BMP            1        /* P605 - BMP388 pressure sensor */
-
-/* DTC Channel assignments for SPI transfers */
-#define RA_SPI_DTC_TX_CHANNEL    0        /* TX DTC channel */
-#define RA_SPI_DTC_RX_CHANNEL    1        /* RX DTC channel */
-
 /****************************************************************************
  * Public Types
  ****************************************************************************/
@@ -59,17 +51,17 @@
 /* SPI callback function type */
 typedef void (*spi_callback_t)(void *arg);
 
-/* DTC transfer modes for SPI */
-#define RA_SPI_DTC_MODE_DISABLED 0        /* DTC disabled */
-#define RA_SPI_DTC_MODE_TX_ONLY  1        /* TX only DTC */
-#define RA_SPI_DTC_MODE_RX_ONLY  2        /* RX only DTC */
-#define RA_SPI_DTC_MODE_FULL     3        /* Full duplex DTC */
-
 /****************************************************************************
  * Public Types
  ****************************************************************************/
 
- /* Chip Select Configuration */
+typedef enum {
+  RA_SPI_CS_CLK_SYS = 0,    /* Clock synchronous operation (3-wire) */
+  RA_SPI_CS_GPIO = 1,         /* Use GPIO for chip select */
+  RA_SPI_CS_HARDWARE = 2     /* Use hardware SSx pin for chip select */
+} ra_spi_cs_type;
+
+/* Chip Select Configuration */
 struct ra_spi_cs_config_s
 {
   uint32_t devid;           /* Device ID */
@@ -77,7 +69,7 @@ struct ra_spi_cs_config_s
   uint8_t  mode;            /* SPI mode */
   uint8_t  bits;            /* Data bits per transfer */
   gpio_pinset_t cs_gpio;    /* GPIO Chip Select and Slave Select pin definitions */
-  bool     use_hardware;    /* Use hardware SS0 or GPIO */
+  ra_spi_cs_type     cs_type;         /* Use hardware SS0 or GPIO */
   uint8_t  ssl_select;      /* SSL select value (0-3) */
   uint8_t  setup_delay;     /* CS setup delay */
   uint8_t  hold_delay;      /* CS hold delay */

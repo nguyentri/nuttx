@@ -49,6 +49,8 @@
 #include "ra_icu.h"
 #include "ra_clock.h"
 #include "hardware/ra_spi.h"
+#include "hardware/ra_dtc.h"
+#include "ra_dtc.h"
 #include "hardware/ra_dmac.h"
 #include "hardware/ra_memorymap.h"
 #include "hardware/ra_icu.h"
@@ -64,11 +66,12 @@
 
 /* Debug ********************************************************************/
 
-#ifdef CONFIG_DEBUG_SPI_INFO
-#  define spi_dumpgpio(m) ra_dumpgpio(m)
-#else
-#  define spi_dumpgpio(m)
-#endif
+#define spierr       _err
+
+#define spiwarn     _warn
+
+#define spiinfo     _info
+
 
 /* DMA timeout */
 #define DMA_TIMEOUT_MS          1000
@@ -76,10 +79,10 @@
 /* SPI timeout */
 #define SPI_TIMEOUT_MS          1000
 
-/* Default CS timing values (used when application doesn't override) */
-#define CS_SETUP_DELAY          1         /* Default CS setup delay cycles */
-#define CS_HOLD_DELAY           1         /* Default CS hold delay cycles */
-#define CS_NEGATION_DELAY       1         /* Default CS negation delay cycles */
+/* Default CS timing values     */
+#define CS_SETUP_DELAY          0         /* Default CS setup delay cycles */
+#define CS_HOLD_DELAY           0         /* Default CS hold delay cycles */
+#define CS_NEGATION_DELAY       0         /* Default CS negation delay cycles */
 
 /* DTC transfer modes */
 #define DTC_MODE_NORMAL         0x00
@@ -101,14 +104,10 @@ struct ra_spi_config_s
   uint32_t base;          /* SPI peripheral base address */
 
   uint8_t  bus;           /* SPI bus number */
-  int  irq_rxi;           /* RX interrupt */
-  int  irq_txi;           /* TX interrupt */
-  int  irq_tei;           /* Transfer end interrupt */
-  int  irq_eri;           /* Error interrupt */
-  int  el_rxi;            /* Even Link for RX interrupt */
-  int  el_txi;            /* Even Link for TX interrupt */
-  int  el_tei;            /* Even Link for Transfer end interrupt */
-  int  el_eri;            /* Even Link for Error interrupt */
+  int  elc_rxi;            /* Even Link for RX interrupt */
+  int  elc_txi;            /* Even Link for TX interrupt */
+  int  elc_tei;            /* Even Link for Transfer end interrupt */
+  int  elc_eri;            /* Even Link for Error interrupt */
   uint32_t mstpcrb_bit;   /* Module stop control bit */
 
   /* Pin configuration - hardware specific */
@@ -118,17 +117,6 @@ struct ra_spi_config_s
 
   struct ra_spi_cs_config_s *cs_config;  /* Array of CS configurations */
   int num_cs;                     /* Number of CS configurations */
-};
-
-/* DTC Transfer Information */
-struct ra_spi_dtc_info_s
-{
-  uint32_t mra;           /* Mode Register A */
-  uint32_t mrb;           /* Mode Register B */
-  uint32_t sar;           /* Source Address Register */
-  uint32_t dar;           /* Destination Address Register */
-  uint32_t cra;           /* Transfer Count Register A */
-  uint32_t crb;           /* Transfer Count Register B */
 };
 
 /* SPI Device Private Data */
@@ -152,8 +140,14 @@ struct ra_spi_priv_s
   bool                     use_dtc;
   int                      dtc_tx;     /* TX DTC channel */
   int                      dtc_rx;     /* RX DTC channel */
-  struct ra_spi_dtc_info_s dtc_tx_info; /* TX DTC transfer info */
-  struct ra_spi_dtc_info_s dtc_rx_info; /* RX DTC transfer info */
+  ra_dtc_info_t            dtc_tx_info; /* TX DTC transfer info */
+  ra_dtc_info_t            dtc_rx_info; /* RX DTC transfer info */
+
+  /* Runtime IRQ numbers assigned by ICU */
+  int                      irq_rxi;    /* RX interrupt number */
+  int                      irq_txi;    /* TX interrupt number */
+  int                      irq_tei;    /* Transfer end interrupt number */
+  int                      irq_eri;    /* Error interrupt number */
 
   /* Transfer state */
   sem_t                    waitsem;    /* Wait for transfer completion */
@@ -174,12 +168,8 @@ struct ra_spi_priv_s
  ****************************************************************************/
 
 /* Low-level helpers */
-static void ra_spi_putreg8(struct ra_spi_priv_s *priv, uint8_t offset, uint8_t value);
-static void ra_spi_putreg16(struct ra_spi_priv_s *priv, uint8_t offset, uint16_t value);
-//static void ra_spi_putreg32(struct ra_spi_priv_s *priv, uint8_t offset, uint32_t value);
-static uint8_t ra_spi_getreg8(struct ra_spi_priv_s *priv, uint8_t offset);
-//static uint16_t ra_spi_getreg16(struct ra_spi_priv_s *priv, uint8_t offset);
-//static uint32_t ra_spi_getreg32(struct ra_spi_priv_s *priv, uint8_t offset);
+static void ra_spi_putreg32(struct ra_spi_priv_s *priv, uint8_t offset, uint32_t value);
+static uint32_t ra_spi_getreg32(struct ra_spi_priv_s *priv, uint8_t offset);
 
 /* CS control functions */
 static void ra_spi_cs_assert(struct ra_spi_priv_s *priv, uint32_t devid);
@@ -195,9 +185,9 @@ static int ra_spi_dtc_configure_transfer(struct ra_spi_priv_s *priv,
                                          size_t nwords);
 
 /* Transfer helpers */
-static void ra_spi_writeword(struct ra_spi_priv_s *priv, uint16_t word);
-static uint16_t ra_spi_readword(struct ra_spi_priv_s *priv);
-static bool ra_spi_9to16bitmode(struct ra_spi_priv_s *priv);
+static void ra_spi_writeword(struct ra_spi_priv_s *priv, uint32_t word);
+static uint32_t ra_spi_readword(struct ra_spi_priv_s *priv);
+static int ra_spi_get_transfer_size(struct ra_spi_priv_s *priv);
 
 /* Interrupt handling */
 static int ra_spi_rxi_interrupt(int irq, void *context, void *arg);
@@ -237,7 +227,8 @@ static void ra_spi_bus_initialize(struct ra_spi_priv_s *priv);
  * Private Data
  ****************************************************************************/
 
-
+/* DTC initialization flag */
+static bool g_dtc_initialized = false;
 /* SPI operations */
 static const struct spi_ops_s ra_spi_ops =
 {
@@ -274,15 +265,10 @@ static const struct ra_spi_config_s ra_spi0_config =
   .base        = R_SPI0_BASE,
   .bus         = 0,
 
-  .irq_rxi     = -1, // Will be assigned by ICU
-  .irq_txi     = -1, // Will be assigned by ICU
-  .irq_tei     = -1, // Will be assigned by ICU
-  .irq_eri     = -1, // Will be assigned by ICU
-
-  .el_rxi       = RA_ELC_SPI0_RXI,
-  .el_txi       = RA_ELC_SPI0_TXI,
-  .el_tei       = RA_ELC_SPI0_TEI,
-  .el_eri       = RA_ELC_SPI0_ERI,
+  .elc_rxi     = RA_ELC_SPI0_RXI,
+  .elc_txi     = RA_ELC_SPI0_TXI,
+  .elc_tei     = RA_ELC_SPI0_TEI,
+  .elc_eri     = RA_ELC_SPI0_ERI,
 
   .mstpcrb_bit = R_MSTP_MSTPCRB_SPI0,
 
@@ -315,15 +301,10 @@ static const struct ra_spi_config_s ra_spi1_config =
   .base        = R_SPI1_BASE,
   .bus         = 1,
 
-  .irq_rxi     = -1, // Will be assigned by ICU
-  .irq_txi     = -1, // Will be assigned by ICU
-  .irq_tei     = -1, // Will be assigned by ICU
-  .irq_eri     = -1, // Will be assigned by ICU
-
-  .el_rxi       = RA_ELC_SPI1_RXI,
-  .el_txi       = RA_ELC_SPI1_TXI,
-  .el_tei       = RA_ELC_SPI1_TEI,
-  .el_eri       = RA_ELC_SPI1_ERI,
+  .elc_rxi     = RA_ELC_SPI1_RXI,
+  .elc_txi     = RA_ELC_SPI1_TXI,
+  .elc_tei     = RA_ELC_SPI1_TEI,
+  .elc_eri     = RA_ELC_SPI1_ERI,
 
   .mstpcrb_bit = R_MSTP_MSTPCRB_SPI1,
 
@@ -355,53 +336,31 @@ static struct ra_spi_priv_s ra_spi1_priv =
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ra_spi_putreg8/16/32
+ * Name: ra_spi_putreg32
  *
  * Description:
- *   Put a 8/16/32-bit register value by offset
+ *   Put a 32-bit register value by offset
  *
  ****************************************************************************/
 
-static void ra_spi_putreg8(struct ra_spi_priv_s *priv, uint8_t offset,
-                           uint8_t value)
+static void ra_spi_putreg32(struct ra_spi_priv_s *priv, uint8_t offset,
+                           uint32_t value)
 {
-  putreg8(value, priv->config->base + offset);
+  putreg32(value, priv->config->base + offset);
 }
-
-static void ra_spi_putreg16(struct ra_spi_priv_s *priv, uint8_t offset,
-                           uint16_t value)
-{
-  putreg16(value, priv->config->base + offset);
-}
-
-//static void ra_spi_putreg32(struct ra_spi_priv_s *priv, uint8_t offset,
-//                           uint32_t value)
-//{
-//  putreg32(value, priv->config->base + offset);
-//}
 
 /****************************************************************************
- * Name: ra_spi_getreg8/16/32
+ * Name: ra_spi_getreg32
  *
  * Description:
- *   Get a 8/16/32-bit register value by offset
+ *   Get a 32-bit register value by offset
  *
  ****************************************************************************/
 
-static uint8_t ra_spi_getreg8(struct ra_spi_priv_s *priv, uint8_t offset)
+static uint32_t ra_spi_getreg32(struct ra_spi_priv_s *priv, uint8_t offset)
 {
-  return getreg8(priv->config->base + offset);
+  return getreg32(priv->config->base + offset);
 }
-
-static uint16_t ra_spi_getreg16(struct ra_spi_priv_s *priv, uint8_t offset)
-{
-  return getreg16(priv->config->base + offset);
-}
-
-//static uint32_t ra_spi_getreg32(struct ra_spi_priv_s *priv, uint8_t offset)
-//{
-//  return getreg32(priv->config->base + offset);
-//}
 
 /****************************************************************************
  * Name: ra_spi_cs_configure
@@ -413,12 +372,12 @@ static uint16_t ra_spi_getreg16(struct ra_spi_priv_s *priv, uint8_t offset)
 
 static void ra_spi_cs_configure(struct ra_spi_priv_s *priv, uint32_t devid)
 {
-  uint16_t spcmd;
+  uint32_t spcmd;
   uint8_t setup_delay = CS_SETUP_DELAY;
   uint8_t hold_delay = CS_HOLD_DELAY;
   uint8_t negation_delay = CS_NEGATION_DELAY;
   uint8_t ssl_select = 0;  /* Default to SSL0 */
-  bool use_hardware = false;
+  bool cs_type = false;
 
   /* Get device-specific CS configuration if available */
   const struct ra_spi_cs_config_s *cs_config = ra_spi_get_cs_config((struct spi_dev_s *)priv, devid);
@@ -430,10 +389,10 @@ static void ra_spi_cs_configure(struct ra_spi_priv_s *priv, uint32_t devid)
       hold_delay = cs_config->hold_delay;
       negation_delay = cs_config->negation_delay;
       ssl_select = cs_config->ssl_select & 0x07;  /* Limit to 0-7 */
-      use_hardware = cs_config->use_hardware;
+      cs_type = cs_config->cs_type;
 
       spiinfo("SPI%d: Using device-specific CS config for devid=0x%08lx: SSL=%d, delays=%d/%d/%d, hw=%d\n",
-              priv->config->bus, (unsigned long)devid, ssl_select, setup_delay, hold_delay, negation_delay, use_hardware);
+              priv->config->bus, (unsigned long)devid, ssl_select, setup_delay, hold_delay, negation_delay, cs_type);
     }
   else
     {
@@ -441,7 +400,7 @@ static void ra_spi_cs_configure(struct ra_spi_priv_s *priv, uint32_t devid)
     }
 
   /* Configure SPCMD register */
-  spcmd = ra_spi_getreg16(priv, RA_SPI_SPCMD0_OFFSET);
+  spcmd = ra_spi_getreg32(priv, RA_SPI_SPCMD0_OFFSET);
 
   /* Clear SSL selection bits */
   spcmd &= ~RA_SPI_SPCMD_SSLA_MASK;
@@ -477,12 +436,13 @@ static void ra_spi_cs_configure(struct ra_spi_priv_s *priv, uint32_t devid)
       spcmd &= ~RA_SPI_SPCMD_SPNDEN;
     }
 
-  ra_spi_putreg16(priv, RA_SPI_SPCMD0_OFFSET, spcmd);
+  ra_spi_putreg32(priv, RA_SPI_SPCMD0_OFFSET, spcmd);
 
-  /* Configure timing delay registers */
-  ra_spi_putreg8(priv, RA_SPI_SPCKD_OFFSET, setup_delay & 0x07);      /* Max 7 cycles */
-  ra_spi_putreg8(priv, RA_SPI_SSLND_OFFSET, negation_delay & 0x07);   /* Max 7 cycles */
-  ra_spi_putreg8(priv, RA_SPI_SPND_OFFSET, hold_delay & 0x07);        /* Max 7 cycles */
+  /* Configure timing delay register (SPDECR) - all delays in one 32-bit write */
+  uint32_t spdecr = ((setup_delay & 0x07) << RA_SPI_SPDECR_SCKDL_SHIFT) |      /* Clock delay */
+                    ((negation_delay & 0x07) << RA_SPI_SPDECR_SLNDL_SHIFT) |   /* SSL negation delay */
+                    ((hold_delay & 0x07) << RA_SPI_SPDECR_SPNDL_SHIFT);        /* Next access delay */
+  ra_spi_putreg32(priv, RA_SPI_SPDECR_OFFSET, spdecr);
 
   spiinfo("SPI%d CS configured: SSL=%d, delays=%d/%d/%d\n",
           priv->config->bus, ssl_select, setup_delay, hold_delay, negation_delay);
@@ -500,7 +460,7 @@ static void ra_spi_cs_assert(struct ra_spi_priv_s *priv, uint32_t devid)
 {
   const struct ra_spi_cs_config_s *cs_config = ra_spi_get_cs_config((struct spi_dev_s *)priv, devid);
 
-  if (cs_config != NULL && !cs_config->use_hardware)
+  if (cs_config != NULL && !cs_config->cs_type)
     {
       /* Use GPIO-based CS control */
       bool assert_level = !cs_config->active_low;  /* Invert if active low */
@@ -529,7 +489,7 @@ static void ra_spi_cs_deassert(struct ra_spi_priv_s *priv, uint32_t devid)
 {
   const struct ra_spi_cs_config_s *cs_config = ra_spi_get_cs_config((struct spi_dev_s *)priv, devid);
 
-  if (cs_config != NULL && !cs_config->use_hardware)
+  if (cs_config != NULL && !cs_config->cs_type)
     {
       /* Use GPIO-based CS control */
       bool deassert_level = cs_config->active_low;  /* Normal level when inactive */
@@ -591,20 +551,14 @@ static void ra_spi_apply_cs_config(struct spi_dev_s *dev, uint32_t devid)
  *
  ****************************************************************************/
 
-static void ra_spi_writeword(struct ra_spi_priv_s *priv, uint16_t word)
+static void ra_spi_writeword(struct ra_spi_priv_s *priv, uint32_t word)
 {
   /* Wait until the transmit buffer is empty */
-  while ((ra_spi_getreg8(priv, RA_SPI_SPSR_OFFSET) & RA_SPI_SPSR_SPTEF) == 0);
+  while ((ra_spi_getreg32(priv, RA_SPI_SPSR_OFFSET) & RA_SPI_SPSR_SPTEF) == 0);
 
-  /* Write the data */
-  if (ra_spi_9to16bitmode(priv))
-    {
-      ra_spi_putreg16(priv, RA_SPI_SPDR_OFFSET, word);
-    }
-  else
-    {
-      ra_spi_putreg8(priv, RA_SPI_SPDR_OFFSET, (uint8_t)word);
-    }
+  /* Write the data using 32-bit register access regardless of data width */
+  /* The hardware will use only the relevant bits based on the configured nbits */
+  ra_spi_putreg32(priv, RA_SPI_SPDR_OFFSET, word);
 }
 
 /****************************************************************************
@@ -615,33 +569,38 @@ static void ra_spi_writeword(struct ra_spi_priv_s *priv, uint16_t word)
  *
  ****************************************************************************/
 
-static uint16_t ra_spi_readword(struct ra_spi_priv_s *priv)
+static uint32_t ra_spi_readword(struct ra_spi_priv_s *priv)
 {
   /* Wait until receive buffer is full */
-  while ((ra_spi_getreg8(priv, RA_SPI_SPSR_OFFSET) & RA_SPI_SPSR_SPRF) == 0);
+  while ((ra_spi_getreg32(priv, RA_SPI_SPSR_OFFSET) & RA_SPI_SPSR_SPRF) == 0);
 
-  /* Read the data */
-  if (ra_spi_9to16bitmode(priv))
-    {
-      return ra_spi_getreg16(priv, RA_SPI_SPDR_OFFSET);
-    }
-  else
-    {
-      return (uint16_t)ra_spi_getreg8(priv, RA_SPI_SPDR_OFFSET);
-    }
+  /* Read the data using 32-bit register access regardless of data width */
+  /* The hardware will provide only the relevant bits based on the configured nbits */
+  return ra_spi_getreg32(priv, RA_SPI_SPDR_OFFSET);
 }
 
 /****************************************************************************
- * Name: ra_spi_9to16bitmode
+ * Name: ra_spi_get_transfer_size
  *
  * Description:
- *   Check if the current transfer is more than 8 bits
+ *   Get the appropriate transfer size in bytes based on nbits
  *
  ****************************************************************************/
 
-static bool ra_spi_9to16bitmode(struct ra_spi_priv_s *priv)
+static int ra_spi_get_transfer_size(struct ra_spi_priv_s *priv)
 {
-  return (priv->nbits > 8);
+  if (priv->nbits <= 8)
+    {
+      return 1;  /* 8-bit transfers */
+    }
+  else if (priv->nbits <= 16)
+    {
+      return 2;  /* 16-bit transfers */
+    }
+  else
+    {
+      return 4;  /* 32-bit transfers */
+    }
 }
 
 /****************************************************************************
@@ -656,14 +615,29 @@ static int ra_spi_dtc_setup(struct ra_spi_priv_s *priv)
 {
   spiinfo("DTC setup for SPI%d\n", priv->config->bus);
 
-  /* Enable DTC module clock */
-  ra_mstp_start(RA_MSTP_DMAC_DTC);
+  /* Initialize DTC module once (global initialization) */
+  if (!g_dtc_initialized)
+    {
+      irqstate_t flags = enter_critical_section();
 
-  /* Initialize DTC control register */
-  putreg32(0x00000001, R_DTC_BASE + R_DTC_DTCST_OFFSET);
+      if (!g_dtc_initialized)
+        {
+          /* Enable DTC module clock */
+          ra_mstp_start(RA_MSTP_DMAC_DTC);
 
-  /* Configure DTC vector base register */
-  putreg32((uint32_t)&priv->dtc_tx_info, R_DTC_BASE + R_DTC_DTCVBR_OFFSET);
+          /* Initialize DTC module - this will set up the vector table */
+          ra_dtc_initialize();
+
+          g_dtc_initialized = true;
+
+          spiinfo("DTC module initialized\n");
+        }
+
+      leave_critical_section(flags);
+    }
+
+  /* The DTC transfer info structures are already part of priv structure */
+  /* They will be configured per-transfer in ra_spi_dtc_configure_transfer */
 
   priv->use_dtc = true;
 
@@ -683,30 +657,59 @@ static int ra_spi_dtc_configure_transfer(struct ra_spi_priv_s *priv,
                                          const void *txbuffer, void *rxbuffer,
                                          size_t nwords)
 {
-  /* Configure TX DTC */
-  if (txbuffer)
+  uint8_t transfer_size;
+
+  spiinfo("Configuring DTC transfer: tx=%p rx=%p nwords=%zu\n",
+          txbuffer, rxbuffer, nwords);
+
+  /* Determine transfer size based on SPI bit width */
+  if (priv->nbits > 16)
     {
-      priv->dtc_tx_info.mra = DTC_MODE_NORMAL |
-                              (ra_spi_9to16bitmode(priv) ?
-                               RA_DTC_MRA_SZ_WORD : RA_DTC_MRA_SZ_BYTE);
-      priv->dtc_tx_info.mrb = 0;
-      priv->dtc_tx_info.sar = (uint32_t)txbuffer;
-      priv->dtc_tx_info.dar = priv->config->base + RA_SPI_SPDR_OFFSET;
-      priv->dtc_tx_info.cra = nwords;
-      priv->dtc_tx_info.crb = 0;
+      transfer_size = RA_DTC_MRA_SZ_LONG; /* 32-bit transfers for 17-32 bits */
+    }
+  else if (priv->nbits > 8)
+    {
+      transfer_size = RA_DTC_MRA_SZ_WORD; /* 16-bit transfers for 9-16 bits */
+    }
+  else
+    {
+      transfer_size = RA_DTC_MRA_SZ_BYTE; /* 8-bit transfers for 4-8 bits */
     }
 
-  /* Configure RX DTC */
+  /* Clear DTC transfer info structures */
+  memset(&priv->dtc_tx_info, 0, sizeof(priv->dtc_tx_info));
+  memset(&priv->dtc_rx_info, 0, sizeof(priv->dtc_rx_info));
+
+  /* Configure TX DTC if transmit buffer provided */
+  if (txbuffer)
+    {
+      /* Configure TX DTC: source increment, dest fixed, normal mode */
+      priv->dtc_tx_info.mra = RA_DTC_MRA_MD_NORMAL | transfer_size | RA_DTC_MRA_SM_INCREMENT;
+      priv->dtc_tx_info.mrb = RA_DTC_MRB_DM_FIXED | RA_DTC_MRB_DISEL; /* IRQ at end */
+      priv->dtc_tx_info.sar = (uint32_t)txbuffer;
+      priv->dtc_tx_info.dar = priv->config->base + RA_SPI_SPDR_OFFSET;
+      priv->dtc_tx_info.cra = (uint16_t)nwords;
+      priv->dtc_tx_info.crb = 0;
+
+      spiinfo("TX DTC: MRA=0x%02x MRB=0x%02x SAR=0x%08lx DAR=0x%08lx CRA=%d\n",
+              priv->dtc_tx_info.mra, priv->dtc_tx_info.mrb,
+              (unsigned long)priv->dtc_tx_info.sar, (unsigned long)priv->dtc_tx_info.dar, priv->dtc_tx_info.cra);
+    }
+
+  /* Configure RX DTC if receive buffer provided */
   if (rxbuffer)
     {
-      priv->dtc_rx_info.mra = DTC_MODE_NORMAL |
-                              (ra_spi_9to16bitmode(priv) ?
-                               RA_DTC_MRA_SZ_WORD : RA_DTC_MRA_SZ_BYTE);
-      priv->dtc_rx_info.mrb = 0;
+      /* Configure RX DTC: source fixed, dest increment, normal mode */
+      priv->dtc_rx_info.mra = RA_DTC_MRA_MD_NORMAL | transfer_size | RA_DTC_MRA_SM_FIXED;
+      priv->dtc_rx_info.mrb = RA_DTC_MRB_DM_INCREMENT | RA_DTC_MRB_DISEL; /* IRQ at end */
       priv->dtc_rx_info.sar = priv->config->base + RA_SPI_SPDR_OFFSET;
       priv->dtc_rx_info.dar = (uint32_t)rxbuffer;
-      priv->dtc_rx_info.cra = nwords;
+      priv->dtc_rx_info.cra = (uint16_t)nwords;
       priv->dtc_rx_info.crb = 0;
+
+      spiinfo("RX DTC: MRA=0x%02x MRB=0x%02x SAR=0x%08lx DAR=0x%08lx CRA=%d\n",
+              priv->dtc_rx_info.mra, priv->dtc_rx_info.mrb,
+              (unsigned long)priv->dtc_rx_info.sar, (unsigned long)priv->dtc_rx_info.dar, priv->dtc_rx_info.cra);
     }
 
   return OK;
@@ -722,19 +725,106 @@ static int ra_spi_dtc_configure_transfer(struct ra_spi_priv_s *priv,
 
 static void ra_spi_dtc_start(struct ra_spi_priv_s *priv)
 {
-  uint8_t spcr;
+  volatile uint32_t spcr;
 
-  spiinfo("DTC start for SPI%d\n", priv->config->bus);
+  spiinfo("DTC start for SPI%d - TX IRQ=%d, RX IRQ=%d, TEI IRQ=%d, ERI IRQ=%d\n",
+          priv->config->bus, priv->irq_txi, priv->irq_rxi, priv->irq_tei, priv->irq_eri);
 
   priv->dtc_active = true;
 
-  /* Enable DTC triggers for SPI TXI and RXI */
-  spcr = ra_spi_getreg8(priv, RA_SPI_SPCR_OFFSET);
-  spcr |= (RA_SPI_SPCR_SPRIE | RA_SPI_SPCR_SPTIE);
-  ra_spi_putreg8(priv, RA_SPI_SPCR_OFFSET, spcr);
-}
+  /* Configure DTC vector table entries using ICU-assigned slot numbers */
+  if (priv->txbuffer && priv->irq_txi >= 0)
+    {
+      int slot = priv->irq_txi - RA_IRQ_FIRST;
+      ra_dtc_set_vector(slot, &priv->dtc_tx_info);
+      spiinfo("Set TX DTC vector for slot %d (IRQ %d)\n", slot, priv->irq_txi);
+    }
 
-/****************************************************************************
+  if (priv->rxbuffer && priv->irq_rxi >= 0)
+    {
+      int slot = priv->irq_rxi - RA_IRQ_FIRST;
+      ra_dtc_set_vector(slot, &priv->dtc_rx_info);
+      spiinfo("Set RX DTC vector for slot %d (IRQ %d)\n", slot, priv->irq_rxi);
+    }
+
+  /* Enable DTC triggers in ICU using ICU API instead of direct register access */
+  if (priv->irq_txi >= 0)
+    {
+      ra_icu_enable_dtc(priv->irq_txi);
+      spiinfo("Enabled DTC trigger for TXI IRQ %d\n", priv->irq_txi);
+    }
+
+  if (priv->irq_rxi >= 0)
+    {
+      ra_icu_enable_dtc(priv->irq_rxi);
+      spiinfo("Enabled DTC trigger for RXI IRQ %d\n", priv->irq_rxi);
+    }
+
+  /* Enable TEI interrupt for completion detection */
+  if (priv->irq_tei >= 0)
+    {
+      up_enable_irq(priv->irq_tei);
+      spiinfo("Enabled TEI interrupt %d for completion\n", priv->irq_tei);
+    }
+
+  if (priv->irq_eri >= 0)
+    {
+      up_enable_irq(priv->irq_eri);
+      spiinfo("Enabled ERI interrupt %d for error detection\n", priv->irq_eri);
+    }
+
+  /* Note: TXI and RXI interrupts are handled by DTC, but we may need to enable */
+  /* them if DTC doesn't handle all cases. For now, DTC should handle them. */
+
+  /* Clear any existing interrupt flags before enabling interrupts */
+  /* This is critical - flags that are already set won't trigger interrupts when enabled */
+  ra_spi_putreg32(priv, RA_SPI_SPSRC_OFFSET, RA_SPI_SPSRC_ALL_CLEAR);
+
+  /* Clear FIFOs to ensure a clean start */
+  ra_spi_putreg32(priv, RA_SPI_SPFCR_OFFSET, RA_SPI_SPFCR_SPFRST);
+
+  /* Get SPCR */
+  spcr = ra_spi_getreg32(priv, RA_SPI_SPCR_OFFSET);
+
+  /* SPTIE must be enabled for DTC even if transmitting from RXI */
+  if (priv->txbuffer)
+    {
+      spcr |= RA_SPI_SPCR_SPTIE;
+    }
+
+  /* SPRIE only for full-duplex (when both TX and RX are active) */
+  if (priv->txbuffer && priv->rxbuffer)
+    {
+      spcr |= RA_SPI_SPCR_SPRIE;
+    }
+
+  /* Always enable error interrupt */
+  spcr |= RA_SPI_SPCR_SPEIE;
+
+  /* Always enable communication end interrupt */
+  spcr |= RA_SPI_SPCR_CENDIE;
+
+  /* SPI Mode Select d*/
+  if (priv->config->cs_config == NULL || priv->config->cs_config->cs_type == RA_SPI_CS_CLK_SYS)
+    {
+      spcr |= RA_SPI_SPCR_SPMS; /* Clock synchronous operation (3-wire) */
+    }
+  spcr |= RA_SPI_SPCR_BPEN; /* Bit-rate switch */
+
+  /* Write SPCR without SPE first to ensure interrupt/DTC bits are committed */
+  ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, spcr & ~RA_SPI_SPCR_SPE);
+
+  /* Small delay to allow settings to take effect before enabling SPE */
+  up_udelay(1);
+
+  /* Now set SPE to start the transfer */
+  ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, spcr | RA_SPI_SPCR_SPE);
+
+  /* Mark DTC as active */
+  priv->dtc_active = true;
+
+  spiinfo("SPI transfer started: SPCR=0x%08lx\n", spcr);
+}/****************************************************************************
  * Name: ra_spi_dtc_stop
  *
  * Description:
@@ -744,14 +834,56 @@ static void ra_spi_dtc_start(struct ra_spi_priv_s *priv)
 
 static void ra_spi_dtc_stop(struct ra_spi_priv_s *priv)
 {
-  uint8_t spcr;
+  uint32_t spcr;
 
   spiinfo("DTC stop for SPI%d\n", priv->config->bus);
 
-  /* Disable DTC triggers */
-  spcr = ra_spi_getreg8(priv, RA_SPI_SPCR_OFFSET);
-  spcr &= ~(RA_SPI_SPCR_SPRIE | RA_SPI_SPCR_SPTIE);
-  ra_spi_putreg8(priv, RA_SPI_SPCR_OFFSET, spcr);
+  /* Mark DTC as no longer active */
+  priv->dtc_active = false;
+
+  /* Disable SPI interrupts */
+  spcr = ra_spi_getreg32(priv, RA_SPI_SPCR_OFFSET);
+  spcr &= ~(RA_SPI_SPCR_SPRIE | RA_SPI_SPCR_SPTIE | RA_SPI_SPCR_SPEIE | RA_SPI_SPCR_CENDIE);
+  ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, spcr);
+
+  /* Disable DTC triggers in ICU using assigned slot numbers */
+  if (priv->irq_txi >= 0)
+    {
+      ra_icu_disable_dtc(priv->irq_txi);
+      spiinfo("Disabled DTC trigger for TXI IRQ %d\n", priv->irq_txi);
+    }
+
+  if (priv->irq_rxi >= 0)
+    {
+      ra_icu_disable_dtc(priv->irq_rxi);
+      spiinfo("Disabled DTC trigger for RXI IRQ %d\n", priv->irq_rxi);
+    }
+
+  /* Disable interrupts that were enabled during transfer */
+  if (priv->irq_tei >= 0)
+    {
+      up_disable_irq(priv->irq_tei);
+      spiinfo("Disabled TEI interrupt %d\n", priv->irq_tei);
+    }
+
+  if (priv->irq_eri >= 0)
+    {
+      up_disable_irq(priv->irq_eri);
+      spiinfo("Disabled ERI interrupt %d\n", priv->irq_eri);
+    }
+
+  /* Clear DTC vector table entries */
+  if (priv->irq_txi >= 0)
+    {
+      int slot = priv->irq_txi - RA_IRQ_FIRST;
+      ra_dtc_clear_vector(slot);
+    }
+
+  if (priv->irq_rxi >= 0)
+    {
+      int slot = priv->irq_rxi - RA_IRQ_FIRST;
+      ra_dtc_clear_vector(slot);
+    }
 
   priv->dtc_active = false;
 }
@@ -767,7 +899,7 @@ static void ra_spi_dtc_stop(struct ra_spi_priv_s *priv)
 static int ra_spi_rxi_interrupt(int irq, void *context, void *arg)
 {
   struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)arg;
-  uint16_t data;
+  uint32_t data;
 
   DEBUGASSERT(priv != NULL);
 
@@ -788,9 +920,16 @@ static int ra_spi_rxi_interrupt(int irq, void *context, void *arg)
 
   if (priv->rxbuffer)
     {
-      if (ra_spi_9to16bitmode(priv))
+      int transfer_size = ra_spi_get_transfer_size(priv);
+
+      if (transfer_size == 4)
         {
-          *((uint16_t *)priv->rxbuffer) = data;
+          *((uint32_t *)priv->rxbuffer) = data;
+          priv->rxbuffer = (uint8_t *)priv->rxbuffer + 4;
+        }
+      else if (transfer_size == 2)
+        {
+          *((uint16_t *)priv->rxbuffer) = (uint16_t)data;
           priv->rxbuffer = (uint8_t *)priv->rxbuffer + 2;
         }
       else
@@ -809,9 +948,9 @@ static int ra_spi_rxi_interrupt(int irq, void *context, void *arg)
   if (priv->nrxwords == 0)
     {
       /* Disable RX interrupt */
-      uint8_t spcr = ra_spi_getreg8(priv, RA_SPI_SPCR_OFFSET);
+      uint32_t spcr = ra_spi_getreg32(priv, RA_SPI_SPCR_OFFSET);
       spcr &= ~RA_SPI_SPCR_SPRIE;
-      ra_spi_putreg8(priv, RA_SPI_SPCR_OFFSET, spcr);
+      ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, spcr);
 
       /* Wake up waiting thread */
       nxsem_post(&priv->waitsem);
@@ -831,7 +970,7 @@ static int ra_spi_rxi_interrupt(int irq, void *context, void *arg)
 static int ra_spi_txi_interrupt(int irq, void *context, void *arg)
 {
   struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)arg;
-  uint16_t data = 0xffff;
+  uint32_t data = 0xffffffff;
 
   DEBUGASSERT(priv != NULL);
 
@@ -841,9 +980,9 @@ static int ra_spi_txi_interrupt(int irq, void *context, void *arg)
       if (priv->dtc_tx_info.cra == 0)
         {
           /* DTC transfer complete */
-          uint8_t spcr = ra_spi_getreg8(priv, RA_SPI_SPCR_OFFSET);
+          uint32_t spcr = ra_spi_getreg32(priv, RA_SPI_SPCR_OFFSET);
           spcr &= ~RA_SPI_SPCR_SPTIE;
-          ra_spi_putreg8(priv, RA_SPI_SPCR_OFFSET, spcr);
+          ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, spcr);
         }
       return OK;
     }
@@ -851,14 +990,21 @@ static int ra_spi_txi_interrupt(int irq, void *context, void *arg)
   /* Get next word to transmit */
   if (priv->txbuffer && priv->ntxwords > 0)
     {
-      if (ra_spi_9to16bitmode(priv))
+      int transfer_size = ra_spi_get_transfer_size(priv);
+
+      if (transfer_size == 4)
         {
-          data = *((uint16_t *)priv->txbuffer);
+          data = *((uint32_t *)priv->txbuffer);
+          priv->txbuffer = (uint8_t *)priv->txbuffer + 4;
+        }
+      else if (transfer_size == 2)
+        {
+          data = (uint32_t)*((uint16_t *)priv->txbuffer);
           priv->txbuffer = (uint8_t *)priv->txbuffer + 2;
         }
       else
         {
-          data = (uint16_t)*((uint8_t *)priv->txbuffer);
+          data = (uint32_t)*((uint8_t *)priv->txbuffer);
           priv->txbuffer = (uint8_t *)priv->txbuffer + 1;
         }
       priv->ntxwords--;
@@ -875,9 +1021,9 @@ static int ra_spi_txi_interrupt(int irq, void *context, void *arg)
   if (priv->ntxwords == 0)
     {
       /* Disable TX interrupt */
-      uint8_t spcr = ra_spi_getreg8(priv, RA_SPI_SPCR_OFFSET);
+      uint32_t spcr = ra_spi_getreg32(priv, RA_SPI_SPCR_OFFSET);
       spcr &= ~RA_SPI_SPCR_SPTIE;
-      ra_spi_putreg8(priv, RA_SPI_SPCR_OFFSET, spcr);
+      ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, spcr);
     }
 
   return OK;
@@ -899,6 +1045,23 @@ static int ra_spi_tei_interrupt(int irq, void *context, void *arg)
 
   spiinfo("SPI%d transfer end interrupt\n", priv->config->bus);
 
+  /* If DTC is active, this signals completion of DTC transfer */
+  if (priv->dtc_active)
+    {
+      spiinfo("DTC transfer completed for SPI%d\n", priv->config->bus);
+
+      /* Disable SPI Transfer  */
+      uint32_t spcr = ra_spi_getreg32(priv, RA_SPI_SPCR_OFFSET);
+      spcr &= ~RA_SPI_SPCR_SPE;
+      ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, spcr);
+
+      /* Stop DTC transfers */
+      ra_spi_dtc_stop(priv);
+
+      /* Signal completion to waiting thread */
+      nxsem_post(&priv->waitsem);
+    }
+
   return OK;
 }
 
@@ -913,11 +1076,11 @@ static int ra_spi_tei_interrupt(int irq, void *context, void *arg)
 static int ra_spi_eri_interrupt(int irq, void *context, void *arg)
 {
   struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)arg;
-  uint8_t spsr;
+  uint32_t spsr;
 
   DEBUGASSERT(priv != NULL);
 
-  spsr = ra_spi_getreg8(priv, RA_SPI_SPSR_OFFSET);
+  spsr = ra_spi_getreg32(priv, RA_SPI_SPSR_OFFSET);
 
   spierr("SPI%d error interrupt: SPSR=%02x\n", priv->config->bus, spsr);
 
@@ -1062,14 +1225,17 @@ static uint32_t ra_spi_setfrequency(struct spi_dev_s *dev, uint32_t frequency)
   spiinfo("SPI%d SPBR=%d BRDV=%d actual=%lu\n",
     priv->config->bus, spbr, brdv, (unsigned long)priv->actual);
 
-  /* Set the bit rate register */
-  ra_spi_putreg8(priv, RA_SPI_SPBR_OFFSET, spbr);
+  /* Set the bit rate field in SPCR3 register */
+  uint32_t spcr3 = ra_spi_getreg32(priv, RA_SPI_SPCR3_OFFSET);
+  spcr3 &= ~RA_SPI_SPCR3_SPBR_MASK;
+  spcr3 |= ((spbr & 0xFF) << RA_SPI_SPCR3_SPBR_SHIFT);
+  ra_spi_putreg32(priv, RA_SPI_SPCR3_OFFSET, spcr3);
 
   /* Update SPCMD0 with new BRDV */
-  uint16_t spcmd0 = ra_spi_getreg16(priv, RA_SPI_SPCMD0_OFFSET);
+  uint32_t spcmd0 = ra_spi_getreg32(priv, RA_SPI_SPCMD0_OFFSET);
   spcmd0 &= ~RA_SPI_SPCMD_BRDV_MASK;
   spcmd0 |= (brdv << RA_SPI_SPCMD_BRDV_SHIFT);
-  ra_spi_putreg16(priv, RA_SPI_SPCMD0_OFFSET, spcmd0);
+  ra_spi_putreg32(priv, RA_SPI_SPCMD0_OFFSET, spcmd0);
 
   return priv->actual;
 }
@@ -1102,7 +1268,7 @@ static void ra_spi_setmode(struct spi_dev_s *dev, enum spi_mode_e mode)
       return;
     }
 
-  spcmd0 = ra_spi_getreg16(priv, RA_SPI_SPCMD0_OFFSET);
+  spcmd0 = ra_spi_getreg32(priv, RA_SPI_SPCMD0_OFFSET);
   spcmd0 &= ~(RA_SPI_SPCMD_CPOL | RA_SPI_SPCMD_CPHA);
 
   switch (mode)
@@ -1128,7 +1294,7 @@ static void ra_spi_setmode(struct spi_dev_s *dev, enum spi_mode_e mode)
         return;
     }
 
-  ra_spi_putreg16(priv, RA_SPI_SPCMD0_OFFSET, spcmd0);
+  ra_spi_putreg32(priv, RA_SPI_SPCMD0_OFFSET, spcmd0);
   priv->mode = mode;
 }
 
@@ -1150,8 +1316,8 @@ static void ra_spi_setmode(struct spi_dev_s *dev, enum spi_mode_e mode)
 static void ra_spi_setbits(struct spi_dev_s *dev, int nbits)
 {
   struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)dev;
-  uint16_t spcmd0;
-  uint16_t spb_bits;
+  uint32_t spcmd0;
+  uint32_t spb_bits;
 
   spiinfo("SPI%d nbits %d\n", priv->config->bus, nbits);
 
@@ -1187,10 +1353,10 @@ static void ra_spi_setbits(struct spi_dev_s *dev, int nbits)
         return;
     }
 
-  spcmd0 = ra_spi_getreg16(priv, RA_SPI_SPCMD0_OFFSET);
+  spcmd0 = ra_spi_getreg32(priv, RA_SPI_SPCMD0_OFFSET);
   spcmd0 &= ~RA_SPI_SPCMD_SPB_MASK;
   spcmd0 |= spb_bits;
-  ra_spi_putreg16(priv, RA_SPI_SPCMD0_OFFSET, spcmd0);
+  ra_spi_putreg32(priv, RA_SPI_SPCMD0_OFFSET, spcmd0);
 
   priv->nbits = nbits;
 }
@@ -1242,18 +1408,18 @@ static int ra_spi_hwfeatures(struct spi_dev_s *dev, spi_hwfeatures_t features)
 static uint32_t ra_spi_send(struct spi_dev_s *dev, uint32_t wd)
 {
   struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)dev;
-  uint16_t ret;
+  uint32_t ret;
 
   DEBUGASSERT(priv != NULL);
 
   /* Write the word to transmit */
-  ra_spi_writeword(priv, (uint16_t)wd);
+  ra_spi_writeword(priv, wd);
 
   /* Read the received word */
   ret = ra_spi_readword(priv);
 
-  spiinfo("SPI%d sent %08lx received %04x\n",
-    priv->config->bus, (unsigned long)wd, ret);
+  spiinfo("SPI%d sent %08lx received %08lx\n",
+    priv->config->bus, (unsigned long)wd, (unsigned long)ret);
 
   return (uint32_t)ret;
 }
@@ -1312,11 +1478,10 @@ static void ra_spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
       /* Start DTC transfer */
       ra_spi_dtc_start(priv);
 
-      /* Wait for DTC completion */
+      /* Wait for DTC completion (TEI interrupt will signal completion) */
       nxsem_wait_uninterruptible(&priv->waitsem);
 
-      /* Stop DTC */
-      ra_spi_dtc_stop(priv);
+      /* DTC stop is handled by TEI interrupt - don't call it here */
     }
   else
     {
@@ -1324,9 +1489,9 @@ static void ra_spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
       flags = enter_critical_section();
 
       /* Enable interrupts */
-      spcr = ra_spi_getreg8(priv, RA_SPI_SPCR_OFFSET);
+      spcr = ra_spi_getreg32(priv, RA_SPI_SPCR_OFFSET);
       spcr |= (RA_SPI_SPCR_SPRIE | RA_SPI_SPCR_SPTIE | RA_SPI_SPCR_SPEIE);
-      ra_spi_putreg8(priv, RA_SPI_SPCR_OFFSET, spcr);
+      ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, spcr);
 
       leave_critical_section(flags);
 
@@ -1336,9 +1501,9 @@ static void ra_spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
       /* Disable interrupts */
       flags = enter_critical_section();
 
-      spcr = ra_spi_getreg8(priv, RA_SPI_SPCR_OFFSET);
+      spcr = ra_spi_getreg32(priv, RA_SPI_SPCR_OFFSET);
       spcr &= ~(RA_SPI_SPCR_SPRIE | RA_SPI_SPCR_SPTIE | RA_SPI_SPCR_SPEIE);
-      ra_spi_putreg8(priv, RA_SPI_SPCR_OFFSET, spcr);
+      ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, spcr);
 
       leave_critical_section(flags);
     }
@@ -1451,8 +1616,8 @@ static int ra_spi_trigger(struct spi_dev_s *dev)
 
 static void ra_spi_bus_initialize(struct ra_spi_priv_s *priv)
 {
-  uint8_t regval;
-  uint16_t regval16;
+  uint32_t regval;
+  uint32_t regval16;
 
   /* Configure GPIO pins for SPI */
   ra_configgpio(priv->config->sck_pin);
@@ -1477,31 +1642,30 @@ static void ra_spi_bus_initialize(struct ra_spi_priv_s *priv)
       return;
     }
   /* Disable SPI function */
-  ra_spi_putreg8(priv, RA_SPI_SPCR_OFFSET, 0);
+  ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, 0);
 
-  /* Configure as master mode */
-  regval = RA_SPI_SPCR_MSTR | RA_SPI_SPCR_MODFEN;
-  ra_spi_putreg8(priv, RA_SPI_SPCR_OFFSET, regval);
+  /* Configure as master mode with auto-stop for overflow prevention */
+  //regval = RA_SPI_SPCR_MSTR | RA_SPI_SPCR_MODFEN | RA_SPI_SPCR_SCKASE; // MODFEN is set in slave mode only
+  regval = RA_SPI_SPCR_MSTR | RA_SPI_SPCR_SCKASE;
+  ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, regval);
 
-  /* Set SSL polarity (active low) */
-  ra_spi_putreg8(priv, RA_SPI_SSLP_OFFSET, 0x00);
+  /* SSL polarity is already set to 0 (active low) in SPCR3 above */
+  /* Pin control register is already set to 0 in SPCR2 above */
 
-  /* Configure pin control register */
-  ra_spi_putreg8(priv, RA_SPI_SPPCR_OFFSET, 0);
-
-  /* Set sequence length to 1 (using SPCMD0 only) */
-  ra_spi_putreg8(priv, RA_SPI_SPSCR_OFFSET, 0);
+  /* Set sequence length to 1 (using SPCMD0 only) - sequence control is in SPCR3 */
+  ra_spi_putreg32(priv, RA_SPI_SPCR3_OFFSET, 0);
 
   /* Configure data control register for 32-bit access */
-  ra_spi_putreg8(priv, RA_SPI_SPDCR_OFFSET, 0);
+  ra_spi_putreg32(priv, RA_SPI_SPDCR_OFFSET, 0);
 
-  /* Set clock delays to 1 RSPCK */
-  ra_spi_putreg8(priv, RA_SPI_SPCKD_OFFSET, CS_SETUP_DELAY);
-  ra_spi_putreg8(priv, RA_SPI_SSLND_OFFSET, CS_NEGATION_DELAY);
-  ra_spi_putreg8(priv, RA_SPI_SPND_OFFSET, CS_HOLD_DELAY);
+  /* Set clock delays in SPDECR register - all delays in one 32-bit write */
+  uint32_t spdecr_init = ((CS_SETUP_DELAY & 0x07) << RA_SPI_SPDECR_SCKDL_SHIFT) |
+                         ((CS_NEGATION_DELAY & 0x07) << RA_SPI_SPDECR_SLNDL_SHIFT) |
+                         ((CS_HOLD_DELAY & 0x07) << RA_SPI_SPDECR_SPNDL_SHIFT);
+  ra_spi_putreg32(priv, RA_SPI_SPDECR_OFFSET, spdecr_init);
 
   /* Configure SPCR2 */
-  ra_spi_putreg8(priv, RA_SPI_SPCR2_OFFSET, 0);
+  ra_spi_putreg32(priv, RA_SPI_SPCR2_OFFSET, 0);
 
   /* Configure SPCMD0 for default settings */
   regval16 = RA_SPI_SPCMD_SPB_8        |  /* 8-bit data */
@@ -1510,7 +1674,7 @@ static void ra_spi_bus_initialize(struct ra_spi_priv_s *priv)
              RA_SPI_SPCMD_SCKDEN       |  /* Enable setup delay */
              RA_SPI_SPCMD_SLNDEN       |  /* Enable negation delay */
              RA_SPI_SPCMD_SPNDEN;         /* Enable hold delay */
-  ra_spi_putreg16(priv, RA_SPI_SPCMD0_OFFSET, regval16);
+  ra_spi_putreg32(priv, RA_SPI_SPCMD0_OFFSET, regval16);
 
   /* Set default bit rate to 1MHz */
   ra_spi_setfrequency(&priv->spidev, 1000000);
@@ -1524,11 +1688,9 @@ static void ra_spi_bus_initialize(struct ra_spi_priv_s *priv)
   ra_spi_dtc_setup(priv);
 
   /* Enable SPI function */
-  regval = ra_spi_getreg8(priv, RA_SPI_SPCR_OFFSET);
+  regval = ra_spi_getreg32(priv, RA_SPI_SPCR_OFFSET);
   regval |= RA_SPI_SPCR_SPE;
-  ra_spi_putreg8(priv, RA_SPI_SPCR_OFFSET, regval);
-
-  spiinfo("SPI%d initialized with dual CS and DTC support\n", priv->config->bus);
+  ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, regval);
 }
 
 /****************************************************************************
@@ -1552,6 +1714,7 @@ static void ra_spi_bus_initialize(struct ra_spi_priv_s *priv)
 struct spi_dev_s *ra_spibus_initialize(int bus)
 {
   struct ra_spi_priv_s *priv = NULL;
+  int ret;
 
   spiinfo("Initializing SPI%d\n", bus);
 
@@ -1577,19 +1740,38 @@ struct spi_dev_s *ra_spibus_initialize(int bus)
   /* Has the SPI hardware been initialized? */
   if (priv->refs == 0)
     {
-      /* Initialize hardware */
+      /* Initialize hardware first, before attaching interrupts */
       ra_spi_bus_initialize(priv);
 
-      /* Attach and enable interrupts */
-      irq_attach(priv->config->irq_rxi, ra_spi_rxi_interrupt, priv);
-      irq_attach(priv->config->irq_txi, ra_spi_txi_interrupt, priv);
-      irq_attach(priv->config->irq_tei, ra_spi_tei_interrupt, priv);
-      irq_attach(priv->config->irq_eri, ra_spi_eri_interrupt, priv);
+      /* Attach interrupts but immediately disable them to prevent spurious interrupts */
+      ret = ra_icu_attach(priv->config->elc_rxi, ra_spi_rxi_interrupt, priv, false);
+      if (ret < 0)
+        {
+          return NULL;
+        }
+      priv->irq_rxi = ret; /* Store the assigned IRQ number */
+      ret = ra_icu_attach(priv->config->elc_txi, ra_spi_txi_interrupt, priv, false);
+      if (ret < 0)
+        {
+          return NULL;
+        }
+      priv->irq_txi = ret; /* Store the assigned IRQ number */
 
-      up_enable_irq(priv->config->irq_rxi);
-      up_enable_irq(priv->config->irq_txi);
-      up_enable_irq(priv->config->irq_tei);
-      up_enable_irq(priv->config->irq_eri);
+      ret = ra_icu_attach(priv->config->elc_tei, ra_spi_tei_interrupt, priv, false);
+      if (ret < 0)
+        {
+          return NULL;
+        }
+      priv->irq_tei = ret; /* Store the assigned IRQ number */
+
+      ret = ra_icu_attach(priv->config->elc_eri, ra_spi_eri_interrupt, priv, false);
+      if (ret < 0)
+        {
+          return NULL;
+        }
+      priv->irq_eri = ret; /* Store the assigned IRQ number */
+      spiinfo("SPI%d interrupts attached: RXI=%d TXI=%d TEI=%d ERI=%d (all disabled until transfer)\n",
+              priv->config->bus, priv->irq_rxi, priv->irq_txi, priv->irq_tei, priv->irq_eri);
     }
 
   /* Increment reference count */

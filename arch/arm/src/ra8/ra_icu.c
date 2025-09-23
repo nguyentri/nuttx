@@ -162,7 +162,7 @@ void ra_icu_initialize(void)
  *
  ****************************************************************************/
 
-int ra_icu_attach(int event, xcpt_t handler, void *arg)
+int ra_icu_attach(int event, xcpt_t handler, void *arg, bool irq_enable)
 {
   int slot;
 
@@ -186,7 +186,10 @@ int ra_icu_attach(int event, xcpt_t handler, void *arg)
   irq_attach(RA_IRQ_FIRST + slot, ra_icu_interrupt, (void *)(uintptr_t)slot);
 
   /* Enable the interrupt */
-  up_enable_irq(RA_IRQ_FIRST + slot);
+  if (irq_enable)
+    {
+      up_enable_irq(RA_IRQ_FIRST + slot);
+    }
 
   return RA_IRQ_FIRST + slot;
 }
@@ -365,4 +368,58 @@ void ra_icu_enable_nmi(uint16_t mask)
 void ra_icu_disable_nmi(uint16_t mask)
 {
   modifyreg16(R_ICU_NMIER, mask, 0);
+}
+
+/****************************************************************************
+ * Name: ra_icu_enable_dtc
+ *
+ * Description:
+ *   Enable DTC trigger for a specific ICU IRQ
+ *
+ ****************************************************************************/
+
+void ra_icu_enable_dtc(int icu_irq)
+{
+  int slot;
+  uint32_t regval;
+
+  /* Validate IRQ range */
+  if (icu_irq < RA_IRQ_FIRST || icu_irq >= (RA_IRQ_FIRST + RA_IRQ_IELSR_SIZE))
+    {
+      return;
+    }
+
+  slot = icu_irq - RA_IRQ_FIRST;
+
+  /* Set DTCE bit in IELSRn register using hardware macro */
+  regval = getreg32(R_ICU_IELSR(slot));
+  regval |= R_ICU_IELSR_DTCE;  /* DTCE bit */
+  putreg32(regval, R_ICU_IELSR(slot));
+}
+
+/****************************************************************************
+ * Name: ra_icu_disable_dtc
+ *
+ * Description:
+ *   Disable DTC trigger for a specific ICU IRQ
+ *
+ ****************************************************************************/
+
+void ra_icu_disable_dtc(int icu_irq)
+{
+  int slot;
+  uint32_t regval;
+
+  /* Validate IRQ range */
+  if (icu_irq < RA_IRQ_FIRST || icu_irq >= (RA_IRQ_FIRST + RA_IRQ_IELSR_SIZE))
+    {
+      return;
+    }
+
+  slot = icu_irq - RA_IRQ_FIRST;
+
+  /* Clear DTCE bit in IELSRn register using hardware macro */
+  regval = getreg32(R_ICU_IELSR(slot));
+  regval &= ~R_ICU_IELSR_DTCE;  /* Clear DTCE bit */
+  putreg32(regval, R_ICU_IELSR(slot));
 }

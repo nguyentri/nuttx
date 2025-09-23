@@ -81,7 +81,7 @@ uint32_t board_button_initialize(void)
   ra_configgpio(GPIO_SW1);
 
   /* Attach the button interrupt handler */
-  (void)ra_icu_attach(RA_ELC_ICU_IRQ0, button_handler_isr, NULL);
+  (void)ra_icu_attach(RA_ELC_ICU_IRQ0, button_handler_isr, NULL, true);
 
   return 0;
 }

@@ -1046,14 +1046,14 @@ static int up_attach(struct uart_dev_s *dev)
 
   /* Attach and enable the IRQ using the ICU API */
 
-  ret = ra_icu_attach(priv->elc_rx, up_rxinterrupt, dev);
+  ret = ra_icu_attach(priv->elc_rx, up_rxinterrupt, dev, true);
   if (ret < 0)
     {
       return ret;
     }
   priv->irq_rx = ret; /* Store the assigned IRQ number */
 
-  ret = ra_icu_attach(priv->elc_tx, up_txinterrupt, dev);
+  ret = ra_icu_attach(priv->elc_tx, up_txinterrupt, dev, true);
   if (ret < 0)
     {
       ra_icu_detach(priv->irq_rx);
@@ -1061,7 +1061,7 @@ static int up_attach(struct uart_dev_s *dev)
     }
   priv->irq_tx = ret; /* Store the assigned IRQ number */
 
-  ret = ra_icu_attach(priv->elc_txe, up_txeinterrupt, dev);
+  ret = ra_icu_attach(priv->elc_txe, up_txeinterrupt, dev, true);
   if (ret < 0)
     {
       ra_icu_detach(priv->irq_rx);
@@ -1070,7 +1070,7 @@ static int up_attach(struct uart_dev_s *dev)
     }
   priv->irq_txe = ret; /* Store the assigned IRQ number */
 
-  ret = ra_icu_attach(priv->elc_err, up_erinterrupt, dev);
+  ret = ra_icu_attach(priv->elc_err, up_erinterrupt, dev, true);
   if (ret < 0)
     {
       ra_icu_detach(priv->irq_rx);

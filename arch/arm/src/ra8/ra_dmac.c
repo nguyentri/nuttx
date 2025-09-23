@@ -363,7 +363,7 @@ int ra_dmac_enable(ra_dmac_handle_t handle)
   if (ctrl->config->callback != NULL)
     {
       ret = ra_icu_attach(ctrl->config->elc_end,
-                          ra_dmac_interrupt_handler, ctrl);
+                          ra_dmac_interrupt_handler, ctrl, false);
       if (ret < 0)
         {
           return ret;
@@ -375,7 +375,7 @@ int ra_dmac_enable(ra_dmac_handle_t handle)
   if (ctrl->config->elc_err >= 0)
     {
       ret = ra_icu_attach(ctrl->config->elc_err,
-                          ra_dmac_interrupt_handler, ctrl);
+                          ra_dmac_interrupt_handler, ctrl, false);
       if (ret < 0)
         {
           if (ctrl->irq_end >= 0)
@@ -390,7 +390,7 @@ int ra_dmac_enable(ra_dmac_handle_t handle)
   /* Store source trigger IRQ if hardware trigger is used */
   if (ctrl->config->trigger != RA_DMAC_TRIGGER_SW && ctrl->config->elc_src >= 0)
     {
-      ret = ra_icu_attach(ctrl->config->elc_src, NULL, NULL);
+      ret = ra_icu_attach(ctrl->config->elc_src, NULL, NULL, false);
       if (ret < 0)
         {
           if (ctrl->irq_end >= 0)

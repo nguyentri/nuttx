@@ -62,14 +62,10 @@ ifeq ($(CONFIG_RA_DMAC),y)
 CHIP_CSRCS += ra_dmac.c
 endif
 
-# DMA driver
-ifeq ($(CONFIG_RA_DMA),y)
-CHIP_CSRCS += ra_dmac.c
-endif
-
 # SPI driver
 ifeq ($(CONFIG_RA_SPI),y)
 CHIP_CSRCS += ra_spi.c
+CHIP_CSRCS += ra_dtc.c
 endif
 
 # PWM driver

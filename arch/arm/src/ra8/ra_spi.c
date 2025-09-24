@@ -64,18 +64,6 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* Debug ********************************************************************/
-
-#define spierr       _err
-
-#define spiwarn     _warn
-
-#define spiinfo     _info
-
-
-/* DMA timeout */
-#define DMA_TIMEOUT_MS          1000
-
 /* SPI timeout */
 #define SPI_TIMEOUT_MS          1000
 
@@ -84,10 +72,6 @@
 #define CS_HOLD_DELAY           0         /* Default CS hold delay cycles */
 #define CS_NEGATION_DELAY       0         /* Default CS negation delay cycles */
 
-/* DTC transfer modes */
-#define DTC_MODE_NORMAL         0x00
-#define DTC_MODE_REPEAT         0x01
-#define DTC_MODE_BLOCK          0x02
 
 /****************************************************************************
  * Private Types
@@ -773,11 +757,7 @@ static void ra_spi_dtc_start(struct ra_spi_priv_s *priv)
       spiinfo("Enabled ERI interrupt %d for error detection\n", priv->irq_eri);
     }
 
-  /* Note: TXI and RXI interrupts are handled by DTC, but we may need to enable */
-  /* them if DTC doesn't handle all cases. For now, DTC should handle them. */
-
   /* Clear any existing interrupt flags before enabling interrupts */
-  /* This is critical - flags that are already set won't trigger interrupts when enabled */
   ra_spi_putreg32(priv, RA_SPI_SPSRC_OFFSET, RA_SPI_SPSRC_ALL_CLEAR);
 
   /* Clear FIFOs to ensure a clean start */
@@ -786,36 +766,6 @@ static void ra_spi_dtc_start(struct ra_spi_priv_s *priv)
   /* Get SPCR */
   spcr = ra_spi_getreg32(priv, RA_SPI_SPCR_OFFSET);
 
-  /* SPTIE must be enabled for DTC even if transmitting from RXI */
-  if (priv->txbuffer)
-    {
-      spcr |= RA_SPI_SPCR_SPTIE;
-    }
-
-  /* SPRIE only for full-duplex (when both TX and RX are active) */
-  if (priv->txbuffer && priv->rxbuffer)
-    {
-      spcr |= RA_SPI_SPCR_SPRIE;
-    }
-
-  /* Always enable error interrupt */
-  spcr |= RA_SPI_SPCR_SPEIE;
-
-  /* Always enable communication end interrupt */
-  spcr |= RA_SPI_SPCR_CENDIE;
-
-  /* SPI Mode Select d*/
-  if (priv->config->cs_config == NULL || priv->config->cs_config->cs_type == RA_SPI_CS_CLK_SYS)
-    {
-      spcr |= RA_SPI_SPCR_SPMS; /* Clock synchronous operation (3-wire) */
-    }
-  spcr |= RA_SPI_SPCR_BPEN; /* Bit-rate switch */
-
-  /* Write SPCR without SPE first to ensure interrupt/DTC bits are committed */
-  ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, spcr & ~RA_SPI_SPCR_SPE);
-
-  /* Small delay to allow settings to take effect before enabling SPE */
-  up_udelay(1);
 
   /* Now set SPE to start the transfer */
   ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, spcr | RA_SPI_SPCR_SPE);
@@ -1077,12 +1027,18 @@ static int ra_spi_eri_interrupt(int irq, void *context, void *arg)
 {
   struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)arg;
   uint32_t spsr;
+  uint32_t spcr;
 
   DEBUGASSERT(priv != NULL);
 
-  spsr = ra_spi_getreg32(priv, RA_SPI_SPSR_OFFSET);
+  spcr = ra_spi_getreg32(priv, RA_SPI_SPCR_OFFSET);
 
-  spierr("SPI%d error interrupt: SPSR=%02x\n", priv->config->bus, spsr);
+  /* Disable the SPI Transfer */
+  ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, spcr & ~RA_SPI_SPCR_SPE);
+
+  spierr("SPI%d error interrupt: SPSR=%08lx\n", priv->config->bus, spsr);
+
+  spsr = ra_spi_getreg32(priv, RA_SPI_SPSR_OFFSET);
 
   if (spsr & RA_SPI_SPSR_OVRF)
     {
@@ -1617,7 +1573,6 @@ static int ra_spi_trigger(struct spi_dev_s *dev)
 static void ra_spi_bus_initialize(struct ra_spi_priv_s *priv)
 {
   uint32_t regval;
-  uint32_t regval16;
 
   /* Configure GPIO pins for SPI */
   ra_configgpio(priv->config->sck_pin);
@@ -1668,13 +1623,44 @@ static void ra_spi_bus_initialize(struct ra_spi_priv_s *priv)
   ra_spi_putreg32(priv, RA_SPI_SPCR2_OFFSET, 0);
 
   /* Configure SPCMD0 for default settings */
-  regval16 = RA_SPI_SPCMD_SPB_8        |  /* 8-bit data */
+  regval = RA_SPI_SPCMD_SPB_8        |  /* 8-bit data */
              RA_SPI_SPCMD_BRDV_1       |  /* No division */
              RA_SPI_SPCMD_SSLA_0       |  /* Use SSL0 */
              RA_SPI_SPCMD_SCKDEN       |  /* Enable setup delay */
              RA_SPI_SPCMD_SLNDEN       |  /* Enable negation delay */
              RA_SPI_SPCMD_SPNDEN;         /* Enable hold delay */
-  ra_spi_putreg32(priv, RA_SPI_SPCMD0_OFFSET, regval16);
+  ra_spi_putreg32(priv, RA_SPI_SPCMD0_OFFSET, regval);
+
+  /* Clear any existing interrupt flags before enabling interrupts */
+  ra_spi_putreg32(priv, RA_SPI_SPSRC_OFFSET, RA_SPI_SPSRC_ALL_CLEAR);
+
+  /* Always enable error interrupt */
+  regval = RA_SPI_SPCR_SPEIE;
+
+  /* Always enable communication end interrupt */
+  regval |= RA_SPI_SPCR_CENDIE;
+
+  /* SPTIE must be enabled for DTC even if transmitting from RXI */
+  if (priv->txbuffer)
+    {
+      regval |= RA_SPI_SPCR_SPTIE;
+    }
+
+  /* SPRIE only for full-duplex (when both TX and RX are active) */
+  if (priv->txbuffer && priv->rxbuffer)
+    {
+      regval |= RA_SPI_SPCR_SPRIE;
+    }
+
+  /* SPI Mode Select */
+  if (priv->config->cs_config == NULL || priv->config->cs_config->cs_type == RA_SPI_CS_CLK_SYS)
+    {
+      regval |= RA_SPI_SPCR_SPMS; /* Clock synchronous operation (3-wire) */
+    }
+  regval |= RA_SPI_SPCR_BPEN; /* Bit-rate switch */
+
+  /* Write SPCR without SPE first to ensure interrupt/DTC bits are committed */
+  ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, regval & ~RA_SPI_SPCR_SPE);
 
   /* Set default bit rate to 1MHz */
   ra_spi_setfrequency(&priv->spidev, 1000000);

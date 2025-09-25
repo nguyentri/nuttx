@@ -71,8 +71,8 @@
 #define RA_GPT_GTCCRA_OFFSET   0x004c  /* General PWM Timer Compare Capture Register A */
 #define RA_GPT_GTCCRB_OFFSET   0x0050  /* General PWM Timer Compare Capture Register B */
 #define RA_GPT_GTCCRC_OFFSET   0x0054  /* General PWM Timer Compare Capture Register C */
-#define RA_GPT_GTCCRD_OFFSET   0x0058  /* General PWM Timer Compare Capture Register D */
-#define RA_GPT_GTCCRE_OFFSET   0x005c  /* General PWM Timer Compare Capture Register E */
+#define RA_GPT_GTCCRD_OFFSET   0x005c  /* General PWM Timer Compare Capture Register D */
+#define RA_GPT_GTCCRE_OFFSET   0x0058  /* General PWM Timer Compare Capture Register E */
 #define RA_GPT_GTCCRF_OFFSET   0x0060  /* General PWM Timer Compare Capture Register F */
 #define RA_GPT_GTPR_OFFSET     0x0064  /* General PWM Timer Cycle Setting Register */
 #define RA_GPT_GTPBR_OFFSET    0x0068  /* General PWM Timer Cycle Setting Buffer Register */

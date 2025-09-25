@@ -53,17 +53,17 @@
 /* Register Offsets *********************************************************/
 
 #define R_PORT_PCNTR1_OFFSET            0x0000  /* Port Control Register 1 (32-bits) */
-#define R_PORT_PODR_OFFSET              0x0000  /* Pmn Output Data (16-bits) */
-#define R_PORT_PDR_OFFSET               0x0002  /* Pmn Direction (16-bits) */
+#define R_PORT_PDR_OFFSET               0x0000  /* Pmn Direction (16-bits) */
+#define R_PORT_PODR_OFFSET              0x0002  /* Pmn Output Data (16-bits) */
 #define R_PORT_PCNTR2_OFFSET            0x0004  /* Port Control Register 2 (32-bits) */
-#define R_PORT_EIDR_OFFSET              0x0004  /* Port Event Input Data (16-bits) */
-#define R_PORT_PIDR_OFFSET              0x0006  /* Pmn State (16-bits) */
+#define R_PORT_EIDR_OFFSET              0x0006  /* Port Event Input Data (16-bits) */
+#define R_PORT_PIDR_OFFSET              0x0004  /* Pmn State (16-bits) */
 #define R_PORT_PCNTR3_OFFSET            0x0008  /* Port Control Register 3 (32-bits) */
-#define R_PORT_PORR_OFFSET              0x0008  /* Pmn Output Reset (16-bits) */
-#define R_PORT_POSR_OFFSET              0x000a  /* Pmn Output Set (16-bits) */
+#define R_PORT_PORR_OFFSET              0x000a  /* Pmn Output Reset (16-bits) */
+#define R_PORT_POSR_OFFSET              0x0008  /* Pmn Output Set (16-bits) */
 #define R_PORT_PCNTR4_OFFSET            0x000c  /* Port Control Register 3 (32-bits) */
-#define R_PORT_EORR_OFFSET              0x000c  /* Pmn Event Output Set (16-bits) */
-#define R_PORT_EOSR_OFFSET              0x000e  /* Pmn Output Reset (16-bits) */
+#define R_PORT_EOSR_OFFSET              0x000c  /* Pmn Output Reset (16-bits) */
+#define R_PORT_EORR_OFFSET              0x000e  /* Pmn Event Output Set (16-bits) */
 
 #define R_PORT_OFFSET                   0x0020  /* Relative Port Offset */
 

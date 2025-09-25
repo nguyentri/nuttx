@@ -139,9 +139,71 @@ int ra_spi_cmddata(struct spi_dev_s *dev, uint32_t devid, bool cmd)
   return 0;
 }
 
+/*
+ * Provide a minimal fixed CS configuration for the loopback demo.
+ * This will allow the SPI driver to pick up bits/mode/frequency
+ * for each device without requiring board-specific code elsewhere.
+ */
+const struct ra_spi_cs_config_s g_loopback_cs[] =
+{
+  /* Device 0: SPI0 */
+  {
+    .devid = RA_SPI_BUS_0,
+    .max_frequency = SPI_FREQUENCY,
+    .mode = SPI_MODE,
+    .bits = 8,
+    .cs_gpio = {0},
+    .cs_type = RA_SPI_CS_CLK_SYS,
+    .ssl_select = 0,
+    .setup_delay = 0,
+    .hold_delay = 0,
+    .negation_delay = 0,
+    .active_low = true,
+    .name = "loopback-spi0",
+  },
+  /* Device 1: SPI1 */
+  {
+    .devid = RA_SPI_BUS_1,
+    .max_frequency = SPI_FREQUENCY,
+    .mode = SPI_MODE,
+    .bits = 8,
+    .cs_gpio = {0},
+    .cs_type = RA_SPI_CS_CLK_SYS,
+    .ssl_select = 0,
+    .setup_delay = 0,
+    .hold_delay = 0,
+    .negation_delay = 0,
+    .active_low = true,
+    .name = "loopback-spi1",
+  }
+};
+
+/* Strong implementation of ra_spi_get_cs_config used by the loopback demo.
+ * Returns a pointer to the CS config for the given devid, or NULL if none.
+ */
+const struct ra_spi_cs_config_s *ra_spi_get_cs_config(struct spi_dev_s *dev, uint32_t devid)
+{
+  UNUSED(dev);
+
+  for (size_t i = 0; i < sizeof(g_loopback_cs) / sizeof(g_loopback_cs[0]); i++)
+    {
+      if (g_loopback_cs[i].devid == devid)
+        {
+          return &g_loopback_cs[i];
+        }
+    }
+
+  return NULL;
+}
+
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+/* Use driver-provided API ra_spi_set_loopback() to enable/disable
+ * internal loopback. This avoids referencing low-level register
+ * macros from board code and keeps register handling in the driver.
+ */
 
 /****************************************************************************
  * Name: spi_prepare_test_data
@@ -201,7 +263,7 @@ static void spi_prepare_test_data(void)
         }
     }
 
-  spiinfo("Test data prepared: SPI0 TX[0]=0x%02x, SPI1 TX[0]=0x%02x\n",
+  syslog(LOG_INFO, "Test data prepared: SPI0 TX[0]=0x%02x, SPI1 TX[0]=0x%02x\n",
           g_spi_loopback.spi0_tx_buff[0], g_spi_loopback.spi1_tx_buff[0]);
 }
 
@@ -218,15 +280,16 @@ static int spi_verify_loopback_data(void)
   int i;
   int errors = 0;
 
-  spiinfo("Verifying SPI loopback data...\n");
+  syslog(LOG_INFO, "Verifying SPI loopback data...\n");
 
   /* Check SPI0: TX data should equal RX data (loopback) */
   for (i = 0; i < SPI_BUFF_LEN; i++)
     {
       if (g_spi_loopback.spi0_tx_buff[i] != g_spi_loopback.spi0_rx_buff[i])
         {
-          spierr("SPI0 loopback mismatch at index %d: TX=0x%02x != RX=0x%02x\n",
+          syslog(LOG_ERR, "SPI0 loopback mismatch at index %d: TX=0x%02x != RX=0x%02x\n",
                  i, g_spi_loopback.spi0_tx_buff[i], g_spi_loopback.spi0_rx_buff[i]);
+          up_mdelay(10); /* Small delay to avoid flooding syslog */
           errors++;
         }
     }
@@ -236,22 +299,23 @@ static int spi_verify_loopback_data(void)
     {
       if (g_spi_loopback.spi1_tx_buff[i] != g_spi_loopback.spi1_rx_buff[i])
         {
-          spierr("SPI1 loopback mismatch at index %d: TX=0x%02x != RX=0x%02x\n",
+          syslog(LOG_ERR, "SPI1 loopback mismatch at index %d: TX=0x%02x != RX=0x%02x\n",
                  i, g_spi_loopback.spi1_tx_buff[i], g_spi_loopback.spi1_rx_buff[i]);
+          up_mdelay(10); /* Small delay to avoid flooding syslog */
           errors++;
         }
     }
 
   if (errors == 0)
     {
-      spiinfo("✓ SPI loopback test PASSED - all data verified successfully\n");
-      spiinfo("  SPI0: %d bytes looped back correctly\n", SPI_BUFF_LEN);
-      spiinfo("  SPI1: %d bytes looped back correctly\n", SPI_BUFF_LEN);
+      syslog(LOG_INFO, "✓ SPI loopback test PASSED - all data verified successfully\n");
+      syslog(LOG_INFO, "  SPI0: %d bytes looped back correctly\n", SPI_BUFF_LEN);
+      syslog(LOG_INFO, "  SPI1: %d bytes looped back correctly\n", SPI_BUFF_LEN);
       return OK;
     }
   else
     {
-      spierr("✗ SPI loopback test FAILED - %d errors found\n", errors);
+      syslog(LOG_ERR, "✗ SPI loopback test FAILED - %d errors found\n", errors);
       return -EIO;
     }
 }
@@ -280,7 +344,7 @@ static int spi_configure_devices(void)
   SPI_SETFREQUENCY(g_spi_loopback.spi1, SPI_FREQUENCY);
   SPI_LOCK(g_spi_loopback.spi1, false);
 
-  spiinfo("SPI devices configured: SPI0=%p, SPI1=%p (both as masters)\n",
+  syslog(LOG_INFO, "SPI devices configured: SPI0=%p, SPI1=%p (both as masters)\n",
           g_spi_loopback.spi0, g_spi_loopback.spi1);
 
   return OK;
@@ -296,26 +360,27 @@ static int spi_configure_devices(void)
 
 static int spi_test_loopback(void)
 {
-  spiinfo("Starting SPI loopback test...\n");
-  spiinfo("Hardware connections required:\n");
-  spiinfo("  SPI0: Connect P609 (MOSI) to P611 (MISO)\n");
-  spiinfo("  SPI1: Connect P411 (MOSI) to P410 (MISO)\n\n");
+  syslog(LOG_INFO, "Starting SPI loopback test...\n");
 
   /* Test SPI0 loopback */
-  spiinfo("Testing SPI0 loopback (MOSI->MISO)...\n");
+  syslog(LOG_INFO, "Testing Internal SPI0 loopback ...\n");
   SPI_LOCK(g_spi_loopback.spi0, true);
+  ra_spi_set_loopback(g_spi_loopback.spi0, true, false, false); /* Enable loopback on SPI0 */
   SPI_EXCHANGE(g_spi_loopback.spi0, g_spi_loopback.spi0_tx_buff,
                g_spi_loopback.spi0_rx_buff, SPI_BUFF_LEN);
+  ra_spi_set_loopback(g_spi_loopback.spi0, false, false, false); /* Disable loopback on SPI0 */
   SPI_LOCK(g_spi_loopback.spi0, false);
 
   /* Test SPI1 loopback */
-  spiinfo("Testing SPI1 loopback (MOSI->MISO)...\n");
+  syslog(LOG_INFO, "Testing Internal SPI1 loopback ...\n");
   SPI_LOCK(g_spi_loopback.spi1, true);
+  ra_spi_set_loopback(g_spi_loopback.spi1, true, false, false); /* Enable loopback on SPI1 */
   SPI_EXCHANGE(g_spi_loopback.spi1, g_spi_loopback.spi1_tx_buff,
                g_spi_loopback.spi1_rx_buff, SPI_BUFF_LEN);
+  ra_spi_set_loopback(g_spi_loopback.spi1, false, false, false); /* Disable loopback on SPI1 */
   SPI_LOCK(g_spi_loopback.spi1, false);
 
-  spiinfo("Loopback transfers completed\n");
+  syslog(LOG_INFO, "Loopback transfers completed\n");
   return OK;
 }
 
@@ -335,7 +400,7 @@ int ra8e1_spi_loopback_init(void)
 {
   int ret;
 
-  spiinfo("Initializing SPI loopback demo...\n");
+  syslog(LOG_INFO, "Initializing SPI loopback demo...\n");
 
   /* Clear the demo structure */
   memset(&g_spi_loopback, 0, sizeof(g_spi_loopback));
@@ -344,7 +409,7 @@ int ra8e1_spi_loopback_init(void)
   g_spi_loopback.spi0 = ra_spibus_initialize(0);
   if (!g_spi_loopback.spi0)
     {
-      spierr("Failed to initialize SPI0\n");
+      syslog(LOG_ERR, "Failed to initialize SPI0\n");
       return -ENODEV;
     }
 
@@ -352,7 +417,7 @@ int ra8e1_spi_loopback_init(void)
   g_spi_loopback.spi1 = ra_spibus_initialize(1);
   if (!g_spi_loopback.spi1)
     {
-      spierr("Failed to initialize SPI1\n");
+      syslog(LOG_ERR, "Failed to initialize SPI1\n");
       return -ENODEV;
     }
 
@@ -360,11 +425,11 @@ int ra8e1_spi_loopback_init(void)
   ret = spi_configure_devices();
   if (ret < 0)
     {
-      spierr("Failed to configure SPI devices: %d\n", ret);
+      syslog(LOG_ERR, "Failed to configure SPI devices: %d\n", ret);
       return ret;
     }
 
-  spiinfo("SPI loopback demo initialized successfully\n");
+  syslog(LOG_INFO, "SPI loopback demo initialized successfully\n");
   return OK;
 }
 
@@ -380,11 +445,11 @@ int ra8e1_spi_loopback_test(void)
 {
   int ret;
 
-  spiinfo("=== Starting SPI Loopback Test ===\n");
+  syslog(LOG_INFO, "=== Starting SPI Loopback Test ===\n");
 
   if (!g_spi_loopback.spi0 || !g_spi_loopback.spi1)
     {
-      spierr("SPI devices not initialized. Call ra8e1_spi_loopback_init() first.\n");
+      syslog(LOG_ERR, "SPI devices not initialized. Call ra8e1_spi_loopback_init() first.\n");
       return -EINVAL;
     }
 
@@ -395,7 +460,7 @@ int ra8e1_spi_loopback_test(void)
   ret = spi_test_loopback();
   if (ret < 0)
     {
-      spierr("Loopback test failed: %d\n", ret);
+      syslog(LOG_ERR, "Loopback test failed: %d\n", ret);
       return ret;
     }
 
@@ -406,7 +471,7 @@ int ra8e1_spi_loopback_test(void)
       return ret;
     }
 
-  spiinfo("\n=== SPI Loopback Test COMPLETED SUCCESSFULLY ===\n");
+  syslog(LOG_INFO, "\n=== SPI Loopback Test COMPLETED SUCCESSFULLY ===\n");
   return OK;
 }
 
@@ -426,10 +491,6 @@ int ra8e1_spi_loopback_main(int argc, char *argv[])
   syslog(LOG_INFO, "=======================\n");
   syslog(LOG_INFO, "This test verifies SPI loopback functionality:\n");
   syslog(LOG_INFO, "- SPI0 and SPI1 both configured as masters\n");
-  syslog(LOG_INFO, "- Hardware connections required:\n");
-  syslog(LOG_INFO, "  * SPI0: Connect P609 (MOSI) to P611 (MISO)\n");
-  syslog(LOG_INFO, "  * SPI1: Connect P411 (MOSI) to P410 (MISO)\n");
-  syslog(LOG_INFO, "- Verification: TX data should equal RX data\n\n");
 
   /* Initialize the test */
   ret = ra8e1_spi_loopback_init();

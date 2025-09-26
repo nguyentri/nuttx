@@ -55,111 +55,6 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ra8e1_gpt_pwm_initialize
- *
- * Description:
- *   Initialize GPT-based PWM devices for ESC control
- *
- ****************************************************************************/
-
-#ifdef CONFIG_RA_GPT
-static int ra8e1_gpt_pwm_initialize(void)
-{
-  struct pwm_lowerhalf_s *pwm;
-  int ret;
-
-  syslog(LOG_INFO, "Initializing GPT-based PWM devices for ESC control\n");
-
-  /* Initialize GPT3 for ESC1 (P300 - ch 3A) */
-  pwm = ra_gpt_initialize(3);
-  if (!pwm)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to setup GPT3 PWM\n");
-      return -ENODEV;
-    }
-
-  ret = pwm_register("/dev/pwm3", pwm);
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to register /dev/pwm3: %d\n", ret);
-      return ret;
-    }
-  syslog(LOG_INFO, "ESC1 PWM registered at /dev/pwm3 (GPT3A - P300)\n");
-
-  /* Initialize GPT0 for ESC2 (P415 - ch 0A) */
-  pwm = ra_gpt_initialize(0);
-  if (!pwm)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to setup GPT0 PWM\n");
-      return -ENODEV;
-    }
-
-  ret = pwm_register("/dev/pwm0", pwm);
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to register /dev/pwm0: %d\n", ret);
-      return ret;
-    }
-  syslog(LOG_INFO, "ESC2 PWM registered at /dev/pwm0 (GPT0A - P415)\n");
-
-  /* Initialize GPT5 for ESC3 (P905 - alt PWM) */
-  pwm = ra_gpt_initialize(5);
-  if (!pwm)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to setup GPT5 PWM\n");
-      return -ENODEV;
-    }
-
-  ret = pwm_register("/dev/pwm5", pwm);
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to register /dev/pwm5: %d\n", ret);
-      return ret;
-    }
-  syslog(LOG_INFO, "ESC3 PWM registered at /dev/pwm5 (GPT5A - P905)\n");
-
-  /* Initialize GPT2 for ESC4 (P114 - ch 2B) */
-  pwm = ra_gpt_initialize(2);
-  if (!pwm)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to setup GPT2 PWM\n");
-      return -ENODEV;
-    }
-
-  ret = pwm_register("/dev/pwm2", pwm);
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to register /dev/pwm2: %d\n", ret);
-      return ret;
-    }
-  syslog(LOG_INFO, "ESC4 PWM registered at /dev/pwm2 (GPT2B - P114)\n");
-
-  /* Initialize GPT2 for ESC5 (P113 - ch 2A) - Note: GPT2 supports both A and B outputs */
-  /* ESC5 uses the same GPT2 channel but different output pin (2A vs 2B) */
-  syslog(LOG_INFO, "ESC5 PWM uses GPT2A (P113) - shared with GPT2 channel\n");
-
-  /* Initialize GPT4 for ESC6 (P302 - ch 4A) */
-  pwm = ra_gpt_initialize(4);
-  if (!pwm)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to setup GPT4 PWM\n");
-      return -ENODEV;
-    }
-
-  ret = pwm_register("/dev/pwm4", pwm);
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to register /dev/pwm4: %d\n", ret);
-      return ret;
-    }
-  syslog(LOG_INFO, "ESC6 PWM registered at /dev/pwm4 (GPT4A - P302)\n");
-
-  syslog(LOG_INFO, "All GPT-based PWM devices initialized for 400Hz ESC control\n");
-  return OK;
-}
-#endif
-
-/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -197,13 +92,9 @@ int ra8e1_bringup(void)
     }
 #endif
 
-  /* UART/SCI serial console is automatically initialized by arm_earlyserialinit()
-   * during early boot process. No additional initialization needed here.
-   */
 
 #ifdef CONFIG_RTC_DRIVER
   /* Initialize RTC driver */
-
   ret = board_rtc_initialize();
   if (ret < 0)
     {
@@ -217,11 +108,8 @@ int ra8e1_bringup(void)
 
 #ifdef HAVE_LEDS
   /* Initialize LED support */
-
   board_userled_initialize();
-
   /* Register the LED driver */
-
   ret = userled_lower_initialize(LED_DRIVER_PATH);
   if (ret < 0)
     {
@@ -235,7 +123,6 @@ int ra8e1_bringup(void)
 
 #ifdef CONFIG_RA_GPIO
   /* Initialize GPIO drivers */
-
   ret = ra8e1_gpio_initialize();
   if (ret < 0)
     {
@@ -247,168 +134,12 @@ int ra8e1_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_RA_GPT
-  /* Initialize GPT-based PWM devices for ESC control */
-
-  ret = ra8e1_gpt_pwm_initialize();
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to initialize GPT PWM devices: %d\n", ret);
-      /* Don't return error, continue with other initialization */
-    }
-  else
-    {
-      syslog(LOG_INFO, "GPT PWM devices initialized successfully\n");
-    }
-#endif
-
-#ifdef CONFIG_RA8E1_ADC_BMS_EXAMPLE
-  /* Initialize ADC BMS demo */
-  ret = ra8e1_adc_bms_init();
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to initialize ADC BMS demo: %d\n", ret);
-      /* Don't return error, continue with other initialization */
-    }
-  else
-    {
-      syslog(LOG_INFO, "ADC BMS demo initialized successfully\n");
-    }
-#endif
-
-#ifdef CONFIG_RA8E1_CODE_FLASH_EXAMPLE
-  /* Initialize Code Flash */
-  ret = ra8e1_code_flash_init();
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to initialize Code Flash: %d\n", ret);
-      /* Don't return error, continue with other initialization */
-    }
-  else
-    {
-      syslog(LOG_INFO, "Code Flash initialized successfully\n");
-    }
-#endif
-
-#ifdef CONFIG_RA8E1_DATA_FLASH_EXAMPLE
-  /* Initialize Data Flash */
-  ret = ra8e1_data_flash_init();
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to initialize Data Flash: %d\n", ret);
-      /* Don't return error, continue with other initialization */
-    }
-  else
-    {
-      syslog(LOG_INFO, "Data Flash initialized successfully\n");
-    }
-#endif
-
-#ifdef CONFIG_RA8E1_PWM_ESCS_EXAMPLE
-  /* Initialize ESCs demo */
-  ret = ra8e1_gpt_escs_init();
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to initialize ESCs demo: %d\n", ret);
-      /* Don't return error, continue with other initialization */
-    }
-  else
-    {
-      syslog(LOG_INFO, "ESCs demo initialized successfully\n");
-    }
-#endif
-
-#ifdef CONFIG_RA8E1_GPS_EXAMPLE
-  /* Initialize GPS demo */
-  ret = ra8e1_gps_init();
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to initialize GPS demo: %d\n", ret);
-      /* Don't return error, continue with other initialization */
-    }
-  else
-    {
-      syslog(LOG_INFO, "GPS demo initialized successfully\n");
-    }
-#endif
-#ifdef CONFIG_RA8E1_SBUS_EXAMPLE
-  /* Initialize SBUS demo */
-  ret = ra8e1_sbus_init();
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to initialize SBUS demo: %d\n", ret);
-      /* Don't return error, continue with other initialization */
-    }
-  else
-    {
-      syslog(LOG_INFO, "SBUS demo initialized successfully\n");
-    }
-#endif
-
-#ifdef CONFIG_RA8E1_I2C_GY912_EXAMPLE
-  /* Initialize I2C GY-912 demo */
-  ret = ra8e1_i2c_gy912_init();
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to initialize I2C GY-912 demo: %d\n", ret);
-      /* Don't return error, continue with other initialization */
-    }
-  else
-    {
-      syslog(LOG_INFO, "I2C GY-912 demo initialized successfully\n");
-    }
-#endif
-
-#ifdef CONFIG_RA8E1_I2C_ACC_EXAMPLE
-  /* Initialize I2C ACC demo */
-  ret = ra8e1_i2c_acc_init();
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to initialize I2C ACC demo: %d\n", ret);
-      /* Don't return error, continue with other initialization */
-    }
-  else
-    {
-      syslog(LOG_INFO, "I2C ACC demo initialized successfully\n");
-    }
-#endif
-
-#ifdef CONFIG_RA8E1_SPI_LOOPBACK_EXAMPLE
-  /* Initialize SPI loopback demo */
-  ret = ra8e1_spi_loopback_main(0, NULL);
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to initialize SPI loopback demo: %d\n", ret);
-      /* Don't return error, continue with other initialization */
-    }
-  else
-    {
-      syslog(LOG_INFO, "SPI loopback demo initialized successfully\n");
-    }
-#endif
-
-#ifdef CONFIG_RA8E1_SPI_GY912_EXAMPLE
-  /* Initialize SPI GY-912 demo */
-  ret = ra8e1_spi_gy912_init();
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to initialize SPI GY-912 demo: %d\n", ret);
-      /* Don't return error, continue with other initialization */
-    }
-  else
-    {
-      syslog(LOG_INFO, "SPI GY-912 demo initialized successfully\n");
-    }
-#endif
-
 #ifdef CONFIG_ARCH_BUTTONS
   /* Initialize buttons */
   board_button_initialize();
 #endif
 
-#ifdef CONFIG_RA8E1_RUST_EXAMPLE
-  ra8e1_thread_init();
-#endif
+  ra8e1_app_examples();
 
   return ret;
 }

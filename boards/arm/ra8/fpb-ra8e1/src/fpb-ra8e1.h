@@ -70,6 +70,9 @@ struct spi_dev_s;
 
 int ra8e1_bringup(void);
 
+/* Run all enabled application examples (used by ra8e1_bringup()) */
+int ra8e1_app_examples(void);
+
 /****************************************************************************
  * Name: ra8e1_boardinitialize
  *
@@ -112,27 +115,6 @@ int board_rtc_initialize(void);
 #ifdef CONFIG_RA_GPIO
 int ra8e1_gpio_initialize(void);
 #endif
-
-#ifdef CONFIG_RA_SPI
-
-#ifdef CONFIG_RA_SPI0
-/* SPI bus-specific board functions required by ra_spi.c */
-void ra_spi0select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected);
-uint8_t ra_spi0status(FAR struct spi_dev_s *dev, uint32_t devid);
-#ifdef CONFIG_SPI_CMDDATA
-int ra_spi0cmddata(FAR struct spi_dev_s *dev, uint32_t devid, bool cmd);
-#endif
-#endif /* CONFIG_RA_SPI0 */
-
-#ifdef CONFIG_RA_SPI1
-void ra_spi1select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected);
-uint8_t ra_spi1status(FAR struct spi_dev_s *dev, uint32_t devid);
-#ifdef CONFIG_SPI_CMDDATA
-int ra_spi1cmddata(FAR struct spi_dev_s *dev, uint32_t devid, bool cmd);
-#endif
-#endif /* CONFIG_RA_SPI1 */
-
-#endif /* CONFIG_RA_SPI */
 
 /****************************************************************************
  * Example application interfaces
@@ -194,7 +176,7 @@ int ra8e1_i2c_gy912_main(int argc, FAR char *argv[]);
 #endif
 
 #ifdef CONFIG_RA8E1_RUST_EXAMPLE
-int ra8e1_thread_init(void);
+int ra8e1_rust_sample_init(void);
 #endif
 
 /****************************************************************************

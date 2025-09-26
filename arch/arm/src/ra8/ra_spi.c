@@ -1895,25 +1895,25 @@ int ra_spi_set_loopback(FAR struct spi_dev_s *dev, bool loopback2,
   /* Update SPCR2 pin control bits: SPLP2, MOIFV, MOIFE */
   if (loopback2)
     {
-      spcr2 |= RA_SPI_SPPCR_SPLP2;
+      spcr2 |= RA_SPI_SPCR2_SPLP2;
     }
   else
     {
-      spcr2 &= ~RA_SPI_SPPCR_SPLP2;
+      spcr2 &= ~RA_SPI_SPCR2_SPLP2;
     }
 
   if (moifv)
     {
-      spcr2 |= RA_SPI_SPPCR_MOIFV;
+      spcr2 |= RA_SPI_SPCR2_MOIFV;
       if (moife)
         {
-          spcr2 |= RA_SPI_SPPCR_MOIFE;
+          spcr2 |= RA_SPI_SPCR2_MOIFE;
         }
     }
   else
     {
-      spcr2 &= ~RA_SPI_SPPCR_MOIFV;
-      spcr2 &= ~RA_SPI_SPPCR_MOIFE;
+      spcr2 &= ~RA_SPI_SPCR2_MOIFV;
+      spcr2 &= ~RA_SPI_SPCR2_MOIFE;
     }
 
   /* Write back SPCR2 */

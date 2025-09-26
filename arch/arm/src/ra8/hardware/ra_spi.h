@@ -58,7 +58,6 @@
 
 /* Legacy register offset aliases for backward compatibility */
 #define RA_SPI_SSLP_OFFSET       RA_SPI_SPCR3_OFFSET  /* SSL polarity is in SPCR3 */
-#define RA_SPI_SPPCR_OFFSET      RA_SPI_SPCR2_OFFSET  /* Pin control is in SPCR2 */
 #define RA_SPI_SPSCR_OFFSET      RA_SPI_SPCR3_OFFSET  /* Sequence control is in SPCR3 */
 #define RA_SPI_SPBR_OFFSET       RA_SPI_SPCR3_OFFSET  /* Bit rate is in SPCR3 */
 #define RA_SPI_SPCKD_OFFSET      RA_SPI_SPDECR_OFFSET /* Clock delay is in SPDECR */
@@ -113,12 +112,6 @@
 #define RA_SPI_SSLP_SSL2P        (1 << 2)  /* SSL2 Signal Polarity Setting */
 #define RA_SPI_SSLP_SSL3P        (1 << 3)  /* SSL3 Signal Polarity Setting */
 
-/* SPI Pin Control Register (SPPCR) */
-#define RA_SPI_SPPCR_SPLP        (1 << 0)  /* SPI Loopback */
-#define RA_SPI_SPPCR_SPLP2       (1 << 1)  /* SPI Loopback 2 */
-#define RA_SPI_SPPCR_MOIFV       (1 << 4)  /* MOSI Idle Fixed Value */
-#define RA_SPI_SPPCR_MOIFE       (1 << 5)  /* MOSI Idle Value Fixing Enable */
-
 /* SPI Status Register (SPSR) */
 #define RA_SPI_SPSR_SPCP_SHIFT   8         /* SPI Command Pointer */
 #define RA_SPI_SPSR_SPCP_MASK    (0x7 << RA_SPI_SPSR_SPCP_SHIFT)
@@ -156,11 +149,23 @@
 #define RA_SPI_SPDCR_SPFC_3      (0x02 << RA_SPI_SPDCR_SPFC_SHIFT)
 #define RA_SPI_SPDCR_SPFC_4      (0x03 << RA_SPI_SPDCR_SPFC_SHIFT)
 
-/* SPI Data Control Register 2 (SPDCR2) */
-#define RA_SPI_SPDCR2_RTRG_SHIFT (0)       /* Receive FIFO threshold setting */
-#define RA_SPI_SPDCR2_RTRG_MASK  (0x03 << RA_SPI_SPDCR2_RTRG_SHIFT)
-#define RA_SPI_SPDCR2_TTRG_SHIFT (8)       /* Transmission FIFO threshold setting */
-#define RA_SPI_SPDCR2_TTRG_MASK  (0x03 << RA_SPI_SPDCR2_TTRG_SHIFT)
+/* SPI Control Register 2 (SPCR2) - pin control and master-receive-only bits */
+#define RA_SPI_SPCR2_RMFM_SHIFT   (0)       /* Frame processing count (RMFM) LSB */
+#define RA_SPI_SPCR2_RMFM_MASK    (0x1FUL << RA_SPI_SPCR2_RMFM_SHIFT)
+#define RA_SPI_SPCR2_RMEDTG       (1 << 6)  /* End Trigger in Master Receive only (RMEDTG) */
+#define RA_SPI_SPCR2_RMSTTG       (1 << 7)  /* Start Trigger in Master Receive only (RMSTTG) */
+#define RA_SPI_SPCR2_SPDRC_SHIFT  (8)       /* SPI received data ready detect adjustment */
+#define RA_SPI_SPCR2_SPDRC_MASK   (0xFF << RA_SPI_SPCR2_SPDRC_SHIFT)
+#define RA_SPI_SPCR2_SPLP         (1 << 16) /* SPI Loopback */
+#define RA_SPI_SPCR2_SPLP2        (1 << 17) /* SPI Loopback 2 */
+#define RA_SPI_SPCR2_MOIFV        (1 << 20) /* MOSI Idle Fixed Value */
+#define RA_SPI_SPCR2_MOIFE        (1 << 21) /* MOSI Idle Value Fixing Enable */
+
+/* SPI Data Control Register 2 (SPDCR2) - FIFO threshold settings */
+#define RA_SPI_SPDCR2_RTRG_SHIFT  (0)       /* Receive FIFO threshold setting */
+#define RA_SPI_SPDCR2_RTRG_MASK   (0x03 << RA_SPI_SPDCR2_RTRG_SHIFT)
+#define RA_SPI_SPDCR2_TTRG_SHIFT  (8)       /* Transmission FIFO threshold setting */
+#define RA_SPI_SPDCR2_TTRG_MASK   (0x03 << RA_SPI_SPDCR2_TTRG_SHIFT)
 
 /* SPI Control Register 3 (SPCR3) - SSL polarity, bit rate, sequence length */
 #define RA_SPI_SPCR3_SSL0P       (1 << 0)  /* SSL0 Signal Polarity */

@@ -492,14 +492,6 @@ int ra8e1_spi_loopback_main(int argc, char *argv[])
   syslog(LOG_INFO, "This test verifies SPI loopback functionality:\n");
   syslog(LOG_INFO, "- SPI0 and SPI1 both configured as masters\n");
 
-  /* Initialize the test */
-  ret = ra8e1_spi_loopback_init();
-  if (ret < 0)
-    {
-      syslog(LOG_INFO, "Test initialization failed: %d\n", ret);
-      return ret;
-    }
-
   /* Run the test */
   ret = ra8e1_spi_loopback_test();
   if (ret < 0)

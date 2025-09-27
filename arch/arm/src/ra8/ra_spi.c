@@ -545,7 +545,7 @@ static void ra_spi_apply_cs_config(struct spi_dev_s *dev, uint32_t devid)
 static void ra_spi_writeword(struct ra_spi_priv_s *priv, uint32_t word)
 {
   /* Wait until the transmit buffer is empty */
-  while ((ra_spi_getreg32(priv, RA_SPI_SPSR_OFFSET) & RA_SPI_SPSR_SPTEF) == 0);
+  //while ((ra_spi_getreg32(priv, RA_SPI_SPSR_OFFSET) & RA_SPI_SPSR_SPTEF) == 0);
 
   /* Write the data using 32-bit register access regardless of data width */
   /* The hardware will use only the relevant bits based on the configured nbits */
@@ -566,7 +566,7 @@ static void ra_spi_writeword(struct ra_spi_priv_s *priv, uint32_t word)
 static uint32_t ra_spi_readword(struct ra_spi_priv_s *priv)
 {
   /* Wait until receive buffer is full */
-  while ((ra_spi_getreg32(priv, RA_SPI_SPSR_OFFSET) & RA_SPI_SPSR_SPRF) == 0);
+  //while ((ra_spi_getreg32(priv, RA_SPI_SPSR_OFFSET) & RA_SPI_SPSR_SPRF) == 0);
 
   /* Read the data using 32-bit register access regardless of data width */
   /* The hardware will provide only the relevant bits based on the configured nbits */
@@ -635,12 +635,13 @@ static int ra_spi_dtc_setup(struct ra_spi_priv_s *priv)
       leave_critical_section(flags);
     }
 
-  /* The DTC transfer info structures are already part of priv structure */
-  /* They will be configured per-transfer in ra_spi_dtc_configure_transfer */
+  /* Should be configurable but currently hardcoded */
   priv->use_dtc = false;
+
   priv->dtc_active = false;
 
   spiinfo("DTC setup completed for SPI%d\n", priv->config->bus);
+
   return OK;
 }
 
@@ -908,53 +909,57 @@ static int ra_spi_rxi_interrupt(int irq, void *context, void *arg)
 
   DEBUGASSERT(priv != NULL);
 
-  /* RXI should not occur in DTC mode */
+    /* RXI should not occur in DTC mode? */
   if (priv->dtc_active)
     {
       /* DTC is handling the transfer, just check for completion */
-      if (priv->dtc_rx_info.cra == 0)
+      if (priv->dtc_rx_info.cra == 1)
         {
           /* DTC transfer complete */
           ra_spi_dtc_stop(priv);
-          nxsem_post(&priv->waitsem);
+          //nxsem_post(&priv->waitsem);
+          //up_enable_irq(priv->tei_irq);
+          ra_spi_tei_interrupt(priv->tei_irq, NULL, priv);
+          priv->dtc_active = false;
         }
       return OK;
     }
+  else {
+    /* Read received data */
+    data = ra_spi_readword(priv);
 
-  /* Read received data */
-  data = ra_spi_readword(priv);
+    if (priv->rxbuffer)
+      {
+        int transfer_size = ra_spi_get_transfer_size(priv);
+        if (transfer_size == 4)
+          {
+            *((uint32_t *)priv->rxbuffer) = data;
+            priv->rxbuffer = (uint8_t *)priv->rxbuffer + 4;
+          }
+        else if (transfer_size == 2)
+          {
+            *((uint16_t *)priv->rxbuffer) = (uint16_t)data;
+            priv->rxbuffer = (uint8_t *)priv->rxbuffer + 2;
+          }
+        else
+          {
+            *((uint8_t *)priv->rxbuffer) = (uint8_t)data;
+            priv->rxbuffer = (uint8_t *)priv->rxbuffer + 1;
+          }
+      }
 
-  if (priv->rxbuffer)
-    {
-      int transfer_size = ra_spi_get_transfer_size(priv);
-      if (transfer_size == 4)
-        {
-          *((uint32_t *)priv->rxbuffer) = data;
-          priv->rxbuffer = (uint8_t *)priv->rxbuffer + 4;
-        }
-      else if (transfer_size == 2)
-        {
-          *((uint16_t *)priv->rxbuffer) = (uint16_t)data;
-          priv->rxbuffer = (uint8_t *)priv->rxbuffer + 2;
-        }
-      else
-        {
-          *((uint8_t *)priv->rxbuffer) = (uint8_t)data;
-          priv->rxbuffer = (uint8_t *)priv->rxbuffer + 1;
-        }
-    }
+    if (priv->nrxwords > 0)
+      {
+        priv->nrxwords--;
+      }
 
-  if (priv->nrxwords > 0)
-    {
-      priv->nrxwords--;
-    }
-
-  /* After last RX, enable TEI IRQ (NoClear semantics if available) */
-  if (priv->nrxwords == 0)
-    {
-      up_enable_irq(priv->tei_irq);
-      nxsem_post(&priv->waitsem);
-    }
+    /* After last RX, enable TEI IRQ (NoClear semantics if available) */
+    if (priv->nrxwords == 0)
+      {
+        up_enable_irq(priv->tei_irq);
+        //nxsem_post(&priv->waitsem);
+      }
+  }
 
   return OK;
 }
@@ -976,24 +981,28 @@ static int ra_spi_txi_interrupt(int irq, void *context, void *arg)
   if (priv->dtc_active)
     {
       /* DTC is handling the transfer, just check for completion */
-      if (priv->dtc_tx_info.cra == 0)
+      if (priv->dtc_tx_info.cra == 1)
         {
-          /* DTC transfer complete: enable TEI IRQ  */
-          up_enable_irq(priv->tei_irq);
+          /* DTC transfer complete */
+          ra_spi_dtc_stop(priv);
+          //nxsem_post(&priv->waitsem);
+          //up_enable_irq(priv->tei_irq);
+          ra_spi_tei_interrupt(priv->tei_irq, NULL, priv);
           priv->dtc_active = false;
         }
       return OK;
     }
-
-  if (priv->ntxwords > 0)
-    {
-      /* Transmit next word */
-      ra_spi_transmit(priv);
-      if (priv->ntxwords == 0)
-        {
-            up_enable_irq(priv->tei_irq);
-        }
-    }
+  else {
+    if (priv->ntxwords > 0)
+      {
+        /* Transmit next word */
+        ra_spi_transmit(priv);
+        if (priv->ntxwords == 0)
+          {
+              up_enable_irq(priv->tei_irq);
+          }
+      }
+  }
   return OK;
 }
 

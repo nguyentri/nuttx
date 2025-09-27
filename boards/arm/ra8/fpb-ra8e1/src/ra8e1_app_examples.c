@@ -38,7 +38,7 @@ int ra8e1_spi_masterslave_example(void)
 }
 #endif
 
-#ifdef CONFIG_RA_ADC_BMS_EXAMPLE
+#ifdef CONFIG_RA8E1_ADC_BMS_EXAMPLE
 int ra8e1_adc_bms_example(void)
 {
   int ret = ra8e1_adc_bms_init();
@@ -51,7 +51,7 @@ int ra8e1_adc_bms_example(void)
 }
 #endif
 
-#ifdef CONFIG_RA_CODE_FLASH_EXAMPLE
+#ifdef CONFIG_RA8E1_CODE_FLASH_EXAMPLE
 int ra8e1_code_flash_example(void)
 {
   int ret = ra8e1_code_flash_init();
@@ -66,7 +66,7 @@ int ra8e1_code_flash_example(void)
 }
 #endif
 
-#ifdef CONFIG_RA_DATA_FLASH_EXAMPLE
+#ifdef CONFIG_RA8E1_DATA_FLASH_EXAMPLE
 int ra8e1_data_flash_example(void)
 {
   int ret = ra8e1_data_flash_init();
@@ -163,7 +163,7 @@ int ra8e1_app_examples(void)
   int ret = 0;
   int last_err = 0;
 
-#ifdef CONFIG_RA_GPT_PWM_EXAMPLE
+#ifdef CONFIG_RA8E1_GPT_PWM_EXAMPLE
   ret = ra8e1_gpt_test_main(0, NULL);
   if (ret < 0)
     {

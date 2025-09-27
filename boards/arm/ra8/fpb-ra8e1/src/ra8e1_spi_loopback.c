@@ -59,9 +59,9 @@
 
 /* Test patterns */
 #define TEST_PATTERN_1      0x12345678
-#define TEST_PATTERN_2      0xABCDEF00
+#define TEST_PATTERN_2      0xAABBCCDD
 #define TEST_PATTERN_3      0x55AA55AA
-#define TEST_PATTERN_4      0xFF00FF00
+#define TEST_PATTERN_4      0xA5A55A5A
 
 /* SPI Device IDs for loopback test */
 #define SPI_DEVICE_SPI0     0x0000
@@ -292,6 +292,11 @@ static int spi_verify_loopback_data(void)
           up_mdelay(10); /* Small delay to avoid flooding syslog */
           errors++;
         }
+        else {
+          syslog(LOG_INFO, "SPI0 loopback match at index %d: TX=0x%02x == RX=0x%02x\n",
+                 i, g_spi_loopback.spi0_tx_buff[i], g_spi_loopback.spi0_rx_buff[i]);
+         up_mdelay(10); /* Small delay to avoid flooding syslog */
+        }
     }
 
   /* Check SPI1: TX data should equal RX data (loopback) */
@@ -303,6 +308,10 @@ static int spi_verify_loopback_data(void)
                  i, g_spi_loopback.spi1_tx_buff[i], g_spi_loopback.spi1_rx_buff[i]);
           up_mdelay(10); /* Small delay to avoid flooding syslog */
           errors++;
+        } else {
+          syslog(LOG_INFO, "SPI1 loopback match at index %d: TX=0x%02x == RX=0x%02x\n",
+                 i, g_spi_loopback.spi1_tx_buff[i], g_spi_loopback.spi1_rx_buff[i]);
+         up_mdelay(10); /* Small delay to avoid flooding syslog */
         }
     }
 

@@ -88,10 +88,10 @@ struct ra_spi_config_s
   uint32_t base;          /* SPI peripheral base address */
 
   uint8_t  bus;           /* SPI bus number */
-  int  elc_rxi;            /* Even Link for RX interrupt */
-  int  elc_txi;            /* Even Link for TX interrupt */
-  int  elc_tei;            /* Even Link for Transfer end interrupt */
-  int  elc_eri;            /* Even Link for Error interrupt */
+  int  rxi_elc;            /* Even Link for RX interrupt */
+  int  txi_elc;            /* Even Link for TX interrupt */
+  int  tei_elc;            /* Even Link for Transfer end interrupt */
+  int  eri_elc;            /* Even Link for Error interrupt */
   uint32_t mstpcrb_bit;   /* Module stop control bit */
 
   /* Pin configuration - hardware specific */
@@ -129,10 +129,10 @@ struct ra_spi_priv_s
   ra_dtc_info_t            dtc_rx_info; /* RX DTC transfer info */
 
   /* Runtime IRQ numbers assigned by ICU */
-  int                      irq_rxi;    /* RX interrupt number */
-  int                      irq_txi;    /* TX interrupt number */
-  int                      irq_tei;    /* Transfer end interrupt number */
-  int                      irq_eri;    /* Error interrupt number */
+  int                      rxi_irq;    /* RX interrupt number */
+  int                      txi_irq;    /* TX interrupt number */
+  int                      tei_irq;    /* Transfer end interrupt number */
+  int                      eri_irq;    /* Error interrupt number */
 
   /* Transfer state */
   sem_t                    waitsem;    /* Wait for transfer completion */
@@ -163,7 +163,7 @@ static void ra_spi_cs_configure(struct ra_spi_priv_s *priv, uint32_t devid);
 
 /* DTC support */
 static int ra_spi_dtc_setup(struct ra_spi_priv_s *priv);
-static void ra_spi_dtc_start(struct ra_spi_priv_s *priv);
+static void ra_spi_start_transfer(struct ra_spi_priv_s *priv);
 static void ra_spi_dtc_stop(struct ra_spi_priv_s *priv);
 static int ra_spi_dtc_configure_transfer(struct ra_spi_priv_s *priv,
                                          const void *txbuffer, void *rxbuffer,
@@ -251,10 +251,10 @@ static const struct ra_spi_config_s ra_spi0_config =
   .base        = R_SPI0_BASE,
   .bus         = 0,
 
-  .elc_rxi     = RA_ELC_SPI0_RXI,
-  .elc_txi     = RA_ELC_SPI0_TXI,
-  .elc_tei     = RA_ELC_SPI0_TEI,
-  .elc_eri     = RA_ELC_SPI0_ERI,
+  .rxi_elc     = RA_ELC_SPI0_RXI,
+  .txi_elc     = RA_ELC_SPI0_TXI,
+  .tei_elc     = RA_ELC_SPI0_TEI,
+  .eri_elc     = RA_ELC_SPI0_ERI,
 
   .mstpcrb_bit = R_MSTP_MSTPCRB_SPI0,
 
@@ -289,10 +289,10 @@ static const struct ra_spi_config_s ra_spi1_config =
   .base        = R_SPI1_BASE,
   .bus         = 1,
 
-  .elc_rxi     = RA_ELC_SPI1_RXI,
-  .elc_txi     = RA_ELC_SPI1_TXI,
-  .elc_tei     = RA_ELC_SPI1_TEI,
-  .elc_eri     = RA_ELC_SPI1_ERI,
+  .rxi_elc     = RA_ELC_SPI1_RXI,
+  .txi_elc     = RA_ELC_SPI1_TXI,
+  .tei_elc     = RA_ELC_SPI1_TEI,
+  .eri_elc     = RA_ELC_SPI1_ERI,
 
   .mstpcrb_bit = R_MSTP_MSTPCRB_SPI1,
 
@@ -550,6 +550,9 @@ static void ra_spi_writeword(struct ra_spi_priv_s *priv, uint32_t word)
   /* Write the data using 32-bit register access regardless of data width */
   /* The hardware will use only the relevant bits based on the configured nbits */
   ra_spi_putreg32(priv, RA_SPI_SPDR_OFFSET, word);
+
+  /* SPI Status Clear Register */
+  ra_spi_putreg32(priv, RA_SPI_SPSRC_OFFSET, RA_SPI_SPSRC_SPTEFC);
 }
 
 /****************************************************************************
@@ -567,7 +570,12 @@ static uint32_t ra_spi_readword(struct ra_spi_priv_s *priv)
 
   /* Read the data using 32-bit register access regardless of data width */
   /* The hardware will provide only the relevant bits based on the configured nbits */
-  return ra_spi_getreg32(priv, RA_SPI_SPDR_OFFSET);
+  uint32_t val = ra_spi_getreg32(priv, RA_SPI_SPDR_OFFSET);
+
+  /* Clear Receive Full flag */
+  ra_spi_putreg32(priv, RA_SPI_SPSRC_OFFSET, RA_SPI_SPSRC_SPRFC);
+
+  return val;
 }
 
 /****************************************************************************
@@ -629,7 +637,7 @@ static int ra_spi_dtc_setup(struct ra_spi_priv_s *priv)
 
   /* The DTC transfer info structures are already part of priv structure */
   /* They will be configured per-transfer in ra_spi_dtc_configure_transfer */
-  priv->use_dtc = true;
+  priv->use_dtc = false;
   priv->dtc_active = false;
 
   spiinfo("DTC setup completed for SPI%d\n", priv->config->bus);
@@ -722,65 +730,86 @@ static int ra_spi_dtc_configure_transfer(struct ra_spi_priv_s *priv,
 static int ra_spi_dtc_reconfigure(struct ra_spi_priv_s *priv)
 {
   /* Configure DTC vector table entries using ICU-assigned slot numbers */
-  if (priv->txbuffer && priv->irq_txi >= 0)
+  if (priv->txbuffer && priv->txi_irq >= 0)
     {
-      int slot = priv->irq_txi - RA_IRQ_FIRST;
-      ra_icu_disable_dtc(priv->irq_txi);  /* Disable before setting */
+      int slot = priv->txi_irq - RA_IRQ_FIRST;
+      ra_icu_disable_dtc(priv->txi_irq);  /* Disable before setting */
       ra_dtc_set_vector(slot, &priv->dtc_tx_info);
-      spiinfo("Committed TX DTC vector for slot %d (IRQ %d)\n", slot, priv->irq_txi);
+      spiinfo("Committed TX DTC vector for slot %d (IRQ %d)\n", slot, priv->txi_irq);
     }
 
-  if (priv->rxbuffer && priv->irq_rxi >= 0)
+  if (priv->rxbuffer && priv->rxi_irq >= 0)
     {
-      int slot = priv->irq_rxi - RA_IRQ_FIRST;
-      ra_icu_disable_dtc(priv->irq_rxi);  /* Disable before setting */
+      int slot = priv->rxi_irq - RA_IRQ_FIRST;
+      ra_icu_disable_dtc(priv->rxi_irq);  /* Disable before setting */
       ra_dtc_set_vector(slot, &priv->dtc_rx_info);
-      spiinfo("Committed RX DTC vector for slot %d (IRQ %d)\n", slot, priv->irq_rxi);
+      spiinfo("Committed RX DTC vector for slot %d (IRQ %d)\n", slot, priv->rxi_irq);
     }
 
   /* Enable DTC triggers in ICU using ICU API instead of direct register access */
-  if (priv->irq_txi >= 0)
+  if (priv->txi_irq >= 0)
     {
-      ra_icu_enable_dtc(priv->irq_txi);
-      spiinfo("Enabled DTC trigger for TXI IRQ %d\n", priv->irq_txi);
+      ra_icu_enable_dtc(priv->txi_irq);
+      spiinfo("Enabled DTC trigger for TXI IRQ %d\n", priv->txi_irq);
     }
 
-  if (priv->irq_rxi >= 0)
+  if (priv->rxi_irq >= 0)
     {
-      ra_icu_enable_dtc(priv->irq_rxi);
-      spiinfo("Enabled DTC trigger for RXI IRQ %d\n", priv->irq_rxi);
+      ra_icu_enable_dtc(priv->rxi_irq);
+      spiinfo("Enabled DTC trigger for RXI IRQ %d\n", priv->rxi_irq);
     }
+
+  /* Mark DTC as active with the current transfer */
+  priv->dtc_active = true;
 
   return OK;
 }
 
+static void ra_spi_transmit(struct ra_spi_priv_s *priv)
+{
+  /* Prefill up to two transmit words to start the pipeline */
+  uint32_t data = 0xffffffffU;
+
+  if (priv->txbuffer)
+    {
+      int transfer_size = ra_spi_get_transfer_size(priv);
+
+      if (transfer_size == 4)
+        {
+          data = *((uint32_t *)priv->txbuffer);
+          priv->txbuffer = (uint8_t *)priv->txbuffer + 4;
+        }
+      else if (transfer_size == 2)
+        {
+          data = (uint32_t)*((uint16_t *)priv->txbuffer);
+          priv->txbuffer = (uint8_t *)priv->txbuffer + 2;
+        }
+      else
+        {
+          data = (uint32_t)*((uint8_t *)priv->txbuffer);
+          priv->txbuffer = (uint8_t *)priv->txbuffer + 1;
+        }
+    }
+
+  /* Write the word to the hardware to start shifting */
+  ra_spi_writeword(priv, data);
+  priv->ntxwords--;
+}
+
 /****************************************************************************
- * Name: ra_spi_dtc_start
+ * Name: ra_spi_start_transfer
  *
  * Description:
  *   Start DTC transfer
  *
  ****************************************************************************/
 
-static void ra_spi_dtc_start(struct ra_spi_priv_s *priv)
+static void ra_spi_start_transfer(struct ra_spi_priv_s *priv)
 {
   uint32_t spcr;
 
   spiinfo("DTC start for SPI%d - TX IRQ=%d, RX IRQ=%d, TEI IRQ=%d, ERI IRQ=%d\n",
-          priv->config->bus, priv->irq_txi, priv->irq_rxi, priv->irq_tei, priv->irq_eri);
-
-  /* Enable TEI interrupt for completion detection */
-  if (priv->irq_tei >= 0)
-    {
-      up_enable_irq(priv->irq_tei);
-      spiinfo("Enabled TEI interrupt %d for completion\n", priv->irq_tei);
-    }
-
-  if (priv->irq_eri >= 0)
-    {
-      up_enable_irq(priv->irq_eri);
-      spiinfo("Enabled ERI interrupt %d for error detection\n", priv->irq_eri);
-    }
+          priv->config->bus, priv->txi_irq, priv->rxi_irq, priv->tei_irq, priv->eri_irq);
 
   /* Clear any existing interrupt flags before enabling interrupts */
   ra_spi_putreg32(priv, RA_SPI_SPSRC_OFFSET, RA_SPI_SPSRC_ALL_CLEAR);
@@ -792,25 +821,50 @@ static void ra_spi_dtc_start(struct ra_spi_priv_s *priv)
   spcr = ra_spi_getreg32(priv, RA_SPI_SPCR_OFFSET);
 
   /* Enable Transmit Empty interrupt if transmitting (DTC TX or TX buffer present) */
-  if (priv->txbuffer || priv->use_dtc)
+  if (priv->txbuffer)
     {
       spcr |= RA_SPI_SPCR_SPTIE;
     }
 
   /* Enable Receive Buffer Full interrupt if receiving */
-  if (priv->rxbuffer || priv->use_dtc)
+  if (priv->rxbuffer)
     {
       spcr |= RA_SPI_SPCR_SPRIE;
     }
 
-  /* Now set SPE to start the transfer */
-  ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, spcr | RA_SPI_SPCR_SPE);
+  /* Now set SPE to start the transfer. For non-DTC full-duplex transfers we
+   * should preload the first one or two transmit words to fill the hardware
+   * shift register and buffer. This mirrors the Renesas FSP behavior which
+   * preloads two words to avoid initial RX zeros at high bitrates. */
+  if (!priv->dtc_active && priv->txbuffer)
+    {
+      /* Temporarily disable TXI IRQ so we can preload without racing the ISR */
+      up_disable_irq(priv->txi_irq);
 
-  /* Mark DTC as active with the current transfer */
-  priv->dtc_active = true;
+      /* Enable SPI transfer */
+      ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, spcr | RA_SPI_SPCR_SPE);
+
+      /* Prefill up to two transmit words to start the pipeline */
+      ra_spi_transmit(priv);
+      if (priv->ntxwords > 0)
+        {
+          ra_spi_transmit(priv);
+        }
+
+      /* Clear pending TXI and re-enable the IRQ */
+      ra_icu_clear_irq(priv->txi_irq);
+      up_enable_irq(priv->txi_irq);
+    }
+  else
+    {
+      /* Default: enable SPE and let ISR handle transmit */
+      ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, spcr | RA_SPI_SPCR_SPE);
+    }
 
   spiinfo("SPI transfer started: SPCR=0x%08lx\n", spcr);
-}/****************************************************************************
+}
+
+/****************************************************************************
  * Name: ra_spi_dtc_stop
  *
  * Description:
@@ -820,39 +874,19 @@ static void ra_spi_dtc_start(struct ra_spi_priv_s *priv)
 
 static void ra_spi_dtc_stop(struct ra_spi_priv_s *priv)
 {
-  uint32_t spcr;
-
   spiinfo("DTC stop for SPI%d\n", priv->config->bus);
 
-  /* Disable SPI interrupts */
-  spcr = ra_spi_getreg32(priv, RA_SPI_SPCR_OFFSET);
-  spcr &= ~(RA_SPI_SPCR_SPRIE | RA_SPI_SPCR_SPTIE | RA_SPI_SPCR_SPEIE | RA_SPI_SPCR_CENDIE);
-  ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, spcr);
-
   /* Disable DTC triggers in ICU using assigned slot numbers */
-  if (priv->irq_txi >= 0)
+  if (priv->txi_irq >= 0)
     {
-      ra_icu_disable_dtc(priv->irq_txi);
-      spiinfo("Disabled DTC trigger for TXI IRQ %d\n", priv->irq_txi);
+      ra_icu_disable_dtc(priv->txi_irq);
+      spiinfo("Disabled DTC trigger for TXI IRQ %d\n", priv->txi_irq);
     }
 
-  if (priv->irq_rxi >= 0)
+  if (priv->rxi_irq >= 0)
     {
-      ra_icu_disable_dtc(priv->irq_rxi);
-      spiinfo("Disabled DTC trigger for RXI IRQ %d\n", priv->irq_rxi);
-    }
-
-  /* Disable interrupts that were enabled during transfer */
-  if (priv->irq_tei >= 0)
-    {
-      up_disable_irq(priv->irq_tei);
-      spiinfo("Disabled TEI interrupt %d\n", priv->irq_tei);
-    }
-
-  if (priv->irq_eri >= 0)
-    {
-      up_disable_irq(priv->irq_eri);
-      spiinfo("Disabled ERI interrupt %d\n", priv->irq_eri);
+      ra_icu_disable_dtc(priv->rxi_irq);
+      spiinfo("Disabled DTC trigger for RXI IRQ %d\n", priv->rxi_irq);
     }
 
   /* Mark DTC as no longer active */
@@ -874,6 +908,7 @@ static int ra_spi_rxi_interrupt(int irq, void *context, void *arg)
 
   DEBUGASSERT(priv != NULL);
 
+  /* RXI should not occur in DTC mode */
   if (priv->dtc_active)
     {
       /* DTC is handling the transfer, just check for completion */
@@ -892,7 +927,6 @@ static int ra_spi_rxi_interrupt(int irq, void *context, void *arg)
   if (priv->rxbuffer)
     {
       int transfer_size = ra_spi_get_transfer_size(priv);
-
       if (transfer_size == 4)
         {
           *((uint32_t *)priv->rxbuffer) = data;
@@ -915,15 +949,10 @@ static int ra_spi_rxi_interrupt(int irq, void *context, void *arg)
       priv->nrxwords--;
     }
 
-  /* Check if transfer is complete */
+  /* After last RX, enable TEI IRQ (NoClear semantics if available) */
   if (priv->nrxwords == 0)
     {
-      /* Disable RX interrupt */
-      uint32_t spcr = ra_spi_getreg32(priv, RA_SPI_SPCR_OFFSET);
-      spcr &= ~RA_SPI_SPCR_SPRIE;
-      ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, spcr);
-
-      /* Wake up waiting thread */
+      up_enable_irq(priv->tei_irq);
       nxsem_post(&priv->waitsem);
     }
 
@@ -941,7 +970,6 @@ static int ra_spi_rxi_interrupt(int irq, void *context, void *arg)
 static int ra_spi_txi_interrupt(int irq, void *context, void *arg)
 {
   struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)arg;
-  uint32_t data = 0xffffffff;
 
   DEBUGASSERT(priv != NULL);
 
@@ -950,53 +978,22 @@ static int ra_spi_txi_interrupt(int irq, void *context, void *arg)
       /* DTC is handling the transfer, just check for completion */
       if (priv->dtc_tx_info.cra == 0)
         {
-          /* DTC transfer complete */
-          uint32_t spcr = ra_spi_getreg32(priv, RA_SPI_SPCR_OFFSET);
-          spcr &= ~RA_SPI_SPCR_SPTIE;
-          ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, spcr);
+          /* DTC transfer complete: enable TEI IRQ  */
+          up_enable_irq(priv->tei_irq);
+          priv->dtc_active = false;
         }
       return OK;
     }
 
-  /* Get next word to transmit */
-  if (priv->txbuffer && priv->ntxwords > 0)
+  if (priv->ntxwords > 0)
     {
-      int transfer_size = ra_spi_get_transfer_size(priv);
-
-      if (transfer_size == 4)
+      /* Transmit next word */
+      ra_spi_transmit(priv);
+      if (priv->ntxwords == 0)
         {
-          data = *((uint32_t *)priv->txbuffer);
-          priv->txbuffer = (uint8_t *)priv->txbuffer + 4;
+            up_enable_irq(priv->tei_irq);
         }
-      else if (transfer_size == 2)
-        {
-          data = (uint32_t)*((uint16_t *)priv->txbuffer);
-          priv->txbuffer = (uint8_t *)priv->txbuffer + 2;
-        }
-      else
-        {
-          data = (uint32_t)*((uint8_t *)priv->txbuffer);
-          priv->txbuffer = (uint8_t *)priv->txbuffer + 1;
-        }
-      priv->ntxwords--;
     }
-  else
-    {
-      priv->ntxwords = 0;
-    }
-
-  /* Write data */
-  ra_spi_writeword(priv, data);
-
-  /* Check if transmission is complete */
-  if (priv->ntxwords == 0)
-    {
-      /* Disable TX interrupt */
-      uint32_t spcr = ra_spi_getreg32(priv, RA_SPI_SPCR_OFFSET);
-      spcr &= ~RA_SPI_SPCR_SPTIE;
-      ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, spcr);
-    }
-
   return OK;
 }
 
@@ -1017,19 +1014,19 @@ static int ra_spi_tei_interrupt(int irq, void *context, void *arg)
 
   spiinfo("SPI%d transfer end interrupt\n", priv->config->bus);
 
-  /* If DTC is active, this signals completion of DTC transfer */
-  if (priv->dtc_active)
-    {
-      spiinfo("DTC transfer completed for SPI%d\n", priv->config->bus);
+  /* Disable TXI IRQ before clearing SPE */
+  up_disable_irq(priv->txi_irq);
 
-      /* Stop DTC transfers */
-      priv->dtc_active = false;
-    }
+  /* Disable End IRQ */
+  up_disable_irq(priv->tei_irq);
 
-  /* Disable SPI Transfer  */
+  /* Disable the SPI Transfer */
   spcr = ra_spi_getreg32(priv, RA_SPI_SPCR_OFFSET);
-  spcr &= ~RA_SPI_SPCR_SPE;
-  ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, spcr);
+  ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, spcr & ~RA_SPI_SPCR_SPE);
+
+  /* Clear pending and re-enable TXI IRQ */
+  ra_icu_clear_irq(priv->txi_irq);
+  up_enable_irq(priv->txi_irq);
 
   /* Signal completion to waiting thread */
   nxsem_post(&priv->waitsem);
@@ -1053,35 +1050,34 @@ static int ra_spi_eri_interrupt(int irq, void *context, void *arg)
 
   DEBUGASSERT(priv != NULL);
 
-  spcr = ra_spi_getreg32(priv, RA_SPI_SPCR_OFFSET);
+  /* Disable TXI IRQ before clearing SPE */
+  up_disable_irq(priv->txi_irq);
 
-  /* Disable the SPI Transfer */
+  spcr = ra_spi_getreg32(priv, RA_SPI_SPCR_OFFSET);
   ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, spcr & ~RA_SPI_SPCR_SPE);
 
+  /* Clear pending and re-enable TXI IRQ */
+  ra_icu_clear_irq(priv->txi_irq);
+  up_enable_irq(priv->txi_irq);
+
   spierr("SPI%d error interrupt: SPSR=%08lx\n", priv->config->bus, spsr);
-
   spsr = ra_spi_getreg32(priv, RA_SPI_SPSR_OFFSET);
-
   if (spsr & RA_SPI_SPSR_OVRF)
     {
       spierr("SPI%d overrun error\n", priv->config->bus);
     }
-
   if (spsr & RA_SPI_SPSR_MODF)
     {
       spierr("SPI%d mode fault error\n", priv->config->bus);
     }
-
   if (spsr & RA_SPI_SPSR_PERF)
     {
       spierr("SPI%d parity error\n", priv->config->bus);
     }
-
   if (spsr & RA_SPI_SPSR_UDRF)
     {
       spierr("SPI%d underrun error\n", priv->config->bus);
     }
-
   /* Set error flag and wake up waiting thread */
   priv->error = true;
   if (priv->dtc_active)
@@ -1427,8 +1423,6 @@ static void ra_spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
                            void *rxbuffer, size_t nwords)
 {
   struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)dev;
-  irqstate_t flags;
-  uint8_t spcr;
 
   DEBUGASSERT(priv != NULL);
 
@@ -1456,42 +1450,15 @@ static void ra_spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
       /* Commit transfer_info into DTC vector table and enable ICU triggers */
       ra_spi_dtc_reconfigure(priv);
 
-      /* Ensure SPCMD0 SPB (bit width) is configured before starting */
-      ra_spi_setbits(dev, priv->nbits);
-
-      /* Start DTC transfer (clear FIFOs, enable interrupts and set SPE) */
-      ra_spi_dtc_start(priv);
-
-      /* Wait for DTC completion (TEI interrupt will signal completion) */
-      nxsem_wait_uninterruptible(&priv->waitsem);
-
-      /* DTC stop/cleanup handled by TEI/ERI interrupt handlers */
     }
-  else
-    {
-      /* Use interrupt-driven transfer */
-      flags = enter_critical_section();
+    /* Ensure SPCMD0 SPB (bit width) is configured before starting */
+    ra_spi_setbits(dev, priv->nbits);
 
-      /* Enable interrupts for CPU-driven transfer */
-      spcr = ra_spi_getreg32(priv, RA_SPI_SPCR_OFFSET);
-      spcr |= (RA_SPI_SPCR_SPRIE | RA_SPI_SPCR_SPTIE | RA_SPI_SPCR_SPEIE);
-      ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, spcr);
+    /* Start DTC transfer (clear FIFOs, enable interrupts and set SPE) */
+    ra_spi_start_transfer(priv);
 
-      leave_critical_section(flags);
-
-      /* Ensure SPCMD0 SPB (bit width) is configured before starting */
-      ra_spi_setbits(dev, priv->nbits);
-
-      /* Wait for transfer completion */
-      nxsem_wait_uninterruptible(&priv->waitsem);
-
-      /* Disable interrupts */
-      flags = enter_critical_section();
-      spcr = ra_spi_getreg32(priv, RA_SPI_SPCR_OFFSET);
-      spcr &= ~(RA_SPI_SPCR_SPRIE | RA_SPI_SPCR_SPTIE | RA_SPI_SPCR_SPEIE);
-      ra_spi_putreg32(priv, RA_SPI_SPCR_OFFSET, spcr);
-      leave_critical_section(flags);
-    }
+    /* Wait for DTC completion (TEI interrupt will signal completion) */
+    nxsem_wait_uninterruptible(&priv->waitsem);
 
   if (priv->error)
     {
@@ -1775,34 +1742,34 @@ struct spi_dev_s *ra_spibus_initialize(int bus)
       ra_spi_bus_initialize(priv);
 
       /* Attach interrupts but immediately disable them to prevent spurious interrupts */
-      ret = ra_icu_attach(priv->config->elc_rxi, ra_spi_rxi_interrupt, priv, false);
+      ret = ra_icu_attach(priv->config->rxi_elc, ra_spi_rxi_interrupt, priv, true);
       if (ret < 0)
         {
           return NULL;
         }
-      priv->irq_rxi = ret; /* Store the assigned IRQ number */
-      ret = ra_icu_attach(priv->config->elc_txi, ra_spi_txi_interrupt, priv, false);
+      priv->rxi_irq = ret; /* Store the assigned IRQ number */
+      ret = ra_icu_attach(priv->config->txi_elc, ra_spi_txi_interrupt, priv, true);
       if (ret < 0)
         {
           return NULL;
         }
-      priv->irq_txi = ret; /* Store the assigned IRQ number */
+      priv->txi_irq = ret; /* Store the assigned IRQ number */
 
-      ret = ra_icu_attach(priv->config->elc_tei, ra_spi_tei_interrupt, priv, false);
+      ret = ra_icu_attach(priv->config->tei_elc, ra_spi_tei_interrupt, priv, false);
       if (ret < 0)
         {
           return NULL;
         }
-      priv->irq_tei = ret; /* Store the assigned IRQ number */
+      priv->tei_irq = ret; /* Store the assigned IRQ number */
 
-      ret = ra_icu_attach(priv->config->elc_eri, ra_spi_eri_interrupt, priv, false);
+      ret = ra_icu_attach(priv->config->eri_elc, ra_spi_eri_interrupt, priv, true);
       if (ret < 0)
         {
           return NULL;
         }
-      priv->irq_eri = ret; /* Store the assigned IRQ number */
+      priv->eri_irq = ret; /* Store the assigned IRQ number */
       spiinfo("SPI%d interrupts attached: RXI=%d TXI=%d TEI=%d ERI=%d (all disabled until transfer)\n",
-              priv->config->bus, priv->irq_rxi, priv->irq_txi, priv->irq_tei, priv->irq_eri);
+              priv->config->bus, priv->rxi_irq, priv->txi_irq, priv->tei_irq, priv->eri_irq);
     }
 
   /* Increment reference count */
@@ -1874,7 +1841,7 @@ int ra_spi_set_loopback(FAR struct spi_dev_s *dev, bool loopback2,
 {
   struct ra_spi_priv_s *priv = (struct ra_spi_priv_s *)dev;
   uint32_t spcr;
-  uint32_t spcr2;
+  volatile uint32_t spcr2;
 
   if (!priv || !priv->config)
     {
@@ -1918,7 +1885,8 @@ int ra_spi_set_loopback(FAR struct spi_dev_s *dev, bool loopback2,
 
   /* Write back SPCR2 */
   ra_spi_putreg32(priv, RA_SPI_SPCR2_OFFSET, spcr2);
-  (void)ra_spi_getreg32(priv, RA_SPI_SPCR2_OFFSET);
+  spcr2 = ra_spi_getreg32(priv, RA_SPI_SPCR2_OFFSET);
+  (void)spcr2;
 
   /* Restore SPE if it was previously enabled */
   if (spcr & RA_SPI_SPCR_SPE)

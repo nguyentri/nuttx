@@ -37,22 +37,27 @@
 /* DTC Register Offsets - Based on R7FA8E1AF SVD file */
 #define RA_DTC_DTCST_OFFSET      0x0C  /* DTC Module Start Register */
 #define RA_DTC_DTCSTS_OFFSET     0x0E  /* DTC Status Register */
+#define RA_DTC_DTEVR_OFFSET      0x20  /* DTC Error Vector Register */
+
+#define RA_DTC_DTCCR_OFFSET      0x00  /* DTC Control Register for Non-secure region */
+#define RA_DTC_DTCVBR_OFFSET     0x40  /* DTC Vector Base Register for Non-secure region */
+
 #define RA_DTC_DTCCR_SEC_OFFSET  0x10  /* DTC Control Register for Secure Region */
 #define RA_DTC_DTCVBR_SEC_OFFSET 0x14  /* DTC Vector Base Register for Secure Region */
-#define RA_DTC_DTEVR_OFFSET      0x20  /* DTC Error Vector Register */
 
 /* DTC Register Addresses */
 #define RA_DTC_DTCST             (R_DTC_BASE + RA_DTC_DTCST_OFFSET)
 #define RA_DTC_DTCSTS            (R_DTC_BASE + RA_DTC_DTCSTS_OFFSET)
+#define RA_DTC_DTEVR             (R_DTC_BASE + RA_DTC_DTEVR_OFFSET)
+
+#define RA_DTC_DTCCR_NC          (R_DTC_BASE + RA_DTC_DTCCR_OFFSET)
+#define RA_DTC_DTCVBR_NC         (R_DTC_BASE + RA_DTC_DTCVBR_OFFSET)
+
 #define RA_DTC_DTCCR_SEC         (R_DTC_BASE + RA_DTC_DTCCR_SEC_OFFSET)
 #define RA_DTC_DTCVBR_SEC        (R_DTC_BASE + RA_DTC_DTCVBR_SEC_OFFSET)
-#define RA_DTC_DTEVR             (R_DTC_BASE + RA_DTC_DTEVR_OFFSET)
 
 /* DTC Module Start Register (DTCST) bit definitions */
 #define RA_DTC_DTCST_DTCST       (1 << 0)  /* DTC Module Start */
-
-/* DTC Control Register for Secure (DTCCR_SEC) bit definitions */
-#define RA_DTC_DTCCR_RRSS        (1 << 4)  /* DTC Transfer Information Read Skip Enable for Secure */
 
 /* DTC Status Register (DTCSTS) bit definitions */
 #define RA_DTC_DTCSTS_VECN_SHIFT (0)       /* Vector Number */
@@ -117,6 +122,8 @@
 
 /* Vector table size for DTC */
 #define RA_DTC_VECTOR_TABLE_ENTRIES  (32)
+
+ #define DTC_PRV_DTCSAR_DTCSTSA       ((R_CPSCU->DTCSAR & R_CPSCU_DTCSAR_DTCSTSA_Msk) >> R_CPSCU_DTCSAR_DTCSTSA_Pos)
 
 /****************************************************************************
  * Public Types

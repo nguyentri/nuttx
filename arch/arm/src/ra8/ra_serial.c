@@ -238,10 +238,10 @@ struct up_dev_s
   uint32_t mstp;            /* Module Stop Control Register */
   uint32_t baud;            /* Configured baud */
   uint32_t sr;              /* Saved status bits */
-  int irq_rx;               /* RX IRQ number assigned by ICU */
-  int irq_tx;               /* TX IRQ number assigned by ICU */
-  int irq_txe;              /* TX End IRQ number assigned by ICU */
-  int irq_err;              /* Error IRQ number assigned by ICU */
+  int rxi_irq;               /* RX IRQ number assigned by ICU */
+  int txi_irq;               /* TX IRQ number assigned by ICU */
+  int tei_irq;              /* TX End IRQ number assigned by ICU */
+  int eri_irq;              /* Error IRQ number assigned by ICU */
   int elc_rx;               /* RX event link for ICU configuration */
   int elc_tx;               /* TX event link for ICU configuration */
   int elc_txe;              /* TX End event link for ICU configuration */
@@ -303,14 +303,14 @@ static struct up_dev_s  g_uart0priv =
 {
   .scibase      = R_SCI0_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI0,
-  .irq_rx       = -1,               /* Will be assigned by ICU */
-  .irq_tx       = -1,               /* Will be assigned by ICU */
-  .irq_txe      = -1,               /* Will be assigned by ICU */
-  .irq_err      = -1,               /* Will be assigned by ICU */
-  .elc_rx        = RA_ELC_SCI0_RXI,
-  .elc_tx        = RA_ELC_SCI0_TXI,
-  .elc_txe       = RA_ELC_SCI0_TEI,
-  .elc_err       = RA_ELC_SCI0_ERI,
+  .rxi_irq      = -1,               /* Will be assigned by ICU */
+  .txi_irq      = -1,               /* Will be assigned by ICU */
+  .tei_irq      = -1,               /* Will be assigned by ICU */
+  .eri_irq      = -1,               /* Will be assigned by ICU */
+  .elc_rx       = RA_ELC_SCI0_RXI,
+  .elc_tx       = RA_ELC_SCI0_TXI,
+  .elc_txe      = RA_ELC_SCI0_TEI,
+  .elc_err      = RA_ELC_SCI0_ERI,
   .baud         = CONFIG_SCI0_BAUD,
   .parity       = CONFIG_SCI0_PARITY,
   .bits         = CONFIG_SCI0_BITS,
@@ -339,10 +339,10 @@ static struct up_dev_s  g_uart1priv =
 {
   .scibase      = R_SCI1_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI1,
-  .irq_rx       = -1,               /* Will be assigned by ICU */
-  .irq_tx       = -1,               /* Will be assigned by ICU */
-  .irq_txe      = -1,               /* Will be assigned by ICU */
-  .irq_err      = -1,               /* Will be assigned by ICU */
+  .rxi_irq      = -1,               /* Will be assigned by ICU */
+  .txi_irq      = -1,               /* Will be assigned by ICU */
+  .tei_irq      = -1,               /* Will be assigned by ICU */
+  .eri_irq      = -1,               /* Will be assigned by ICU */
   .elc_rx       = RA_ELC_SCI1_RXI,
   .elc_tx       = RA_ELC_SCI1_TXI,
   .elc_txe      = RA_ELC_SCI1_TEI,
@@ -375,10 +375,10 @@ static struct up_dev_s  g_uart2priv =
 {
   .scibase      = R_SCI2_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI2,
-  .irq_rx       = -1,               /* Will be assigned by ICU */
-  .irq_tx       = -1,               /* Will be assigned by ICU */
-  .irq_txe      = -1,               /* Will be assigned by ICU */
-  .irq_err      = -1,               /* Will be assigned by ICU */
+  .rxi_irq      = -1,               /* Will be assigned by ICU */
+  .txi_irq      = -1,               /* Will be assigned by ICU */
+  .tei_irq      = -1,               /* Will be assigned by ICU */
+  .eri_irq      = -1,               /* Will be assigned by ICU */
   .elc_rx       = RA_ELC_SCI2_RXI,
   .elc_tx       = RA_ELC_SCI2_TXI,
   .elc_txe      = RA_ELC_SCI2_TEI,
@@ -411,10 +411,10 @@ static struct up_dev_s  g_uart3priv =
 {
   .scibase      = R_SCI3_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI3,
-  .irq_rx       = -1,               /* Will be assigned by ICU */
-  .irq_tx       = -1,               /* Will be assigned by ICU */
-  .irq_txe      = -1,               /* Will be assigned by ICU */
-  .irq_err      = -1,               /* Will be assigned by ICU */
+  .rxi_irq      = -1,               /* Will be assigned by ICU */
+  .txi_irq      = -1,               /* Will be assigned by ICU */
+  .tei_irq      = -1,               /* Will be assigned by ICU */
+  .eri_irq      = -1,               /* Will be assigned by ICU */
   .elc_rx       = RA_ELC_SCI3_RXI,
   .elc_tx       = RA_ELC_SCI3_TXI,
   .elc_txe      = RA_ELC_SCI3_TEI,
@@ -447,10 +447,10 @@ static struct up_dev_s  g_uart4priv =
 {
   .scibase      = R_SCI4_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI4,
-  .irq_rx       = -1,               /* Will be assigned by ICU */
-  .irq_tx       = -1,               /* Will be assigned by ICU */
-  .irq_txe      = -1,               /* Will be assigned by ICU */
-  .irq_err      = -1,               /* Will be assigned by ICU */
+  .rxi_irq      = -1,               /* Will be assigned by ICU */
+  .txi_irq      = -1,               /* Will be assigned by ICU */
+  .tei_irq      = -1,               /* Will be assigned by ICU */
+  .eri_irq      = -1,               /* Will be assigned by ICU */
   .elc_rx       = RA_ELC_SCI4_RXI,   /* RX event link for ICU configuration */
   .elc_tx       = RA_ELC_SCI4_TXI,
   .elc_txe      = RA_ELC_SCI4_TEI,
@@ -483,10 +483,10 @@ static struct up_dev_s  g_uart9priv =
 {
   .scibase      = R_SCI9_BASE,
   .mstp         = R_MSTP_MSTPCRB_SCI9,
-  .irq_rx       = -1,               /* Will be assigned by ICU */
-  .irq_tx       = -1,               /* Will be assigned by ICU */
-  .irq_txe      = -1,               /* Will be assigned by ICU */
-  .irq_err      = -1,               /* Will be assigned by ICU */
+  .rxi_irq      = -1,               /* Will be assigned by ICU */
+  .txi_irq      = -1,               /* Will be assigned by ICU */
+  .tei_irq      = -1,               /* Will be assigned by ICU */
+  .eri_irq      = -1,               /* Will be assigned by ICU */
   .elc_rx       = RA_ELC_SCI9_RXI,
   .elc_tx       = RA_ELC_SCI9_TXI,
   .elc_txe      = RA_ELC_SCI9_TEI,
@@ -1051,34 +1051,34 @@ static int up_attach(struct uart_dev_s *dev)
     {
       return ret;
     }
-  priv->irq_rx = ret; /* Store the assigned IRQ number */
+  priv->rxi_irq = ret; /* Store the assigned IRQ number */
 
   ret = ra_icu_attach(priv->elc_tx, up_txinterrupt, dev, true);
   if (ret < 0)
     {
-      ra_icu_detach(priv->irq_rx);
+      ra_icu_detach(priv->rxi_irq);
       return ret;
     }
-  priv->irq_tx = ret; /* Store the assigned IRQ number */
+  priv->txi_irq = ret; /* Store the assigned IRQ number */
 
   ret = ra_icu_attach(priv->elc_txe, up_txeinterrupt, dev, true);
   if (ret < 0)
     {
-      ra_icu_detach(priv->irq_rx);
-      ra_icu_detach(priv->irq_tx);
+      ra_icu_detach(priv->rxi_irq);
+      ra_icu_detach(priv->txi_irq);
       return ret;
     }
-  priv->irq_txe = ret; /* Store the assigned IRQ number */
+  priv->tei_irq = ret; /* Store the assigned IRQ number */
 
   ret = ra_icu_attach(priv->elc_err, up_erinterrupt, dev, true);
   if (ret < 0)
     {
-      ra_icu_detach(priv->irq_rx);
-      ra_icu_detach(priv->irq_tx);
-      ra_icu_detach(priv->irq_txe);
+      ra_icu_detach(priv->rxi_irq);
+      ra_icu_detach(priv->txi_irq);
+      ra_icu_detach(priv->tei_irq);
       return ret;
     }
-  priv->irq_err = ret; /* Store the assigned IRQ number */
+  priv->eri_irq = ret; /* Store the assigned IRQ number */
 
   return OK;
 }
@@ -1087,10 +1087,10 @@ static void up_detach(struct uart_dev_s *dev)
 {
   struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
 
-  ra_icu_detach(priv->irq_rx);
-  ra_icu_detach(priv->irq_tx);
-  ra_icu_detach(priv->irq_txe);
-  ra_icu_detach(priv->irq_err);
+  ra_icu_detach(priv->rxi_irq);
+  ra_icu_detach(priv->txi_irq);
+  ra_icu_detach(priv->tei_irq);
+  ra_icu_detach(priv->eri_irq);
 }
 
 /****************************************************************************

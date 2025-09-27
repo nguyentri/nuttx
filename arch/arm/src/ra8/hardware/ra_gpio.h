@@ -53,19 +53,98 @@
 /* Register Offsets *********************************************************/
 
 #define R_PORT_PCNTR1_OFFSET            0x0000  /* Port Control Register 1 (32-bits) */
-#define R_PORT_PODR_OFFSET              0x0000  /* Pmn Output Data (16-bits) */
-#define R_PORT_PDR_OFFSET               0x0002  /* Pmn Direction (16-bits) */
+#define R_PORT_PDR_OFFSET               0x0000  /* Pmn Direction (16-bits) */
+#define R_PORT_PODR_OFFSET              0x0002  /* Pmn Output Data (16-bits) */
 #define R_PORT_PCNTR2_OFFSET            0x0004  /* Port Control Register 2 (32-bits) */
-#define R_PORT_EIDR_OFFSET              0x0004  /* Port Event Input Data (16-bits) */
-#define R_PORT_PIDR_OFFSET              0x0006  /* Pmn State (16-bits) */
+#define R_PORT_EIDR_OFFSET              0x0006  /* Port Event Input Data (16-bits) */
+#define R_PORT_PIDR_OFFSET              0x0004  /* Pmn State (16-bits) */
 #define R_PORT_PCNTR3_OFFSET            0x0008  /* Port Control Register 3 (32-bits) */
-#define R_PORT_PORR_OFFSET              0x0008  /* Pmn Output Reset (16-bits) */
-#define R_PORT_POSR_OFFSET              0x000a  /* Pmn Output Set (16-bits) */
+#define R_PORT_PORR_OFFSET              0x000a  /* Pmn Output Reset (16-bits) */
+#define R_PORT_POSR_OFFSET              0x0008  /* Pmn Output Set (16-bits) */
 #define R_PORT_PCNTR4_OFFSET            0x000c  /* Port Control Register 3 (32-bits) */
-#define R_PORT_EORR_OFFSET              0x000c  /* Pmn Event Output Set (16-bits) */
-#define R_PORT_EOSR_OFFSET              0x000e  /* Pmn Output Reset (16-bits) */
+#define R_PORT_EOSR_OFFSET              0x000c  /* Pmn Output Reset (16-bits) */
+#define R_PORT_EORR_OFFSET              0x000e  /* Pmn Event Output Set (16-bits) */
 
 #define R_PORT_OFFSET                   0x0020  /* Relative Port Offset */
+
+#define R_PFS_PSEL_PORT_OFFSET          0x40
+#define R_PFS_PSEL_PIN_OFFSET           0x04
+#define R_PMISC_PWPRS_OFFSET            0x14
+#define R_PMISC_PMSAR_OFFSET            0x30
+
+/* PSCU - Port Security Control Unit Registers */
+
+#define R_PSCU_PSARB_OFFSET               0x04
+#define R_PSCU_PSARC_OFFSET               0x08
+#define R_PSCU_PSARD_OFFSET               0x0C
+#define R_PSCU_PSARE_OFFSET               0x10
+
+#define R_PSCU_PSARB                      (R_PSCU_BASE + R_PSCU_PSARB_OFFSET)
+#define R_PSCU_PSARC                      (R_PSCU_BASE + R_PSCU_PSARC_OFFSET)
+#define R_PSCU_PSARD                      (R_PSCU_BASE + R_PSCU_PSARD_OFFSET)
+#define R_PSCU_PSARE                      (R_PSCU_BASE + R_PSCU_PSARE_OFFSET)
+
+/* Register Addresses *******************************************************/
+
+#define R_PFS(port,pin)                 (R_PFS_BASE + (port)*R_PFS_PSEL_PORT_OFFSET + (pin)*R_PFS_PSEL_PIN_OFFSET)
+#define R_PMISC_PWPRS                    (R_PMISC_BASE + R_PMISC_PWPRS_OFFSET)
+
+/* PMSAR - Port Security Attribution Registers */
+
+#define R_PMSAR_BASE                      (R_PMISC_BASE + R_PMISC_PMSAR_OFFSET)
+#define R_PMSAR(port)                     (R_PMSAR_BASE + (port) * 0x04)
+#define R_PMSAR_NUM                       (10)  /* Ports 0-9 have PMSAR registers */
+
+/* Register Bitfield Definitions ********************************************/
+
+/* PFS - Pmn Pin Function Control Register */
+
+#define R_PFS_PSEL_SHIFT          (24) /* 1000000: Port Function Select These bits select the peripheral function. For individual pin functions, see the MPC table */
+#define R_PFS_PSEL_MASK           (0x1f)
+#define R_PFS_PMR                 (1 << 16) /* Bit 16: Port Mode Control */
+#define R_PFS_ASEL                (1 << 15) /* Bit 15: Analog Input enable */
+#define R_PFS_ISEL                (1 << 14) /* Bit 14: IRQ input enable */
+#define R_PFS_EOR                 (1 << 13) /* Bit 13: Event on Rising */
+#define R_PFS_EOF                 (1 << 12) /* Bit 12: Event on Falling */
+#define R_PFS_DSCR1               (1 << 11) /* Bit 11: Port Drive Capability 1 */
+#define R_PFS_DSCR                (1 << 10) /* Bit 10: Port Drive Capability */
+#define R_PFS_NCODR               (1 <<  6) /* Bit 6: N-Channel Open Drain Control */
+#define R_PFS_PCR                 (1 <<  4) /* Bit 4: Pull-up Control */
+#define R_PFS_PDR                 (1 <<  2) /* Bit 2: Port Direction */
+#define R_PFS_PIDR                (1 <<  1) /* Bit 1: Port Input Data */
+#define R_PFS_PODR                (1 <<  0) /* Bit 0: Port Output Data */
+
+/* PMISC Register Bits */
+#define R_PMISC_PWPRS_B0WI        (1 <<  7) /* 80: PFSWE Bit Write Disable */
+#define R_PMISC_PWPRS_PFSWE       (1 <<  6) /* 40: PFS Register Write Enable */
+
+/* Bit definitions for PWPRS are provided in ra_gpio.h to avoid duplication here. */
+
+#define PFS_PSEL_HIZ                 (0x00 << R_PFS_PSEL_SHIFT)
+#define PFS_PSEL_AGT                 (0x01 << R_PFS_PSEL_SHIFT)
+#define PFS_PSEL_GPT                 (0x02 << R_PFS_PSEL_SHIFT)
+#define PFS_PSEL_AGT1                (0x03 << R_PFS_PSEL_SHIFT)
+#define PFS_PSEL_SCI                 (0x04 << R_PFS_PSEL_SHIFT)
+#define PFS_PSEL_SCI1                (0x05 << R_PFS_PSEL_SHIFT)
+#define PFS_PSEL_SPI                 (0x06 << R_PFS_PSEL_SHIFT)
+#define PFS_PSEL_IIC                 (0x07 << R_PFS_PSEL_SHIFT)
+#define PFS_PSEL_KINT                (0x08 << R_PFS_PSEL_SHIFT)
+#define PFS_PSEL_CLKOUT_ACMPLP_RTC   (0x09 << R_PFS_PSEL_SHIFT)
+#define PFS_PSEL_CAC_ADC14           (0x0a << R_PFS_PSEL_SHIFT)
+#define PFS_PSEL_CTSU                (0x0c << R_PFS_PSEL_SHIFT)
+#define PFS_PSEL_SLCDC               (0x0d << R_PFS_PSEL_SHIFT)
+#define PFS_PSEL_CAN                 (0x10 << R_PFS_PSEL_SHIFT)
+#define PFS_PSEL_SSIE                (0x12 << R_PFS_PSEL_SHIFT)
+#define PFS_PSEL_USBFS               (0x13 << R_PFS_PSEL_SHIFT)
+#define PFS_PSEL_DAC                 (0x14 << R_PFS_PSEL_SHIFT)
+#define PFS_PSEL_TRACE               (0x15 << R_PFS_PSEL_SHIFT)
+#define PFS_PSEL_DEBUG               (0x16 << R_PFS_PSEL_SHIFT)
+#define PFS_PSEL_OPAMP               (0x17 << R_PFS_PSEL_SHIFT)
+#define PFS_PSEL_XSPI                (0x18 << R_PFS_PSEL_SHIFT)
+#define PFS_PSEL_ETHERNET            (0x19 << R_PFS_PSEL_SHIFT)
+#define PFS_PSEL_CEU                 (0x1A << R_PFS_PSEL_SHIFT)
+#define PFS_PSEL_OSPI                (0x1B << R_PFS_PSEL_SHIFT)
+#define PFS_PSEL_ULPT                (0x1C << R_PFS_PSEL_SHIFT)
 
 /* Register Addresses *******************************************************/
 

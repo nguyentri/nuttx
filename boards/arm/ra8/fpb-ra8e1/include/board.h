@@ -53,17 +53,17 @@
 #define GPIO_SCI9_TX   GPIO_TXD9_MOSI9_SDA9_A  /* P102 */
 
 /* SPI0 Pin Definitions (IMU/Barometer on Pmod 1) - Master */
-#define GPIO_SPI0_SCK   GPIO_SCK0_C            /* P611 - SPI Clock */
-#define GPIO_SPI0_MOSI  GPIO_MOSI0_TXD0_SDA0_C /* P609 - SPI MOSI */
-#define GPIO_SPI0_MISO  GPIO_MISO0_RXD0_SCL0_C /* P610 - SPI MISO */
-#define GPIO_SPI0_SS0   GPIO_SS0_CTS_RTS0_C    /* P612 - IMU CS (ICM20948) */
-#define GPIO_SPI0_SS1   GPIO_P605_OUTPUT_HIGH  /* P605 - BMP388 Barometer CS */
+#define GPIO_SPI0_SCK   GPIO_RSPCKA_B_1         /* P610 - SPI Clock */
+#define GPIO_SPI0_MOSI  GPIO_MISOA_B_1          /* P609 - SPI MOSI */
+#define GPIO_SPI0_MISO  GPIO_MOSIA_B_2          /* P611 - SPI MISO */
+#define GPIO_SPI0_SS0   GPIO_CTS_RTS0_C_SS0_C_1 /* P612 - IMU CS (ICM20948) */
+#define GPIO_SPI0_SS1   GPIO_P605_OUTPUT_HIGH   /* P605 - BMP388 Barometer CS */
 
 /* SPI1 Pin Definitions (Expansion/Loopback) - Slave */
-#define GPIO_SPI1_SCK   GPIO_RSPCKB_B          /* P412 - SPI1 Clock (RSPCKB_B) */
-#define GPIO_SPI1_MOSI  GPIO_MOSIB_B           /* P411 - SPI1 MOSI (MOSIB_B) */
-#define GPIO_SPI1_MISO  GPIO_MISOB_B           /* P410 - SPI1 MISO (MISOB_B) */
-#define GPIO_SPI1_SSL0  GPIO_SSLB0_B           /* P413 - SPI Slave selection (SSLB0_B) */
+#define GPIO_SPI1_SCK   GPIO_RSPCKB_B_1          /* P412 - SPI1 Clock (RSPCKB_B) */
+#define GPIO_SPI1_MOSI  GPIO_MOSIB_B_1           /* P411 - SPI1 MOSI (MOSIB_B) */
+#define GPIO_SPI1_MISO  GPIO_MISOB_B_1           /* P410 - SPI1 MISO (MISOB_B) */
+#define GPIO_SPI1_SSL0  GPIO_SSLB0_B_1           /* P413 - SPI Slave selection (SSLB0_B) */
 
 /* PWM/GPT Timer Pin Definitions for ESC Control */
 #define GPIO_GPT0_A     GPIO_GTIOC0A_2         /* P415 - ESC 1 PWM (ch 0A) */
@@ -213,7 +213,7 @@
  */
 
 /* SBUS configuration (100kbps, 8E2, inverted) */
-#ifdef CONFIG_RA_UART2_SBUS
+#ifdef CONFIG_RA8E1_SBUS_EXAMPLE
 #  define UART2_DEFAULT_BAUD      100000
 #  define UART2_DEFAULT_DATABITS  8
 #  define UART2_DEFAULT_PARITY    2  /* Even parity */
@@ -222,7 +222,7 @@
 #endif
 
 /* GPS configuration (38400bps, 8N1, non-inverted) */
-#ifdef CONFIG_RA_UART3_GPS
+#ifdef CONFIG_RA8E1_GPS_EXAMPLE
 #  define UART3_DEFAULT_BAUD      38400
 #  define UART3_DEFAULT_DATABITS  8
 #  define UART3_DEFAULT_PARITY    0  /* No parity */
@@ -231,7 +231,7 @@
 #endif
 
 /* Telemetry MAVLink configuration (57600bps, 8N1, non-inverted) */
-#ifdef CONFIG_RA_UART1_TELEMETRY
+#ifdef CONFIG_RA8E1_TELEMETRY_EXAMPLE
 #  define UART1_DEFAULT_BAUD      57600
 #  define UART1_DEFAULT_DATABITS  8
 #  define UART1_DEFAULT_PARITY    0  /* No parity */

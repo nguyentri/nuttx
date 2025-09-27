@@ -42,6 +42,7 @@
 #include "hardware/ra_flash.h"
 #include "hardware/ra_system.h"
 #include "hardware/ra_option_setting.h"
+#include "hardware/ra_gpio.h"
 
 
 /* Function prototype for nx_start */

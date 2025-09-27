@@ -151,4 +151,20 @@ int ra_spi_cmddata(struct spi_dev_s *dev, uint32_t devid, bool cmd);
 
 const struct ra_spi_cs_config_s *ra_spi_get_cs_config(struct spi_dev_s *dev, uint32_t devid);
 
+/**
+ * Enable/disable SPI loopback features on the given SPI device.
+ *
+ * @param dev     The SPI device handle returned from ra_spibus_initialize()
+ * @param loopback2  true to enable SPLP2 (transmit == receive), false to disable
+ * @param moifv   MOSI idle fixed value (0/1) when moife is enabled
+ * @param moife   true to enable MOSI idle fixed value, false to leave unchanged
+ *
+ * This API is intended for board-level tests (loopback) and will update
+ * the SPCR2/SPPCR fields using the low-level register helpers in the
+ * driver. It disables SPI (clears SPE) while changing control bits and
+ * restores SPE to its previous state.
+ */
+int ra_spi_set_loopback(FAR struct spi_dev_s *dev, bool loopback2,
+                        bool moifv, bool moife);
+
 #endif /* __ARCH_ARM_SRC_RA8_RA_SPI_H */

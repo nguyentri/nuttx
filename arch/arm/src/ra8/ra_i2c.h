@@ -54,10 +54,10 @@ struct ra_i2c_config_s
   uint32_t base;          /* I2C base address */
   uint32_t clk_freq;      /* Clock frequency */
   uint8_t  bus;           /* I2C bus number */
-  uint8_t  irq_rxi;       /* RX interrupt */
-  uint8_t  irq_txi;       /* TX interrupt */
-  uint8_t  irq_tei;       /* Transfer end interrupt */
-  uint8_t  irq_eri;       /* Error interrupt */
+  uint8_t  rxi_irq;       /* RX interrupt */
+  uint8_t  txi_irq;       /* TX interrupt */
+  uint8_t  tei_irq;       /* Transfer end interrupt */
+  uint8_t  eri_irq;       /* Error interrupt */
   uint8_t  irq_start;     /* Start condition interrupt */
   uint8_t  irq_stop;      /* Stop condition interrupt */
   uint8_t  irq_nak;       /* NAK interrupt */
@@ -119,7 +119,7 @@ struct ra_i2c_priv_s
 #endif
 
   uint32_t status;        /* End of transfer SR2|SR1 status */
-  
+
   /* DTC support */
   bool     use_dtc;       /* DTC enable flag */
   uint32_t dtc_rx_handle; /* DTC RX handle */
@@ -199,7 +199,7 @@ int ra_i2cbus_uninitialize(struct i2c_master_s *dev);
  * Name: ra_i2c_slave_initialize
  *
  * Description:
- *   Initialize the selected I2C port in slave mode. And return a unique 
+ *   Initialize the selected I2C port in slave mode. And return a unique
  *   instance of struct i2c_slave_s.
  *
  * Input Parameters:

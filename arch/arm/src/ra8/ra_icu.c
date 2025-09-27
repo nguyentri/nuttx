@@ -92,7 +92,7 @@ typedef struct
  *
  ****************************************************************************/
 
-static void ra_icu_clear_irq(int irq)
+void ra_icu_clear_irq(int irq)
 {
   uint32_t regaddr;
   regaddr = irq - RA_IRQ_FIRST;

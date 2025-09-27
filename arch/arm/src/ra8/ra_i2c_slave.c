@@ -143,10 +143,10 @@ static const struct ra_i2c_config_s ra_i2c0_slave_config =
   .base         = R_IIC0_BASE,
   .clk_freq     = BOARD_PCLKB_FREQUENCY,
   .bus          = 0,
-  .irq_rxi      = 0x35,  /* EVENT_IIC0_RXI */
-  .irq_txi      = 0x36,  /* EVENT_IIC0_TXI */
-  .irq_tei      = 0x37,  /* EVENT_IIC0_TEI */
-  .irq_eri      = 0x38,  /* EVENT_IIC0_ERI */
+  .rxi_irq      = 0x35,  /* EVENT_IIC0_RXI */
+  .txi_irq      = 0x36,  /* EVENT_IIC0_TXI */
+  .tei_irq      = 0x37,  /* EVENT_IIC0_TEI */
+  .eri_irq      = 0x38,  /* EVENT_IIC0_ERI */
   .mstpcrb_bit  = 1 << 24,   /* MSTPCRB bit for IIC0 */
 
   /* Pin configuration */
@@ -173,10 +173,10 @@ static const struct ra_i2c_config_s ra_i2c1_slave_config =
   .base         = R_IIC1_BASE,
   .clk_freq     = BOARD_PCLKB_FREQUENCY,
   .bus          = 1,
-  .irq_rxi      = 0x3A,  /* EVENT_IIC1_RXI */
-  .irq_txi      = 0x3B,  /* EVENT_IIC1_TXI */
-  .irq_tei      = 0x3C,  /* EVENT_IIC1_TEI */
-  .irq_eri      = 0x3D,  /* EVENT_IIC1_ERI */
+  .rxi_irq      = 0x3A,  /* EVENT_IIC1_RXI */
+  .txi_irq      = 0x3B,  /* EVENT_IIC1_TXI */
+  .tei_irq      = 0x3C,  /* EVENT_IIC1_TEI */
+  .eri_irq      = 0x3D,  /* EVENT_IIC1_ERI */
   .mstpcrb_bit  = 1 << 23,   /* MSTPCRB bit for IIC1 */
 
   /* Pin configuration */
@@ -435,16 +435,16 @@ static int ra_i2c_slave_init(struct ra_i2c_slave_priv_s *priv)
                       I2C_ICIER_TMOIE);   /* Timeout detection interrupt */
 
   /* Attach interrupt handlers */
-  irq_attach(config->irq_rxi, ra_i2c_slave_isr_rxi, priv);
-  irq_attach(config->irq_txi, ra_i2c_slave_isr_txi, priv);
-  irq_attach(config->irq_tei, ra_i2c_slave_isr_tei, priv);
-  irq_attach(config->irq_eri, ra_i2c_slave_isr_eri, priv);
+  irq_attach(config->rxi_irq, ra_i2c_slave_isr_rxi, priv);
+  irq_attach(config->txi_irq, ra_i2c_slave_isr_txi, priv);
+  irq_attach(config->tei_irq, ra_i2c_slave_isr_tei, priv);
+  irq_attach(config->eri_irq, ra_i2c_slave_isr_eri, priv);
 
   /* Enable interrupts */
-  up_enable_irq(config->irq_rxi);
-  up_enable_irq(config->irq_txi);
-  up_enable_irq(config->irq_tei);
-  up_enable_irq(config->irq_eri);
+  up_enable_irq(config->rxi_irq);
+  up_enable_irq(config->txi_irq);
+  up_enable_irq(config->tei_irq);
+  up_enable_irq(config->eri_irq);
 #endif
 
   /* Enable I2C peripheral in slave mode */
@@ -474,16 +474,16 @@ static int ra_i2c_slave_deinit(struct ra_i2c_slave_priv_s *priv)
 
 #ifndef CONFIG_I2C_POLLED
   /* Disable interrupts */
-  up_disable_irq(config->irq_rxi);
-  up_disable_irq(config->irq_txi);
-  up_disable_irq(config->irq_tei);
-  up_disable_irq(config->irq_eri);
+  up_disable_irq(config->rxi_irq);
+  up_disable_irq(config->txi_irq);
+  up_disable_irq(config->tei_irq);
+  up_disable_irq(config->eri_irq);
 
   /* Detach interrupt handlers */
-  irq_detach(config->irq_rxi);
-  irq_detach(config->irq_txi);
-  irq_detach(config->irq_tei);
-  irq_detach(config->irq_eri);
+  irq_detach(config->rxi_irq);
+  irq_detach(config->txi_irq);
+  irq_detach(config->tei_irq);
+  irq_detach(config->eri_irq);
 #endif
 
   /* Disable I2C module clock */

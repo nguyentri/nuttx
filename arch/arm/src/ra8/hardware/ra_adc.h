@@ -42,18 +42,18 @@
 #define RA_ADC_ADCSR_OFFSET     0x0000  /* A/D Control/Status Register */
 #define RA_ADC_ADANSE0_OFFSET   0x0004  /* A/D Channel Select Register 0 */
 #define RA_ADC_ADANSE1_OFFSET   0x0008  /* A/D Channel Select Register 1 */
-#define RA_ADC_ADADS0_OFFSET    0x000C  /* A/D-converted Value Addition/Average Channel Select Register 0 */
-#define RA_ADC_ADADS1_OFFSET    0x0010  /* A/D-converted Value Addition/Average Channel Select Register 1 */
-#define RA_ADC_ADADC_OFFSET     0x0014  /* A/D-converted Value Addition/Average Count Select Register */
-#define RA_ADC_ADCER_OFFSET     0x0018  /* A/D Control Extended Register */
-#define RA_ADC_ADSTRGR_OFFSET   0x001C  /* A/D Conversion Start Trigger Register */
-#define RA_ADC_ADEXICR_OFFSET   0x0020  /* A/D Conversion Extended Input Control Register */
-#define RA_ADC_ADANSB0_OFFSET   0x0024  /* A/D Channel Select Register B0 */
-#define RA_ADC_ADANSB1_OFFSET   0x0028  /* A/D Channel Select Register B1 */
-#define RA_ADC_ADDBLDR_OFFSET   0x002C  /* A/D Data Duplication Register */
-#define RA_ADC_ADTSDR_OFFSET    0x0030  /* A/D Temperature Sensor Data Register */
-#define RA_ADC_ADOCDR_OFFSET    0x0034  /* A/D Internal Reference Voltage Data Register */
-#define RA_ADC_ADRD_OFFSET      0x0038  /* A/D Self-Diagnosis Data Register */
+#define RA_ADC_ADADS0_OFFSET    0x0008  /* A/D-converted Value Addition/Average Channel Select Register 0 */
+#define RA_ADC_ADADS1_OFFSET    0x000A  /* A/D-converted Value Addition/Average Channel Select Register 1 */
+#define RA_ADC_ADADC_OFFSET     0x000C  /* A/D-converted Value Addition/Average Count Select Register */
+#define RA_ADC_ADCER_OFFSET     0x000E  /* A/D Control Extended Register */
+#define RA_ADC_ADSTRGR_OFFSET   0x0010  /* A/D Conversion Start Trigger Register */
+#define RA_ADC_ADEXICR_OFFSET   0x0012  /* A/D Conversion Extended Input Control Register */
+#define RA_ADC_ADANSB0_OFFSET   0x0014  /* A/D Channel Select Register B0 */
+#define RA_ADC_ADANSB1_OFFSET   0x0016  /* A/D Channel Select Register B1 */
+#define RA_ADC_ADDBLDR_OFFSET   0x0018  /* A/D Data Duplication Register */
+#define RA_ADC_ADTSDR_OFFSET    0x001A  /* A/D Temperature Sensor Data Register */
+#define RA_ADC_ADOCDR_OFFSET    0x001C  /* A/D Internal Reference Voltage Data Register */
+#define RA_ADC_ADRD_OFFSET      0x001E  /* A/D Self-Diagnosis Data Register */
 
 /* A/D Data Register An (n = 000 to 028) */
 #define RA_ADC_ADDR_OFFSET(n)   (0x0100 + ((n) * 2))
@@ -65,14 +65,14 @@
 /* ADC Window Function Registers */
 #define RA_ADC_ADCMPDR0_OFFSET  0x0300  /* A/D Compare Data Register 0 */
 #define RA_ADC_ADCMPDR1_OFFSET  0x0304  /* A/D Compare Data Register 1 */
-#define RA_ADC_ADCMPSR0_OFFSET  0x0308  /* A/D Compare Status Register 0 */
-#define RA_ADC_ADCMPSR1_OFFSET  0x030C  /* A/D Compare Status Register 1 */
-#define RA_ADC_ADCMPSER_OFFSET  0x0310  /* A/D Compare Function Enable Register */
-#define RA_ADC_ADCMPBNSR_OFFSET 0x0314  /* A/D Compare Window B Channel Select Register */
+#define RA_ADC_ADCMPSR0_OFFSET  0x00A0  /* A/D Compare Status Register 0 */
+#define RA_ADC_ADCMPSR1_OFFSET  0x00A4  /* A/D Compare Status Register 1 */
+#define RA_ADC_ADCMPSER_OFFSET  0x00A4  /* A/D Compare Function Enable Register */
+#define RA_ADC_ADCMPBNSR_OFFSET 0x00A6  /* A/D Compare Window B Channel Select Register */
 
 /* ADC Sample and Hold Registers */
-#define RA_ADC_ADSHCR_OFFSET    0x0380  /* A/D Sample and Hold Control Register */
-#define RA_ADC_ADSHMSR_OFFSET   0x0384  /* A/D Sample and Hold Mode Select Register */
+#define RA_ADC_ADSHCR_OFFSET    0x0066  /* A/D Sample and Hold Control Register */
+#define RA_ADC_ADSHMSR_OFFSET   0x007C  /* A/D Sample and Hold Mode Select Register */
 
 /* ADC Internal Reference Voltage Monitor Registers */
 #define RA_ADC_ADVMONCR_OFFSET  0x03C0  /* A/D Internal Reference Voltage Monitor Control Register */

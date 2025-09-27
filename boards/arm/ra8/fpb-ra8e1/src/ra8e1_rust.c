@@ -1180,7 +1180,7 @@ static int ra8e1_cyclic_c_thread(int argc, char *argv[])
  *
  ****************************************************************************/
 
-int ra8e1_thread_init(void)
+int ra8e1_rust_sample_init(void)
 {
    int ret = 0;
 

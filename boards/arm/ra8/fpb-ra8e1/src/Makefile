@@ -22,6 +22,7 @@ include $(TOPDIR)/Make.defs
 
 # Core board initialization files
 CSRCS = ra8e1_boot.c ra8e1_bringup.c
+CSRCS += ra8e1_app_examples.c
 
 ############################################################################
 # Board-specific initialization

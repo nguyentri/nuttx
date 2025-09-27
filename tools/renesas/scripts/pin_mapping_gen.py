@@ -236,33 +236,6 @@ def generate_header():
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* PSEL Values */
-#define PFS_PSEL_HIZ                 (0x00 << R_PFS_PSEL_SHIFT)
-#define PFS_PSEL_AGT                 (0x01 << R_PFS_PSEL_SHIFT)
-#define PFS_PSEL_GPT                 (0x02 << R_PFS_PSEL_SHIFT)
-#define PFS_PSEL_AGT1                (0x03 << R_PFS_PSEL_SHIFT)
-#define PFS_PSEL_SCI                 (0x04 << R_PFS_PSEL_SHIFT)
-#define PFS_PSEL_SCI1                (0x05 << R_PFS_PSEL_SHIFT)
-#define PFS_PSEL_SPI                 (0x06 << R_PFS_PSEL_SHIFT)
-#define PFS_PSEL_IIC                 (0x07 << R_PFS_PSEL_SHIFT)
-#define PFS_PSEL_KINT                (0x08 << R_PFS_PSEL_SHIFT)
-#define PFS_PSEL_CLKOUT_ACMPLP_RTC   (0x09 << R_PFS_PSEL_SHIFT)
-#define PFS_PSEL_CAC_ADC14           (0x0a << R_PFS_PSEL_SHIFT)
-#define PFS_PSEL_CTSU                (0x0c << R_PFS_PSEL_SHIFT)
-#define PFS_PSEL_SLCDC               (0x0d << R_PFS_PSEL_SHIFT)
-#define PFS_PSEL_CAN                 (0x10 << R_PFS_PSEL_SHIFT)
-#define PFS_PSEL_SSIE                (0x12 << R_PFS_PSEL_SHIFT)
-#define PFS_PSEL_USBFS               (0x13 << R_PFS_PSEL_SHIFT)
-#define PFS_PSEL_DAC                 (0x14 << R_PFS_PSEL_SHIFT)
-#define PFS_PSEL_TRACE               (0x15 << R_PFS_PSEL_SHIFT)
-#define PFS_PSEL_DEBUG               (0x16 << R_PFS_PSEL_SHIFT)
-#define PFS_PSEL_OPAMP               (0x17 << R_PFS_PSEL_SHIFT)
-#define PFS_PSEL_XSPI                (0x18 << R_PFS_PSEL_SHIFT)
-#define PFS_PSEL_ETHERNET            (0x19 << R_PFS_PSEL_SHIFT)
-#define PFS_PSEL_CEU                 (0x1A << R_PFS_PSEL_SHIFT)
-#define PFS_PSEL_OSPI                (0x1B << R_PFS_PSEL_SHIFT)
-#define PFS_PSEL_ULPT                (0x1C << R_PFS_PSEL_SHIFT)
-
 /* Alternative Function Pin Definitions */
 {chr(10).join(sorted(alt_func_defs))}
 

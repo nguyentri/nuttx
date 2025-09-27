@@ -209,3 +209,108 @@ int ra8e1_gpt_test_main(int argc, char *argv[])
 
   return OK;
 }
+
+
+/****************************************************************************
+ * Name: ra8e1_gpt_pwm_initialize
+ *
+ * Description:
+ *   Initialize GPT-based PWM devices for ESC control
+ *
+ ****************************************************************************/
+
+
+int ra8e1_gpt_pwm_initialize(void)
+{
+  struct pwm_lowerhalf_s *pwm;
+  int ret;
+
+  syslog(LOG_INFO, "Initializing GPT-based PWM devices for ESC control\n");
+
+  /* Initialize GPT3 for ESC1 (P300 - ch 3A) */
+  pwm = ra_gpt_initialize(3);
+  if (!pwm)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to setup GPT3 PWM\n");
+      return -ENODEV;
+    }
+
+  ret = pwm_register("/dev/pwm3", pwm);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to register /dev/pwm3: %d\n", ret);
+      return ret;
+    }
+  syslog(LOG_INFO, "ESC1 PWM registered at /dev/pwm3 (GPT3A - P300)\n");
+
+  /* Initialize GPT0 for ESC2 (P415 - ch 0A) */
+  pwm = ra_gpt_initialize(0);
+  if (!pwm)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to setup GPT0 PWM\n");
+      return -ENODEV;
+    }
+
+  ret = pwm_register("/dev/pwm0", pwm);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to register /dev/pwm0: %d\n", ret);
+      return ret;
+    }
+  syslog(LOG_INFO, "ESC2 PWM registered at /dev/pwm0 (GPT0A - P415)\n");
+
+  /* Initialize GPT5 for ESC3 (P905 - alt PWM) */
+  pwm = ra_gpt_initialize(5);
+  if (!pwm)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to setup GPT5 PWM\n");
+      return -ENODEV;
+    }
+
+  ret = pwm_register("/dev/pwm5", pwm);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to register /dev/pwm5: %d\n", ret);
+      return ret;
+    }
+  syslog(LOG_INFO, "ESC3 PWM registered at /dev/pwm5 (GPT5A - P905)\n");
+
+  /* Initialize GPT2 for ESC4 (P114 - ch 2B) */
+  pwm = ra_gpt_initialize(2);
+  if (!pwm)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to setup GPT2 PWM\n");
+      return -ENODEV;
+    }
+
+  ret = pwm_register("/dev/pwm2", pwm);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to register /dev/pwm2: %d\n", ret);
+      return ret;
+    }
+  syslog(LOG_INFO, "ESC4 PWM registered at /dev/pwm2 (GPT2B - P114)\n");
+
+  /* Initialize GPT2 for ESC5 (P113 - ch 2A) - Note: GPT2 supports both A and B outputs */
+  /* ESC5 uses the same GPT2 channel but different output pin (2A vs 2B) */
+  syslog(LOG_INFO, "ESC5 PWM uses GPT2A (P113) - shared with GPT2 channel\n");
+
+  /* Initialize GPT4 for ESC6 (P302 - ch 4A) */
+  pwm = ra_gpt_initialize(4);
+  if (!pwm)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to setup GPT4 PWM\n");
+      return -ENODEV;
+    }
+
+  ret = pwm_register("/dev/pwm4", pwm);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to register /dev/pwm4: %d\n", ret);
+      return ret;
+    }
+  syslog(LOG_INFO, "ESC6 PWM registered at /dev/pwm4 (GPT4A - P302)\n");
+
+  syslog(LOG_INFO, "All GPT-based PWM devices initialized for 400Hz ESC control\n");
+  return OK;
+}

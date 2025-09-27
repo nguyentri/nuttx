@@ -60,6 +60,7 @@ extern "C"
 
 /* ICU driver API */
 void ra_icu_initialize(void);
+void ra_icu_clear_irq(int irq);
 int ra_icu_attach(int event, xcpt_t handler, void *arg, bool irq_enable);
 int ra_icu_detach(int icu_irq);
 int ra_icu_set_event(int icu_slot, int event);

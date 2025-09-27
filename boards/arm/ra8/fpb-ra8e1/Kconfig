@@ -178,6 +178,25 @@ config RA8E1_PWM_ESCS_EXAMPLE
 		Self-contained demo with no external app dependencies.
 		Automatically enables required GPT driver with PWM functionality.
 
+config RA8E1_PWM_GPT_EXAMPLE
+	bool "PWM GPT Example Application"
+	default n
+	select RA_GPT0
+	select RA_GPT2
+	select RA_GPT3
+	select RA_GPT4
+	select RA_PWM
+	select RA_PWM0
+	select RA_PWM2
+	select RA_PWM3
+	select RA_PWM4
+	---help---
+		Enable PWM GPT demo application for FPB-RA8E1.
+		Demonstrates PWM control for general-purpose timers.
+		Self-contained demo with no external app dependencies.
+		Automatically enables required GPT driver with PWM functionality.
+
+
 config RA8E1_SPI_LOOPBACK_EXAMPLE
 	bool "SPI Loopback Example Application"
 	default n

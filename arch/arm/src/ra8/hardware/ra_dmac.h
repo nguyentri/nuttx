@@ -42,8 +42,8 @@
 #define RA_DMAC_DMAMD_OFFSET     0x14  /* Address Mode Register */
 #define RA_DMAC_DMOFR_OFFSET     0x18  /* Offset Register */
 #define RA_DMAC_DMCNT_OFFSET     0x1C  /* Count Register */
-#define RA_DMAC_DMREQ_OFFSET     0x20  /* Software Start Register */
-#define RA_DMAC_DMSTS_OFFSET     0x24  /* Status Register */
+#define RA_DMAC_DMREQ_OFFSET     0x1d  /* Software Start Register */
+#define RA_DMAC_DMSTS_OFFSET     0x1e  /* Status Register */
 #define RA_DMAC_DMCSL_OFFSET     0x28  /* Channel Status Low Register */
 #define RA_DMAC_DMCSH_OFFSET     0x2C  /* Channel Status High Register */
 

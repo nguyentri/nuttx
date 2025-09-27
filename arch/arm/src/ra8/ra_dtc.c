@@ -58,6 +58,8 @@
 #define DTC_DTCCR_RRS_ENABLE    (0x18)
 #define DTC_DTCCR_RRS_DISABLE   (0x08)
 
+#define RA_DTC_SET_VECTOR_RETRIES 3
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -309,18 +311,41 @@ static ra_dtc_ctrl_t *ra_dtc_find_free_context(void)
  *   Wait for DTC transfer to complete
  *
  * Input Parameters:
- *   ctrl - DTC control block
+  *   irq - IRQ slot number associated with the DTC transfer
  *
  ****************************************************************************/
 
-static void ra_dtc_wait_for_completion(ra_dtc_ctrl_t *ctrl)
+/* Wait for DTC transfer to complete for the given ICU slot.
+ * Returns OK on success, -ETIMEDOUT on timeout.
+ */
+#define RA_DTC_WAIT_USEC_TIMEOUT (1000000) /* 1 second */
+static int ra_dtc_wait_for_completion(int irq_slot)
 {
-  /* Wait for DTC to become inactive */
-  while (getreg32(RA_DTC_DTCSTS) & RA_DTC_DTCSTS_ACT)
+  unsigned int waited = 0;
+  uint32_t val;
+  uint32_t vecn_mask = RA_DTC_DTCSTS_VECN_MASK;
+  uint32_t act_mask  = RA_DTC_DTCSTS_ACT;
+
+  /* Read initial value */
+  val = getreg16(RA_DTC_DTCSTS);
+
+  /* Wait while ACT is set and vector number matches the slot */
+  while ((val & act_mask) && ((val & vecn_mask) == (uint32_t)irq_slot))
     {
-      /* Small delay to prevent busy waiting */
       up_udelay(1);
+      waited++;
+
+      if (waited >= RA_DTC_WAIT_USEC_TIMEOUT)
+        {
+          serr("ra_dtc_wait_for_completion: timeout waiting for slot %d to become free, DTCSTS=0x%08x\n",
+               irq_slot, (unsigned int)val);
+          return -ETIMEDOUT;
+        }
+
+      val = getreg16(RA_DTC_DTCSTS);
     }
+
+  return OK;
 }
 
 /****************************************************************************
@@ -354,18 +379,11 @@ int ra_dtc_initialize(void)
   /* Set vector table base address */
   putreg32((uint32_t)g_dtc_vector_table, RA_DTC_DTCVBR_SEC);
 
-  /* Disable read skip initially */
-  putreg32(0, RA_DTC_DTCCR_SEC);
-
-  /* Enable read skip for performance */
-  putreg32(RA_DTC_DTCCR_RRSS, RA_DTC_DTCCR_SEC);
-
   /* Start the DTC module by setting DTCST.DTCST = 1 */
   putreg8(1, RA_DTC_DTCST);
 
-  _info("DTC module started with DTCST=1\n");
-
   g_dtc_initialized = true;
+
   return OK;
 }
 
@@ -484,9 +502,9 @@ int ra_dtc_open(ra_dtc_handle_t *handle, const ra_dtc_config_t *config)
         }
 
       /* Update vector table safely: disable read-skip before update and re-enable */
-      putreg32(0, RA_DTC_DTCCR_SEC);
+      putreg8(DTC_DTCCR_RRS_DISABLE, RA_DTC_DTCCR_SEC);
       g_dtc_vector_table[vec_index] = &ctrl->info;
-      putreg32(RA_DTC_DTCCR_RRSS, RA_DTC_DTCCR_SEC);
+      putreg8(DTC_DTCCR_RRS_ENABLE, RA_DTC_DTCCR_SEC);
 
       /* If completion callback is needed, attach DTC completion interrupt */
       if (config->callback)
@@ -538,7 +556,13 @@ int ra_dtc_close(ra_dtc_handle_t handle)
     }
 
   /* Wait for any ongoing transfer to complete */
-  ra_dtc_wait_for_completion(ctrl);
+  {
+    int wret = ra_dtc_wait_for_completion(ctrl->irq - RA_IRQ_FIRST);
+    if (wret != OK)
+      {
+        return wret;
+      }
+  }
 
   /* Disable transfer */
   ra_dtc_disable(handle);
@@ -569,9 +593,9 @@ int ra_dtc_close(ra_dtc_handle_t handle)
       if (vec_index >= 0 && vec_index < RA_DTC_VECTOR_TABLE_ENTRIES)
         {
           /* Protect with read-skip disable/enable in case DTC is active */
-          putreg32(0, RA_DTC_DTCCR_SEC);
+          putreg8(DTC_DTCCR_RRS_DISABLE, RA_DTC_DTCCR_SEC);
           g_dtc_vector_table[vec_index] = NULL;
-          putreg32(RA_DTC_DTCCR_RRSS, RA_DTC_DTCCR_SEC);
+          putreg8(DTC_DTCCR_RRS_ENABLE, RA_DTC_DTCCR_SEC);
         }
 
       /* If we allocated the slot for this context, detach it now */
@@ -720,10 +744,16 @@ int ra_dtc_reset(ra_dtc_handle_t handle, uint32_t src_addr,
     }
 
   /* Wait for current transfer to complete */
-  ra_dtc_wait_for_completion(ctrl);
+  {
+    int wret = ra_dtc_wait_for_completion(ctrl->irq - RA_IRQ_FIRST);
+    if (wret != OK)
+      {
+        return wret;
+      }
+  }
 
   /* Disable read skip for register updates */
-  putreg32(0, RA_DTC_DTCCR_SEC);
+  putreg8(DTC_DTCCR_RRS_DISABLE, RA_DTC_DTCCR_SEC);
 
   /* Update transfer information */
   ctrl->info.sar = src_addr;
@@ -748,7 +778,7 @@ int ra_dtc_reset(ra_dtc_handle_t handle, uint32_t src_addr,
   ctrl->config.transfer_count = transfer_count;
 
   /* Re-enable read skip */
-  putreg32(RA_DTC_DTCCR_RRSS, RA_DTC_DTCCR_SEC);
+  putreg8(DTC_DTCCR_RRS_ENABLE, RA_DTC_DTCCR_SEC);
 
   return OK;
 }
@@ -807,8 +837,53 @@ int ra_dtc_set_vector(int icu_slot, ra_dtc_info_t *transfer_info)
       return -EINVAL;
     }
 
-  /* Set vector table entry */
+  /* Wait for current transfer to finish */
+  int wret = ra_dtc_wait_for_completion(icu_slot);
+  if (wret != OK)
+    {
+      return wret;
+    }
+
+  /* Disable read-skip (RRS) before updating vector table */
+  putreg8(DTC_DTCCR_RRS_DISABLE, RA_DTC_DTCCR_SEC);
+
   g_dtc_vector_table[icu_slot] = transfer_info;
+
+  /* Update vector table entry and verify via read-back. Retry if necessary. */
+  {
+    int attempt;
+    for (attempt = 0; attempt < RA_DTC_SET_VECTOR_RETRIES; attempt++)
+      {
+        g_dtc_vector_table[icu_slot] = transfer_info;
+
+        /* Clean D-cache for transfer info and vector table entry so DTC HW sees
+         * the updated data if D-cache is active. Use NuttX helpers.
+         */
+        up_clean_dcache((uintptr_t)transfer_info, (uintptr_t)transfer_info + sizeof(ra_dtc_info_t));
+        up_clean_dcache((uintptr_t)&g_dtc_vector_table[icu_slot], (uintptr_t)&g_dtc_vector_table[icu_slot] + sizeof(void *));
+
+        /* Read back pointer value */
+        if (g_dtc_vector_table[icu_slot] == transfer_info)
+          {
+            break; /* success */
+          }
+
+        /* Small delay before retry */
+        up_udelay(10);
+      }
+
+    if (attempt >= RA_DTC_SET_VECTOR_RETRIES)
+      {
+        serr("ra_dtc_set_vector: failed to verify vector write for slot %d\n", icu_slot);
+
+        /* Re-enable read-skip before returning error */
+        putreg8(DTC_DTCCR_RRS_ENABLE, RA_DTC_DTCCR_SEC);
+        return -EIO;
+      }
+  }
+
+  /* Re-enable read-skip */
+  putreg8(DTC_DTCCR_RRS_ENABLE, RA_DTC_DTCCR_SEC);
 
   return OK;
 }

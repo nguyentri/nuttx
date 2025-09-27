@@ -37,9 +37,9 @@
 /* Register Offsets *********************************************************/
 
 #define R_ICU_IRQCR_OFFSET                0x0000  /* IRQ Control Register (8-bits) */
-#define R_ICU_NMISR_OFFSET                0x0140  /* Non-Maskable Interrupt Status Register (16-bits) */
+#define R_ICU_NMISR_OFFSET                0x0120  /* Non-Maskable Interrupt Status Register (16-bits) */
 #define R_ICU_NMIER_OFFSET                0x0120  /* Non-Maskable Interrupt Enable Register (16-bits) */
-#define R_ICU_NMICLR_OFFSET               0x0130  /* Non-Maskable Interrupt Status Clear Register (16-bits) */
+#define R_ICU_NMICLR_OFFSET               0x0110  /* Non-Maskable Interrupt Status Clear Register (16-bits) */
 #define R_ICU_NMICR_OFFSET                0x0100  /* NMI Pin Interrupt Control Register (8-bits) */
 #define R_ICU_IELSR_OFFSET                0x0300  /* ICU Event Link Setting Register (32-bits) */
 #define R_ICU_DELSR_OFFSET                0x0280  /* DMAC Event Link Setting Register (32-bits) */

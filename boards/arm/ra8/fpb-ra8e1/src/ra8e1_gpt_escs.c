@@ -208,9 +208,15 @@ static char g_rtt_command[RTT_COMMAND_MAX];
 
 static struct esc_channel_s g_esc_channels[NUM_ESC_CHANNELS] =
 {
-  { 3, "/dev/pwm3", -1, 0, false },  /* ESC1 - P300, GPT3A */
-  { 0, "/dev/pwm0", -1, 0, false },  /* ESC2 - P415, GPT0A */
-  { 2, "/dev/pwm2", -1, 0, false },  /* ESC3 - P114, GPT2B */
+  /* Reordered to match physical pin mapping requested by user:
+   * ESC1 -> P415 -> GPT0A (/dev/pwm0)
+   * ESC2 -> P113 -> GPT2A (/dev/pwm2)
+   * ESC3 -> P300 -> GPT3A (/dev/pwm3)
+   * ESC4 -> P302 -> GPT4A (/dev/pwm4)
+   */
+  { 0, "/dev/pwm0", -1, 0, false },  /* ESC1 - P415, GPT0A */
+  { 2, "/dev/pwm2", -1, 0, false },  /* ESC2 - P113/P114, GPT2A/B */
+  { 3, "/dev/pwm3", -1, 0, false },  /* ESC3 - P300, GPT3A */
   { 4, "/dev/pwm4", -1, 0, false },  /* ESC4 - P302, GPT4A */
 };
 
@@ -294,7 +300,7 @@ static int ra8e1_gpt_initialize(void)
       return ret;
     }
 
-  /* Initialize GPT0 for ESC2 (P415) */
+  /* Initialize GPT0 for ESC1 (P415) */
 
   pwm = ra_gpt_initialize(0);
   if (!pwm)
@@ -310,10 +316,10 @@ static int ra8e1_gpt_initialize(void)
       return ret;
     }
 
-  g_pwm_esc_devs[1] = pwm;  /* ESC2 maps to PWM0/GPT0 */
-  pwminfo("ESC2 PWM driver registered at /dev/pwm0\n");
+  g_pwm_esc_devs[0] = pwm;  /* ESC1 maps to PWM0/GPT0 */
+  pwminfo("ESC1 PWM driver registered at /dev/pwm0\n");
 
-  /* Initialize GPT2 for ESC3 (P114) */
+  /* Initialize GPT2 for ESC2 (P113/P114) */
 
   pwm = ra_gpt_initialize(2);
   if (!pwm)
@@ -329,10 +335,10 @@ static int ra8e1_gpt_initialize(void)
       return ret;
     }
 
-  g_pwm_esc_devs[2] = pwm;  /* ESC3 maps to PWM2/GPT2 */
-  pwminfo("ESC3 PWM driver registered at /dev/pwm2\n");
+  g_pwm_esc_devs[1] = pwm;  /* ESC2 maps to PWM2/GPT2 */
+  pwminfo("ESC2 PWM driver registered at /dev/pwm2\n");
 
-  /* Initialize GPT3 for ESC1 (P300) */
+  /* Initialize GPT3 for ESC3 (P300) */
 
   pwm = ra_gpt_initialize(3);
   if (!pwm)
@@ -348,8 +354,8 @@ static int ra8e1_gpt_initialize(void)
       return ret;
     }
 
-  g_pwm_esc_devs[0] = pwm;  /* ESC1 maps to PWM3/GPT3 */
-  pwminfo("ESC1 PWM driver registered at /dev/pwm3\n");
+  g_pwm_esc_devs[2] = pwm;  /* ESC3 maps to PWM3/GPT3 */
+  pwminfo("ESC3 PWM driver registered at /dev/pwm3\n");
 
   /* Initialize GPT4 for ESC4 (P302) */
 
@@ -552,6 +558,7 @@ static int esc_set_throttle_us(int esc_index, uint32_t pulse_us)
 {
   struct pwm_info_s info;
   uint32_t duty_percentage;
+  uint32_t period_us;
   int ret;
 
   if (esc_index < 0 || esc_index >= NUM_ESC_CHANNELS)
@@ -565,7 +572,7 @@ static int esc_set_throttle_us(int esc_index, uint32_t pulse_us)
       return -ENODEV;
     }
 
-  /* Clamp pulse width to valid range */
+  /* Clamp pulse width to allowed ESC range first */
   if (pulse_us < ESC_PWM_MIN_US)
     {
       pulse_us = ESC_PWM_MIN_US;
@@ -575,13 +582,15 @@ static int esc_set_throttle_us(int esc_index, uint32_t pulse_us)
       pulse_us = ESC_PWM_MAX_US;
     }
 
-  /* Convert pulse width to duty cycle percentage
-   * For 400Hz: period = 2500us, so duty = (pulse_us / 2500) * 100
-   */
-  duty_percentage = (pulse_us * 100) / (1000000 / ESC_PWM_FREQUENCY);
+  /* Period in microseconds for configured frequency */
+  period_us = 1000000 / ESC_PWM_FREQUENCY;
 
+  /* Convert pulse_us to percentage of period with rounding */
+  duty_percentage = (uint32_t)((((uint64_t)pulse_us * 100ULL) + (period_us >> 1)) / period_us);
+
+  /* Prepare PWM info: convert percent to 16.16 ub16 with rounding */
   info.frequency = ESC_PWM_FREQUENCY;
-  info.duty = (duty_percentage * 65536) / 100;  /* Convert to 16-bit duty */
+  info.duty = (uint32_t)((((uint64_t)duty_percentage * 65536ULL) + 50ULL) / 100ULL);
 
   ret = ioctl(g_esc_channels[esc_index].fd, PWMIOC_SETCHARACTERISTICS,
               (unsigned long)&info);
@@ -860,7 +869,7 @@ static void process_rtt_command(const char *command)
     }
   else if (strcmp(command, "disarm") == 0)
     {
-      esc_disarm_all();
+    esc_disarm_all();
     }
   else if (strcmp(command, "test") == 0)
     {

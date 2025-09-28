@@ -30,6 +30,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <inttypes.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
@@ -39,6 +40,30 @@
 #include <nuttx/timers/pwm.h>
 
 #include "ra_gpt.h"
+
+/* Ensure prototype is visible in case ra_gpt.h is not found by static analysis */
+extern struct pwm_lowerhalf_s *ra_gpt_initialize(int channel);
+/* Prototype for pwm_register (usually in include/nuttx/timers/pwm.h) */
+extern int pwm_register(const char *path, struct pwm_lowerhalf_s *dev);
+
+#ifndef CONFIG_PWM
+
+/* If PWM support is not enabled, provide stubs so the board build doesn't fail.
+ * The real example is only meaningful when CONFIG_PWM is enabled.
+ */
+int ra8e1_gpt_pwm_main(int argc, char *argv[])
+{
+  syslog(LOG_ERR, "PWM not enabled in config; sample disabled\n");
+  return -ENOSYS;
+}
+
+int ra8e1_gpt_pwm_initialize(void)
+{
+  syslog(LOG_ERR, "PWM not enabled in config; initialization skipped\n");
+  return -ENOSYS;
+}
+
+#else /* CONFIG_PWM */
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -97,10 +122,12 @@ static int ra8e1_gpt_pwm_test_device(const char *devpath, int channel)
     {
       uint32_t pulse_us = pulse_widths[i];
 
-      /* Calculate duty cycle from pulse width */
-      /* duty = (pulse_us * 65536) / (1000000 / frequency) */
+      /* Calculate duty cycle from pulse width with rounding.
+      * duty (ub16) = (pulse_us * 65536) / period_us
+      * Use integer rounding: add half of divisor (period_us/2) before divide.
+      */
       uint32_t period_us = 1000000 / PWM_FREQUENCY; /* Period in microseconds */
-      uint32_t duty = (pulse_us * 65536) / period_us;
+      uint32_t duty = (uint32_t)((((uint64_t)pulse_us * 65536ULL) + (period_us / 2)) / period_us);
 
       info.frequency = PWM_FREQUENCY;
       info.duty = duty;
@@ -120,8 +147,10 @@ static int ra8e1_gpt_pwm_test_device(const char *devpath, int channel)
           break;
         }
 
+      /* Print percent with rounding: (duty*100 + 65536/2)/65536 */
+      uint32_t duty_pct = (uint32_t)((((uint64_t)duty * 100ULL) + (65536ULL/2)) / 65536ULL);
       syslog(LOG_INFO, "  Pulse width: %" PRIu32 " us, Duty: %" PRIu32 "/65536 (%" PRIu32 "%%) - ACTIVE\n",
-        pulse_us, duty, (duty * 100) / 65536);
+        pulse_us, duty, duty_pct);
 
       /* Keep this setting for 2 seconds */
       sleep(2);
@@ -157,7 +186,7 @@ static int ra8e1_gpt_pwm_test_device(const char *devpath, int channel)
 
 int ra8e1_gpt_pwm_main(int argc, char *argv[])
 {
-  int ret = OK;
+  int ret = 0;
 
   syslog(LOG_INFO, "RA8E1 PWM ESC Test Application\n");
   syslog(LOG_INFO, "==============================\n\n");
@@ -208,9 +237,9 @@ int ra8e1_gpt_pwm_main(int argc, char *argv[])
     }
 
   syslog(LOG_INFO, "All PWM ESC tests completed successfully!\n");
-  syslog(LOG_INFO, "You can now use the interactive ESC demo: ra8e1_gpt_escs\n");
+  syslog(LOG_INFO, "You can now use the interactive ESC demo!\n");
 
-  return OK;
+  return 0;
 }
 
 
@@ -261,23 +290,7 @@ int ra8e1_gpt_pwm_initialize(void)
     }
   syslog(LOG_INFO, "ESC2 PWM registered at /dev/pwm0 (GPT0A - P415)\n");
 
-  /* Initialize GPT5 for ESC3 (P905 - alt PWM) */
-  pwm = ra_gpt_initialize(5);
-  if (!pwm)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to setup GPT5 PWM\n");
-      return -ENODEV;
-    }
-
-  ret = pwm_register("/dev/pwm5", pwm);
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to register /dev/pwm5: %d\n", ret);
-      return ret;
-    }
-  syslog(LOG_INFO, "ESC3 PWM registered at /dev/pwm5 (GPT5A - P905)\n");
-
-  /* Initialize GPT2 for ESC4 (P114 - ch 2B) */
+  /* Initialize GPT2 for ESC3 (P114 - ch 2B) */
   pwm = ra_gpt_initialize(2);
   if (!pwm)
     {
@@ -291,11 +304,7 @@ int ra8e1_gpt_pwm_initialize(void)
       syslog(LOG_ERR, "ERROR: Failed to register /dev/pwm2: %d\n", ret);
       return ret;
     }
-  syslog(LOG_INFO, "ESC4 PWM registered at /dev/pwm2 (GPT2B - P114)\n");
-
-  /* Initialize GPT2 for ESC5 (P113 - ch 2A) - Note: GPT2 supports both A and B outputs */
-  /* ESC5 uses the same GPT2 channel but different output pin (2A vs 2B) */
-  syslog(LOG_INFO, "ESC5 PWM uses GPT2A (P113) - shared with GPT2 channel\n");
+  syslog(LOG_INFO, "ESC3 PWM registered at /dev/pwm2 (GPT2B - P114)\n");
 
   /* Initialize GPT4 for ESC6 (P302 - ch 4A) */
   pwm = ra_gpt_initialize(4);
@@ -311,8 +320,10 @@ int ra8e1_gpt_pwm_initialize(void)
       syslog(LOG_ERR, "ERROR: Failed to register /dev/pwm4: %d\n", ret);
       return ret;
     }
-  syslog(LOG_INFO, "ESC6 PWM registered at /dev/pwm4 (GPT4A - P302)\n");
+  syslog(LOG_INFO, "ESC4 PWM registered at /dev/pwm4 (GPT4A - P302)\n");
 
   syslog(LOG_INFO, "All GPT-based PWM devices initialized for 400Hz ESC control\n");
-  return OK;
+  return 0;
 }
+
+#endif /* CONFIG_PWM */

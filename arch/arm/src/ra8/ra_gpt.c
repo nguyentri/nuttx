@@ -29,6 +29,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <debug.h>
+#include <inttypes.h>
 #include <string.h>
 
 #include <nuttx/arch.h>
@@ -47,6 +48,7 @@
 #include "ra_mstp.h"
 #include "ra_clock.h"
 #include "ra_gpio.h"
+#include <syslog.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -96,8 +98,15 @@ struct ra_gpt_s
   uint32_t frequency;             /* Current frequency */
   uint32_t period;                /* Period in timer counts */
   uint32_t prescaler;             /* Current prescaler setting */
+  /* Current Duty cycle values stored as timer ticks for compare A/B.
+   * These reflect the last started configuration and are used to answer
+   * PWMIOC_GETCHARACTERISTICS and for logging. duty_b is only present
+   * when multi-channel support is enabled.
+   */
   uint32_t duty_a;                /* Current Duty cycle for channel A in timer counts */
+#ifdef CONFIG_PWM_MULTICHAN
   uint32_t duty_b;                /* Current Duty cycle for channel B in timer counts */
+#endif
   int       irq;                  /* Timer interrupt slot IRQ number assigned in the runtime */
   uint8_t mode;                   /* GPT mode (PWM/Timer) */
   bool started;                   /* True: Started */
@@ -121,6 +130,12 @@ static inline void gpt_putreg(struct ra_gpt_s *priv, int offset, uint32_t value)
 static int gpt_configure(struct ra_gpt_s *priv);
 static uint32_t gpt_calculate_prescaler(uint32_t frequency, uint32_t pclkd);
 static void gpt_dumpregs(struct ra_gpt_s *priv, const char *msg);
+static void gpt_log_channel(uint8_t ch,
+                            uint32_t freq_hz,
+                            uint32_t prescaler,
+                            uint32_t pclkd,
+                            uint32_t reload_ticks,
+                            uint32_t duty_ticks);
 
 /* PWM driver methods */
 static int gpt_setup(struct pwm_lowerhalf_s *dev);
@@ -153,7 +168,7 @@ static const struct ra_gpt_channel_config_s g_gpt_configs[] =
     .base       = R_GPT0_BASE,
     .mstp       = RA_MSTP_GPT0,
     .pclkd_freq = CONFIG_RA_PCLKD_FREQUENCY,
-    .max_period = 0xFFFFFFFF, /* 32-bit timer */
+    .max_period = UINT32_MAX, /* 32-bit timer */
     .channel    = 0,
     .elc        = RA_ELC_GPT0_CAPTURE_COMPARE_A,  /* GPT0 capture/compare A IRQ, typically not used when control ECS */
     .pin_a      = GPIO_GPT0_A,  /* Configure based on board */
@@ -165,7 +180,7 @@ static const struct ra_gpt_channel_config_s g_gpt_configs[] =
     .base       = R_GPT1_BASE,
     .mstp       = RA_MSTP_GPT1,
     .pclkd_freq = CONFIG_RA_PCLKD_FREQUENCY,
-    .max_period = 0xFFFFFFFF, /* 32-bit timer */
+    .max_period = UINT32_MAX, /* 32-bit timer */
     .channel    = 1,
     .elc        = RA_ELC_GPT1_COUNTER_OVERFLOW,  /* GPT1 overflow IRQ */
     .pin_a      = {0},  /* Configure based on board */
@@ -177,7 +192,7 @@ static const struct ra_gpt_channel_config_s g_gpt_configs[] =
     .base       = R_GPT2_BASE,
     .mstp       = RA_MSTP_GPT2,
     .pclkd_freq = CONFIG_RA_PCLKD_FREQUENCY,
-    .max_period = 0xFFFFFFFF, /* 32-bit timer */
+    .max_period = UINT32_MAX, /* 32-bit timer */
     .channel    = 2,
     .elc        = RA_ELC_GPT2_CAPTURE_COMPARE_A,  /* GPT2 capture/compare A IRQ */
     .pin_a      = GPIO_GPT2_A,  /* Configure based on board */
@@ -189,7 +204,7 @@ static const struct ra_gpt_channel_config_s g_gpt_configs[] =
     .base       = R_GPT3_BASE,
     .mstp       = RA_MSTP_GPT3,
     .pclkd_freq = CONFIG_RA_PCLKD_FREQUENCY,
-    .max_period = 0xFFFFFFFF, /* 32-bit timer */
+    .max_period = UINT32_MAX, /* 32-bit timer */
     .channel    = 3,
     .elc        = RA_ELC_GPT3_CAPTURE_COMPARE_A,  /* GPT3 capture/compare A IRQ */
     .pin_a      = GPIO_GPT3_A,  /* Configure based on board */
@@ -201,7 +216,7 @@ static const struct ra_gpt_channel_config_s g_gpt_configs[] =
     .base       = R_GPT4_BASE,
     .mstp       = RA_MSTP_GPT4,
     .pclkd_freq = CONFIG_RA_PCLKD_FREQUENCY,
-    .max_period = 0xFFFFFFFF, /* 32-bit timer */
+    .max_period = UINT32_MAX, /* 32-bit timer */
     .channel    = 4,
     .elc        = RA_ELC_GPT4_CAPTURE_COMPARE_A,  /* GPT4 capture/compare A IRQ */
     .pin_a      = GPIO_GPT4_A,  /* Configure based on board */
@@ -213,8 +228,8 @@ static const struct ra_gpt_channel_config_s g_gpt_configs[] =
     .base       = R_GPT5_BASE,
     .mstp       = RA_MSTP_GPT5,
     .pclkd_freq = CONFIG_RA_PCLKD_FREQUENCY,
-    .max_period = 0xFFFFFFFF, /* 32-bit timer */
-    .channel    = 4,
+    .max_period = UINT32_MAX, /* 32-bit timer */
+    .channel    = 5,
     .elc        = RA_ELC_GPT5_CAPTURE_COMPARE_A,  /* GPT5 capture/compare A IRQ */
     .pin_a      = GPIO_GPT5_A,  /* Configure based on board */
     .pin_b      = {0},  /* Configure based on board */
@@ -309,6 +324,67 @@ static void gpt_dumpregs(struct ra_gpt_s *priv, const char *msg)
 #endif
 }
 
+/*
+ * Log helper that prints channel timing info to syslog and low-level debug.
+ */
+#ifdef CONFIG_DEBUG_PWM_INFO
+static void gpt_log_channel(uint8_t ch,
+                            uint32_t freq_hz,
+                            uint32_t prescaler,
+                            uint32_t pclkd,
+                            uint32_t reload_ticks,
+                            uint32_t duty_ticks)
+{
+  uint32_t period_us = 0;
+  uint32_t duty_us = 0;
+  uint32_t duty_pct = 0;
+  uint64_t timer_tick_freq = 0;
+  const uint32_t prescaler_divs[] = {1, 4, 16, 64, 256, 1024};
+
+  /* Validate prescaler index and pclkd */
+  if (prescaler < (sizeof(prescaler_divs) / sizeof(prescaler_divs[0])) && pclkd > 0)
+    {
+      timer_tick_freq = (uint64_t)pclkd / prescaler_divs[prescaler];
+    }
+
+  /* If the reload register contains the default/unprogrammed value
+   * (UINT32_MAX for 32-bit, 0xFFFF for 16-bit) then this GPT has not been
+   * programmed yet; avoid computing and printing misleading large us values.
+   */
+  if (reload_ticks == UINT32_MAX || reload_ticks == 0xFFFF)
+    {
+      syslog(LOG_INFO,
+             "GPT ch%u: unprogrammed reload=0x%" PRIx32 "\n",
+             (unsigned)ch, reload_ticks);
+      pwminfo("GPT ch%u: unprogrammed\n", (unsigned)ch);
+      return;
+    }
+
+  if (timer_tick_freq > 0 && reload_ticks > 0)
+    {
+      /* reload_ticks are timer ticks at prescaled timer clock. Convert to us
+       * Use integer rounding: add half of divisor before divide.
+       */
+      period_us = (uint32_t)((((uint64_t)reload_ticks * 1000000ULL) + (timer_tick_freq >> 1)) / timer_tick_freq);
+      duty_us   = (uint32_t)((((uint64_t)duty_ticks * 1000000ULL) + (timer_tick_freq >> 1)) / timer_tick_freq);
+
+      /* Percent with rounding: (duty*100 + reload/2)/reload */
+      duty_pct  = (uint32_t)((((uint64_t)duty_ticks * 100ULL) + (reload_ticks >> 1)) / reload_ticks);
+    }
+
+  syslog(LOG_INFO,
+    "GPT ch%u: freq=%" PRIu32 "Hz presc=%" PRIu32 " reload=%" PRIu32 " ticks period~%" PRIu32 "us duty=%" PRIu32 " ticks ~%" PRIu32 "us (%" PRIu32 "%%)\n",
+    (unsigned)ch, freq_hz, prescaler, reload_ticks, period_us, duty_ticks, duty_us, duty_pct);
+
+  /* Use pwminfo for low-level PWM info logging (lldbg may be unavailable
+   * in some build configs). */
+  pwminfo("GPT ch%u: period~%" PRIu32 "us duty~%" PRIu32 "us (%" PRIu32 "%%)\n",
+     (unsigned)ch, period_us, duty_us, duty_pct);
+}
+#else
+#  define gpt_log_channel(ch,freq_hz,prescaler,pclkd,reload_ticks,duty_ticks)
+#endif
+
 /****************************************************************************
  * Name: gpt_calculate_prescaler
  *
@@ -334,11 +410,14 @@ static uint32_t gpt_calculate_prescaler(uint32_t frequency, uint32_t pclkd)
   for (i = 0; i < sizeof(prescaler_divs) / sizeof(prescaler_divs[0]); i++)
     {
       timer_freq = pclkd / prescaler_divs[i];
-      period = timer_freq / frequency;
+
+      /* Compute period rounded to nearest tick: period = round(timer_freq / frequency)
+       * Use 64-bit math to avoid overflow.
+       */
+  period = (uint32_t)((((uint64_t)timer_freq) + ((uint64_t)frequency >> 1)) / (uint64_t)frequency);
 
       /* Check if period fits in 32-bit counter and is reasonable */
-
-      if (period > 1 && period <= 0xffffffff)
+      if (period > 1 && period <= UINT32_MAX)
         {
           return i;
         }
@@ -367,52 +446,57 @@ static int gpt_configure(struct ra_gpt_s *priv)
 
   pwminfo("Configuring GPT%d\n", priv->config->channel);
 
-  /* Disable write protection */
+  /* Perform the multi-register configuration atomically to avoid races */
+  irqstate_t flags = enter_critical_section();
 
+  /* Disable write protection */
   gpt_putreg(priv, RA_GPT_GTWP_OFFSET, GPT_GTWP_PRKEY);
 
   /* Stop the timer if it's running */
-
   regval = gpt_getreg(priv, RA_GPT_GTCR_OFFSET);
   regval &= ~GPT_GTCR_CST;
   gpt_putreg(priv, RA_GPT_GTCR_OFFSET, regval);
 
   /* Configure timer for saw-wave PWM mode (up-counting) */
-
   regval = GPT_GTCR_MD_SAW_WAVE_UP | GPT_GTCR_TPCS_PCLKD_1;
   gpt_putreg(priv, RA_GPT_GTCR_OFFSET, regval);
 
   /* Configure I/O pins for PWM output - Start with low output */
-
   regval = GPT_GTIOR_GTIOA_INITIAL_LOW | GPT_GTIOR_GTIOB_INITIAL_LOW;
   gpt_putreg(priv, RA_GPT_GTIOR_OFFSET, regval);
 
   /* Initialize counter and period */
-
   gpt_putreg(priv, RA_GPT_GTCNT_OFFSET, 0);
   gpt_putreg(priv, RA_GPT_GTPR_OFFSET, 0xffff);
 
   /* Initialize compare registers */
-
   gpt_putreg(priv, RA_GPT_GTCCRA_OFFSET, 0);
   gpt_putreg(priv, RA_GPT_GTCCRB_OFFSET, 0);
 
   /* Clear all interrupt flags */
-
   regval = gpt_getreg(priv, RA_GPT_GTST_OFFSET);
   gpt_putreg(priv, RA_GPT_GTST_OFFSET, regval);
 
   /* Re-enable write protection */
-
   gpt_putreg(priv, RA_GPT_GTWP_OFFSET,
              GPT_GTWP_PRKEY | GPT_GTWP_WP | GPT_GTWP_CMNWP);
+
+  leave_critical_section(flags);
 
   gpt_dumpregs(priv, "After configuration");
 
   /* Mark as PWM mode */
   priv->pwm_mode = true;
 
-  return OK;
+  /* Log channel state */
+  gpt_log_channel((uint8_t)priv->config->channel,
+                  priv->frequency,
+                  priv->prescaler,
+                  priv->config->pclkd_freq,
+                  gpt_getreg(priv, RA_GPT_GTPR_OFFSET),
+                  gpt_getreg(priv, RA_GPT_GTCCRA_OFFSET));
+
+  return 0;
 }
 
 /****************************************************************************
@@ -463,30 +547,31 @@ static int gpt_shutdown(struct pwm_lowerhalf_s *dev)
 
   pwminfo("GPT%d shutdown\n", priv->config->channel);
 
-  /* Disable write protection */
+  /* Make shutdown sequence atomic */
+  irqstate_t flags = enter_critical_section();
 
+  /* Disable write protection */
   gpt_putreg(priv, RA_GPT_GTWP_OFFSET, GPT_GTWP_PRKEY);
 
   /* Stop the timer */
-
   regval = gpt_getreg(priv, RA_GPT_GTCR_OFFSET);
   regval &= ~GPT_GTCR_CST;
   gpt_putreg(priv, RA_GPT_GTCR_OFFSET, regval);
 
   /* Reset the timer to its default state */
-
   gpt_putreg(priv, RA_GPT_GTCNT_OFFSET, 0);
   gpt_putreg(priv, RA_GPT_GTCCRA_OFFSET, 0);
   gpt_putreg(priv, RA_GPT_GTCCRB_OFFSET, 0);
   gpt_putreg(priv, RA_GPT_GTIOR_OFFSET, 0);
 
   /* Re-enable write protection */
-
   gpt_putreg(priv, RA_GPT_GTWP_OFFSET,
              GPT_GTWP_PRKEY | GPT_GTWP_WP | GPT_GTWP_CMNWP);
 
+  leave_critical_section(flags);
+
   priv->started = false;
-  return OK;
+  return 0;
 }
 
 /****************************************************************************
@@ -514,8 +599,13 @@ static int gpt_start(struct pwm_lowerhalf_s *dev,
   uint32_t duty_a, duty_b;
   uint32_t regval;
 
+#ifdef CONFIG_PWM_MULTICHAN
+  pwminfo("GPT%d start: frequency=%lu (multichan)\n",
+          priv->config->channel, info->frequency);
+#else
   pwminfo("GPT%d start: frequency=%lu duty=%08lx\n",
           priv->config->channel, info->frequency, info->duty);
+#endif
 
   DEBUGASSERT(info->frequency > 0);
 
@@ -528,70 +618,128 @@ static int gpt_start(struct pwm_lowerhalf_s *dev,
       return -ERANGE;
     }
 
-  timer_freq = priv->config->pclkd_freq / (1 << (prescaler * 2));
-  period = timer_freq / info->frequency;
+  /* Compute timer tick frequency using prescaler divisor table and round
+   * the period (timer ticks) to the nearest integer to avoid systematic
+   * truncation biases.
+   */
+  {
+    const uint32_t prescaler_divs[] = {1, 4, 16, 64, 256, 1024};
+
+    if (prescaler >= (sizeof(prescaler_divs) / sizeof(prescaler_divs[0])))
+      {
+        pwmerr("ERROR: invalid prescaler index %lu\n", prescaler);
+        return -EINVAL;
+      }
+
+    timer_freq = priv->config->pclkd_freq / prescaler_divs[prescaler];
+
+    /* period = round(timer_freq / frequency) -> (timer_freq + freq >> 1)/freq */
+    period = (uint32_t)((((uint64_t)timer_freq) + ((uint64_t)info->frequency >> 1)) /
+            (uint64_t)info->frequency);
+  }
+
+  /* Verify period fits in the channel's maximum period */
+  if (period == 0 || period > priv->config->max_period)
+    {
+      pwmerr("ERROR: period %lu out of range for GPT%lu (max %lu)\n",
+             period, priv->config->channel, priv->config->max_period);
+      return -ERANGE;
+    }
 
   pwminfo("prescaler=%lu, timer_freq=%lu, period=%lu\n",
           prescaler, timer_freq, period);
 
   /* Calculate duty cycle values */
 
-  duty_a = (period * info->duty) >> 16;
-
 #ifdef CONFIG_PWM_MULTICHAN
-  if (info->count > 1)
+  /* Map per-channel requests to GTIOCA (A) and GTIOCB (B).
+   * pwm.h channel numbers start at 1. We treat channel==1 -> A, ==2 -> B.
+   * channel==0 indicates unused and negative channel indicates end.
+   */
+  duty_a = duty_b = 0;
+  for (int i = 0; i < CONFIG_PWM_NCHANNELS; i++)
     {
-      duty_b = (period * info->channels[1].duty) >> 16;
+      int8_t ch = info->channels[i].channel;
+      if (ch == 0)
+        {
+          /* channel 0: not used */
+          continue;
+        }
+      if (ch < 0)
+        {
+          /* negative channel indicates no more channels */
+          break;
+        }
+
+      /* Convert ub16 duty to timer ticks with rounding: add 0.5 (0x8000) before shift */
+      uint32_t chduty = (uint32_t)((((uint64_t)period * (uint64_t)info->channels[i].duty) + 0x8000ULL) >> 16);
+      if (ch == 1)
+        {
+          duty_a = chduty;
+        }
+      else if (ch == 2)
+        {
+          duty_b = chduty;
+        }
+      else
+        {
+          pwmerr("GPT%u: Unsupported channel number %d\n",
+                 priv->config->channel, ch);
+          return -EINVAL;
+        }
     }
-  else
-#endif
+
+  /* If only one channel was provided, duplicate to the other compare */
+  if (duty_b == 0 && duty_a != 0)
     {
       duty_b = duty_a;
     }
+#else
+  /* Convert ub16 duty to timer ticks with rounding */
+  duty_a = (uint32_t)((((uint64_t)period * (uint64_t)info->duty) + 0x8000ULL) >> 16);
+  duty_b = duty_a;
+#endif
+
+
+  /* Make the start sequence atomic */
+  irqstate_t flags = enter_critical_section();
 
   /* Disable write protection */
-
   gpt_putreg(priv, RA_GPT_GTWP_OFFSET, GPT_GTWP_PRKEY);
 
   /* Stop the timer */
-
   regval = gpt_getreg(priv, RA_GPT_GTCR_OFFSET);
   regval &= ~GPT_GTCR_CST;
   gpt_putreg(priv, RA_GPT_GTCR_OFFSET, regval);
 
   /* Configure the prescaler */
-
   regval = GPT_GTCR_MD_SAW_WAVE_UP | (prescaler << GPT_GTCR_TPCS_SHIFT);
   gpt_putreg(priv, RA_GPT_GTCR_OFFSET, regval);
 
   /* Set the period */
-
   gpt_putreg(priv, RA_GPT_GTPR_OFFSET, period - 1);
 
   /* Set the duty cycles */
-
   gpt_putreg(priv, RA_GPT_GTCCRA_OFFSET, duty_a);
   gpt_putreg(priv, RA_GPT_GTCCRB_OFFSET, duty_b);
 
   /* Reset the counter */
-
   gpt_putreg(priv, RA_GPT_GTCNT_OFFSET, 0);
 
   /* Configure I/O pins for PWM output */
-
   regval = GPT_GTIOR_GTIOA_INITIAL_LOW | GPT_GTIOR_GTIOB_INITIAL_LOW;
   gpt_putreg(priv, RA_GPT_GTIOR_OFFSET, regval);
 
   /* Start the timer */
-
   regval = gpt_getreg(priv, RA_GPT_GTCR_OFFSET);
   regval |= GPT_GTCR_CST;
   gpt_putreg(priv, RA_GPT_GTCR_OFFSET, regval);
 
   /* Re-enable write protection */
-
   gpt_putreg(priv, RA_GPT_GTWP_OFFSET,
              GPT_GTWP_PRKEY | GPT_GTWP_WP | GPT_GTWP_CMNWP);
+
+  leave_critical_section(flags);
 
   gpt_dumpregs(priv, "After start");
 
@@ -599,8 +747,20 @@ static int gpt_start(struct pwm_lowerhalf_s *dev,
   priv->frequency = info->frequency;
   priv->period = period;
   priv->prescaler = prescaler;
+  priv->duty_a = duty_a;
+#ifdef CONFIG_PWM_MULTICHAN
+  priv->duty_b = duty_b;
+#endif
 
-  return OK;
+  /* Log the channel timing after start */
+  gpt_log_channel((uint8_t)priv->config->channel,
+                  info->frequency,
+                  prescaler,
+                  priv->config->pclkd_freq,
+                  period,
+                  duty_a);
+
+  return 0;
 }
 
 /****************************************************************************
@@ -624,29 +784,30 @@ static int gpt_stop(struct pwm_lowerhalf_s *dev)
 
   pwminfo("GPT%d stop\n", priv->config->channel);
 
-  /* Disable write protection */
 
+  irqstate_t flags = enter_critical_section();
+
+  /* Disable write protection */
   gpt_putreg(priv, RA_GPT_GTWP_OFFSET, GPT_GTWP_PRKEY);
 
   /* Stop the timer */
-
   regval = gpt_getreg(priv, RA_GPT_GTCR_OFFSET);
   regval &= ~GPT_GTCR_CST;
   gpt_putreg(priv, RA_GPT_GTCR_OFFSET, regval);
 
   /* Disable PWM outputs */
-
   gpt_putreg(priv, RA_GPT_GTIOR_OFFSET, 0);
 
   /* Re-enable write protection */
-
   gpt_putreg(priv, RA_GPT_GTWP_OFFSET,
              GPT_GTWP_PRKEY | GPT_GTWP_WP | GPT_GTWP_CMNWP);
+
+  leave_critical_section(flags);
 
   gpt_dumpregs(priv, "After stop");
 
   priv->started = false;
-  return OK;
+  return 0;
 }
 
 /****************************************************************************
@@ -669,12 +830,49 @@ static int gpt_ioctl(struct pwm_lowerhalf_s *dev, int cmd,
                      unsigned long arg)
 {
   struct ra_gpt_s *priv = (struct ra_gpt_s *)dev;
-  int ret = OK;
+  int ret = 0;
 
   pwminfo("GPT%d ioctl: cmd=%d arg=%08lx\n", priv->config->channel, cmd, arg);
 
   switch (cmd)
     {
+      case PWMIOC_GETCHARACTERISTICS:
+        {
+          /* Populate a pwm_info_s with the current settings */
+          struct pwm_info_s info;
+          memset(&info, 0, sizeof(info));
+
+          info.frequency = priv->frequency;
+#ifdef CONFIG_PWM_MULTICHAN
+          /* Fill channels array: channel numbers 1->A, 2->B */
+          info.channels[0].channel = 1;
+          /* Convert ticks to ub16 (16.16) with rounding: add half period before divide */
+          info.channels[0].duty = (ub16_t)((priv->period == 0) ? 0 :
+                                    (ub16_t)((((uint64_t)priv->duty_a << 16) + (priv->period >> 1)) / priv->period));
+          info.channels[1].channel = 2;
+          info.channels[1].duty = (ub16_t)((priv->period == 0) ? 0 :
+                                    (ub16_t)((((uint64_t)priv->duty_b << 16) + (priv->period >> 1)) / priv->period));
+#else
+          /* Convert ticks to ub16 (16.16) with rounding */
+          info.duty = (ub16_t)((priv->period == 0) ? 0 :
+                                (ub16_t)((((uint64_t)priv->duty_a << 16) + (priv->period >> 1)) / priv->period));
+#endif
+          /* Copy into caller-provided buffer (arg is a pointer in kernel space)
+           * Since ioctl() is called from kernel context, simple assignment is OK.
+           */
+          struct pwm_info_s *user = (struct pwm_info_s *)((FAR void *)arg);
+          if (user == NULL)
+            {
+              ret = -EFAULT;
+            }
+          else
+            {
+              memcpy(user, &info, sizeof(info));
+              ret = 0;
+            }
+        }
+        break;
+
       /* Add any custom ioctl commands here */
 
       default:
@@ -751,6 +949,16 @@ struct pwm_lowerhalf_s *ra_gpt_initialize(int channel)
       pwmerr("ERROR: No such timer configured: %d\n", channel);
       return NULL;
     }
+
+  /* Emit a log for the newly-initialized channel (registers may be default)
+   * Use register reads for period/duty if available.
+   */
+  gpt_log_channel((uint8_t)lower->config->channel,
+                  lower->frequency,
+                  lower->prescaler,
+                  lower->config->pclkd_freq,
+                  gpt_getreg(lower, RA_GPT_GTPR_OFFSET),
+                  gpt_getreg(lower, RA_GPT_GTCCRA_OFFSET));
 
   return (struct pwm_lowerhalf_s *)lower;
 }

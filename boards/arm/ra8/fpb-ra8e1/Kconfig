@@ -178,7 +178,7 @@ config RA8E1_PWM_ESCS_EXAMPLE
 		Self-contained demo with no external app dependencies.
 		Automatically enables required GPT driver with PWM functionality.
 
-config RA8E1_PWM_GPT_EXAMPLE
+config RA8E1_GPT_PWM_EXAMPLE
 	bool "PWM GPT Example Application"
 	default n
 	select RA_GPT0

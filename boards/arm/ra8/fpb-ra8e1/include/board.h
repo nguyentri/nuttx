@@ -66,13 +66,13 @@
 #define GPIO_SPI1_SSL0  GPIO_SSLB0_B_1           /* P413 - SPI Slave selection (SSLB0_B) */
 
 /* PWM/GPT Timer Pin Definitions for ESC Control */
-#define GPIO_GPT0_A     GPIO_GTIOC0A_2         /* P415 - ESC 1 PWM (ch 0A) */
-#define GPIO_GPT2_A     GPIO_GTIOC2A_3         /* P113 - ESC 2 PWM (ch 2A) */
-#define GPIO_GPT2_B     GPIO_GTIOC2B_3         /* P114 - ESC 3 PWM (ch 2B) */
 #define GPIO_GPT3_A     GPIO_GTIOC3A_1         /* P300 - ESC 4 PWM (ch 3A) */
-#define GPIO_GPT3_B     GPIO_GTIOC3B_1         /* P404 - ESC 5 PWM */
-#define GPIO_GPT4_A     GPIO_GTIOC4A_1         /* P302 - ESC 6 PWM (ch 4A) */
-#define GPIO_GPT10_A    GPIO_GTIOC10A_1        /* P409 - Status LED 2 (alt function, corrected from P408) */
+#define GPIO_GPT0_A     GPIO_GTIOC0A_3         /* P415 - ESC 1 PWM (ch 0A) */
+#define GPIO_GPT2_A     GPIO_GTIOC2A_2         /* P113 - ESC 2 PWM (ch 2A) */
+//#define GPIO_GPT2_B     GPIO_GTIOC2B_2         /* P114 - ESC 3 PWM (ch 2B) */
+//#define GPIO_GPT3_B     GPIO_GTIOC3B_1         /* P112 - ESC 5 PWM (ch 3B) */
+#define GPIO_GPT4_A     GPIO_GTIOC4A_2         /* P302 - ESC 6 PWM (ch 4A) */
+//#define GPIO_GPT10_A    GPIO_GTIOC10A_1        /* P409 - Status LED 2 (alt function, corrected from P408) */
 
 //#define GPIO_GPT5_A     GPIO_GTIOC5A_1         /* P905 - ESC 3 PWM (alt PWM) */
 
@@ -100,7 +100,7 @@
 /* ESC PWM Alternate GPIO (for P905 with GPT5) */
 //#define GPIO_ESC3_ALT    GPIO_GPT5_A            /* P905 - ESC 3 PWM (GPT5A) */
 /* ESC PWM Alternate GPIO (for P905 without timer) */
-#define GPIO_ESC3_ALT    GPIO_P905_OUTPUT_LOW   /* P905 - ESC 3 Alt PWM */
+//#define GPIO_ESC3_ALT    GPIO_P905_OUTPUT_LOW   /* P905 - ESC 3 Alt PWM */
 
 /* Additional GPIO Pin Definitions for General Use */
 
@@ -149,13 +149,13 @@
 /* Drone-specific Pin Name Mappings ************************************/
 
 /* ESC PWM Output Pins - 400Hz ESC Control */
-#define GPIO_ESC1_PWM    GPIO_GPT3_A    /* P300 - ESC 1 PWM (GPT ch 3A) */
-#define GPIO_ESC2_PWM    GPIO_GPT0_A    /* P415 - ESC 2 PWM (GPT ch 0A) */
-//#define GPIO_ESC3_PWM    GPIO_GPT5_A    /* P905 - ESC 3 PWM (GPT alt PWM) */
-#define GPIO_ESC3_PWM    GPIO_ESC3_ALT  /* P905 - ESC 3 PWM (GPIO alt) */
-#define GPIO_ESC4_PWM    GPIO_GPT2_B    /* P114 - ESC 4 PWM (GPT ch 2B) */
-#define GPIO_ESC5_PWM    GPIO_GPT2_A    /* P113 - ESC 5 PWM (GPT ch 2A) */
-#define GPIO_ESC6_PWM    GPIO_GPT4_A    /* P302 - ESC 6 PWM (GPT ch 4A) */
+#define GPIO_ESC1_PWM    GPIO_GPT3_A   /* P300 - ESC1 PWM (ch 3A) */
+#define GPIO_ESC2_PWM    GPIO_GPT0_A  /* P415 - ESC2 PWM (ch 0A) */
+//#define GPIO_ESC3_PWM    GPIO_GPT5_A
+#define GPIO_ESC3_PWM    GPIO_GPT2_A  /* P114 - ESC3 PWM (ch 2A) */
+#define GPIO_ESC4_PWM    GPIO_GPT4_A  /* P302 - ESC4 PWM (ch 4A) */
+//#define GPIO_ESC5_PWM    GPIO_GPT2_A
+//#define GPIO_ESC6_PWM    GPIO_GPT4_A
 
 /* RC Receiver and GPS */
 #define GPIO_SBUS_RX     GPIO_SCI2_RX   /* P802 - SBUS RC Receiver */

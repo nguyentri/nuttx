@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/ra8/fpb-ra8e1/src/ra8e1_gpt.c
+ * boards/arm/ra8/fpb-ra8e1/src/ra8e1_gpt_pwm.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -33,9 +33,12 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <syslog.h>
 
 #include <fixedmath.h>
 #include <nuttx/timers/pwm.h>
+
+#include "ra_gpt.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -50,14 +53,14 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: test_pwm_device
+ * Name: ra8e1_gpt_pwm_test_device
  *
  * Description:
  *   Test a single PWM device with various pulse widths
  *
  ****************************************************************************/
 
-static int test_pwm_device(const char *devpath, int channel)
+static int ra8e1_gpt_pwm_test_device(const char *devpath, int channel)
 {
   int fd;
   int ret;
@@ -117,8 +120,8 @@ static int test_pwm_device(const char *devpath, int channel)
           break;
         }
 
-      syslog(LOG_INFO, "  Pulse width: %u us, Duty: %u/65536 (%u%%) - ACTIVE\n",
-             pulse_us, duty, (duty * 100) / 65536);
+      syslog(LOG_INFO, "  Pulse width: %" PRIu32 " us, Duty: %" PRIu32 "/65536 (%" PRIu32 "%%) - ACTIVE\n",
+        pulse_us, duty, (duty * 100) / 65536);
 
       /* Keep this setting for 2 seconds */
       sleep(2);
@@ -145,14 +148,14 @@ static int test_pwm_device(const char *devpath, int channel)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ra8e1_gpt_test_main
+ * Name: ra8e1_gpt_pwm_main
  *
  * Description:
  *   Test all available PWM devices for ESC control
  *
  ****************************************************************************/
 
-int ra8e1_gpt_test_main(int argc, char *argv[])
+int ra8e1_gpt_pwm_main(int argc, char *argv[])
 {
   int ret = OK;
 
@@ -173,7 +176,7 @@ int ra8e1_gpt_test_main(int argc, char *argv[])
   syslog(LOG_INFO, "- 2000us (100%% throttle)\n\n");
 
   /* Test ESC1 (GPT3A) */
-  ret = test_pwm_device("/dev/pwm3", 3);
+  ret = ra8e1_gpt_pwm_test_device("/dev/pwm3", 3);
   if (ret < 0)
     {
       syslog(LOG_INFO, "Test failed for ESC1\n");
@@ -181,7 +184,7 @@ int ra8e1_gpt_test_main(int argc, char *argv[])
     }
 
   /* Test ESC2 (GPT0A) */
-  ret = test_pwm_device("/dev/pwm0", 0);
+  ret = ra8e1_gpt_pwm_test_device("/dev/pwm0", 0);
   if (ret < 0)
     {
       syslog(LOG_INFO, "Test failed for ESC2\n");
@@ -189,7 +192,7 @@ int ra8e1_gpt_test_main(int argc, char *argv[])
     }
 
   /* Test ESC3 (GPT2B) */
-  ret = test_pwm_device("/dev/pwm2", 2);
+  ret = ra8e1_gpt_pwm_test_device("/dev/pwm2", 2);
   if (ret < 0)
     {
       syslog(LOG_INFO, "Test failed for ESC3\n");
@@ -197,7 +200,7 @@ int ra8e1_gpt_test_main(int argc, char *argv[])
     }
 
   /* Test ESC4 (GPT4A) */
-  ret = test_pwm_device("/dev/pwm4", 4);
+  ret = ra8e1_gpt_pwm_test_device("/dev/pwm4", 4);
   if (ret < 0)
     {
       syslog(LOG_INFO, "Test failed for ESC4\n");
@@ -218,7 +221,6 @@ int ra8e1_gpt_test_main(int argc, char *argv[])
  *   Initialize GPT-based PWM devices for ESC control
  *
  ****************************************************************************/
-
 
 int ra8e1_gpt_pwm_initialize(void)
 {

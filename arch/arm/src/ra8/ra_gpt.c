@@ -78,11 +78,13 @@
 struct ra_gpt_channel_config_s
 {
   uint32_t base;                   /* GPT peripheral base address */
-  uint32_t pclkd_freq;            /* PCLKD frequency */
-  uint8_t  channel;                /* GPT channel (0-13) */
-  uint8_t  irq;                    /* Timer interrupt IRQ number */
-  uint32_t pin_a;                  /* GTIOCA pin configuration */
-  uint32_t pin_b;                  /* GTIOCB pin configuration */
+  ra_mstp_module_t mstp;           /* Module stop control bit */
+  uint32_t pclkd_freq;             /* PCLKD frequency */
+  uint32_t max_period;            /* Maximum period in timer counts, 16-bit timer: 65535 and 32-bit timer: 4294967295 */
+  uint32_t channel;                /* GPT channel (0-13) */
+  uint32_t elc;                    /* ELC event input number */
+  gpio_pinset_t pin_a;             /* GTIOCA pin configuration */
+  gpio_pinset_t pin_b;             /* GTIOCB pin configuration */
 };
 
 /* GPT device state structure */
@@ -94,6 +96,9 @@ struct ra_gpt_s
   uint32_t frequency;             /* Current frequency */
   uint32_t period;                /* Period in timer counts */
   uint32_t prescaler;             /* Current prescaler setting */
+  uint32_t duty_a;                /* Current Duty cycle for channel A in timer counts */
+  uint32_t duty_b;                /* Current Duty cycle for channel B in timer counts */
+  int       irq;                  /* Timer interrupt slot IRQ number assigned in the runtime */
   uint8_t mode;                   /* GPT mode (PWM/Timer) */
   bool started;                   /* True: Started */
   bool pwm_mode;                  /* True: PWM mode, False: Timer mode */
@@ -143,54 +148,76 @@ static const struct pwm_ops_s g_gpt_ops =
 /* GPT device configurations */
 static const struct ra_gpt_channel_config_s g_gpt_configs[] =
 {
-#ifdef CONFIG_RA_GPT0_PWM
+#ifdef CONFIG_RA_GPT0
   {
     .base       = R_GPT0_BASE,
+    .mstp       = RA_MSTP_GPT0,
     .pclkd_freq = CONFIG_RA_PCLKD_FREQUENCY,
+    .max_period = 0xFFFFFFFF, /* 32-bit timer */
     .channel    = 0,
-    .irq        = RA_IRQ_FIRST + 48,  /* GPT0 overflow IRQ */
-    .pin_a      = 0,  /* Configure based on board */
-    .pin_b      = 0,  /* Configure based on board */
+    .elc        = RA_ELC_GPT0_CAPTURE_COMPARE_A,  /* GPT0 capture/compare A IRQ, typically not used when control ECS */
+    .pin_a      = GPIO_GPT0_A,  /* Configure based on board */
+    .pin_b      = {0},  /* Configure based on board */
   },
 #endif
-#ifdef CONFIG_RA_GPT1_PWM
+#ifdef CONFIG_RA_GPT1 // not configured
   {
     .base       = R_GPT1_BASE,
+    .mstp       = RA_MSTP_GPT1,
     .pclkd_freq = CONFIG_RA_PCLKD_FREQUENCY,
+    .max_period = 0xFFFFFFFF, /* 32-bit timer */
     .channel    = 1,
-    .irq        = RA_IRQ_FIRST + 49,  /* GPT1 overflow IRQ */
-    .pin_a      = 0,  /* Configure based on board */
-    .pin_b      = 0,  /* Configure based on board */
+    .elc        = RA_ELC_GPT1_COUNTER_OVERFLOW,  /* GPT1 overflow IRQ */
+    .pin_a      = {0},  /* Configure based on board */
+    .pin_b      = {0},  /* Configure based on board */
   },
 #endif
-#ifdef CONFIG_RA_GPT2_PWM
+#ifdef CONFIG_RA_GPT2
   {
     .base       = R_GPT2_BASE,
+    .mstp       = RA_MSTP_GPT2,
     .pclkd_freq = CONFIG_RA_PCLKD_FREQUENCY,
+    .max_period = 0xFFFFFFFF, /* 32-bit timer */
     .channel    = 2,
-    .irq        = RA_IRQ_FIRST + 50,  /* GPT2 overflow IRQ */
-    .pin_a      = 0,  /* Configure based on board */
-    .pin_b      = 0,  /* Configure based on board */
+    .elc        = RA_ELC_GPT2_CAPTURE_COMPARE_A,  /* GPT2 capture/compare A IRQ */
+    .pin_a      = GPIO_GPT2_A,  /* Configure based on board */
+    .pin_b      = {0},  /* Configure based on board */
   },
 #endif
-#ifdef CONFIG_RA_GPT3_PWM
+#ifdef CONFIG_RA_GPT3
   {
     .base       = R_GPT3_BASE,
+    .mstp       = RA_MSTP_GPT3,
     .pclkd_freq = CONFIG_RA_PCLKD_FREQUENCY,
+    .max_period = 0xFFFFFFFF, /* 32-bit timer */
     .channel    = 3,
-    .irq        = RA_IRQ_FIRST + 51,  /* GPT3 overflow IRQ */
-    .pin_a      = 0,  /* Configure based on board */
-    .pin_b      = 0,  /* Configure based on board */
+    .elc        = RA_ELC_GPT3_CAPTURE_COMPARE_A,  /* GPT3 capture/compare A IRQ */
+    .pin_a      = GPIO_GPT3_A,  /* Configure based on board */
+    .pin_b      = {0},  /* Configure based on board */
   },
 #endif
-#ifdef CONFIG_RA_GPT4_PWM
+#ifdef CONFIG_RA_GPT4
   {
     .base       = R_GPT4_BASE,
+    .mstp       = RA_MSTP_GPT4,
     .pclkd_freq = CONFIG_RA_PCLKD_FREQUENCY,
+    .max_period = 0xFFFFFFFF, /* 32-bit timer */
     .channel    = 4,
-    .irq        = RA_IRQ_FIRST + 52,  /* GPT4 overflow IRQ */
-    .pin_a      = 0,  /* Configure based on board */
-    .pin_b      = 0,  /* Configure based on board */
+    .elc        = RA_ELC_GPT4_CAPTURE_COMPARE_A,  /* GPT4 capture/compare A IRQ */
+    .pin_a      = GPIO_GPT4_A,  /* Configure based on board */
+    .pin_b      = {0},  /* Configure based on board */
+  },
+#endif
+#ifdef CONFIG_RA_GPT5
+  {
+    .base       = R_GPT5_BASE,
+    .mstp       = RA_MSTP_GPT5,
+    .pclkd_freq = CONFIG_RA_PCLKD_FREQUENCY,
+    .max_period = 0xFFFFFFFF, /* 32-bit timer */
+    .channel    = 4,
+    .elc        = RA_ELC_GPT5_CAPTURE_COMPARE_A,  /* GPT5 capture/compare A IRQ */
+    .pin_a      = GPIO_GPT5_A,  /* Configure based on board */
+    .pin_b      = {0},  /* Configure based on board */
   },
 #endif
 /* Add more channels as needed */
@@ -700,6 +727,18 @@ struct pwm_lowerhalf_s *ra_gpt_initialize(int channel)
           lower->pwm_mode = true;
           lower->started = false;
 
+          /* Configure GPIO pins for PWM output */
+          if( lower->config->pin_a.cfg != 0 )
+            {
+              ra_configgpio(lower->config->pin_a);
+            }
+          if( lower->config->pin_b.cfg != 0 )
+            {
+              ra_configgpio(lower->config->pin_b);
+            }
+
+          /* Take the GPT out of module stop state */
+          ra_mstp_start(lower->config->mstp);
 #ifdef CONFIG_PWM_MULTICHAN
           lower->nchannels = 2;  /* GTIOCA and GTIOCB */
 #endif

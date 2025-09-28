@@ -54,6 +54,7 @@
 
 /* SPI buffer length for loopback test */
 #define SPI_BUFF_LEN        32
+#define SPI_BYTE_SIZE       4 // 1 for 8-bit, 2 for 16-bit, 4 for 32-bit
 #define SPI_FREQUENCY       1000000  /* 1 MHz */
 #define SPI_MODE            0        /* Mode 0 */
 
@@ -75,10 +76,10 @@ struct spi_loopback_s
 {
   FAR struct spi_dev_s *spi0;           /* SPI0 master */
   FAR struct spi_dev_s *spi1;           /* SPI1 master */
-  uint8_t spi0_tx_buff[SPI_BUFF_LEN];   /* SPI0 transmit buffer */
-  uint8_t spi0_rx_buff[SPI_BUFF_LEN];   /* SPI0 receive buffer */
-  uint8_t spi1_tx_buff[SPI_BUFF_LEN];   /* SPI1 transmit buffer */
-  uint8_t spi1_rx_buff[SPI_BUFF_LEN];   /* SPI1 receive buffer */
+  uint8_t spi0_tx_buff[SPI_BUFF_LEN*SPI_BYTE_SIZE];   /* SPI0 transmit buffer */
+  uint8_t spi0_rx_buff[SPI_BUFF_LEN*SPI_BYTE_SIZE];   /* SPI0 receive buffer */
+  uint8_t spi1_tx_buff[SPI_BUFF_LEN*SPI_BYTE_SIZE];   /* SPI1 transmit buffer */
+  uint8_t spi1_rx_buff[SPI_BUFF_LEN*SPI_BYTE_SIZE];   /* SPI1 receive buffer */
 };
 
 /****************************************************************************
@@ -342,14 +343,14 @@ static int spi_configure_devices(void)
   /* Configure SPI0 as master */
   SPI_LOCK(g_spi_loopback.spi0, true);
   SPI_SETMODE(g_spi_loopback.spi0, SPI_MODE);
-  SPI_SETBITS(g_spi_loopback.spi0, 8);   /* 8-bit transfers */
+  SPI_SETBITS(g_spi_loopback.spi0, 8 * SPI_BYTE_SIZE);
   SPI_SETFREQUENCY(g_spi_loopback.spi0, SPI_FREQUENCY);
   SPI_LOCK(g_spi_loopback.spi0, false);
 
   /* Configure SPI1 as master */
   SPI_LOCK(g_spi_loopback.spi1, true);
   SPI_SETMODE(g_spi_loopback.spi1, SPI_MODE);
-  SPI_SETBITS(g_spi_loopback.spi1, 8);   /* 8-bit transfers */
+  SPI_SETBITS(g_spi_loopback.spi1, 8 * SPI_BYTE_SIZE);
   SPI_SETFREQUENCY(g_spi_loopback.spi1, SPI_FREQUENCY);
   SPI_LOCK(g_spi_loopback.spi1, false);
 

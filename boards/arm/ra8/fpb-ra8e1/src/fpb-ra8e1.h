@@ -112,7 +112,7 @@ int board_rtc_initialize(void);
  * RA8E1 driver interfaces for use by applications on the fpb-ra8e1 board
  ****************************************************************************/
 
-#ifdef CONFIG_RA_GPIO
+#ifdef CONFIG_RA8E1_GPIO
 int ra8e1_gpio_initialize(void);
 #endif
 
@@ -132,22 +132,27 @@ int ra8e1_spi_masterslave_test(void);
 int ra8e1_spi_masterslave_main(int argc, char *argv[]);
 #endif
 
-#ifdef CONFIG_RA_ADC_BMS_EXAMPLE
+#ifdef CONFIG_RA8E1_ADC_BMS_EXAMPLE
 int ra8e1_adc_bms_init(void);
 int ra8e1_adc_bms_main(int argc, FAR char *argv[]);
 #endif
 
-#ifdef CONFIG_RA_CODE_FLASH_EXAMPLE
+#ifdef CONFIG_RA8E1_CODE_FLASH_EXAMPLE
 int ra8e1_code_flash_init(void);
 int ra8e1_code_flash_test(void);
 int ra8e1_code_flash_info(void);
 int ra8e1_code_flash_main(int argc, char *argv[]);
 #endif
 
-#ifdef CONFIG_RA_DATA_FLASH_EXAMPLE
+#ifdef CONFIG_RA8E1_DATA_FLASH_EXAMPLE
 int ra8e1_data_flash_init(void);
 int ra8e1_data_flash_test(void);
 int ra8e1_data_flash_main(int argc, char *argv[]);
+#endif
+
+#ifdef CONFIG_RA8E1_GPT_PWM_EXAMPLE
+int ra8e1_gpt_pwm_initialize(void);
+int ra8e1_gpt_pwm_main(int argc, char *argv[]);
 #endif
 
 #ifdef CONFIG_RA8E1_PWM_ESCS_EXAMPLE

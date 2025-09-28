@@ -154,6 +154,20 @@ int ra8e1_rust_example(void)
 }
 #endif
 
+#ifdef CONFIG_RA8E1_GPT_PWM_EXAMPLE
+int ra8e1_gpt_pwm_example(void)
+{
+  int ret = ra8e1_gpt_pwm_initialize();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "GPT PWM initialization failed: %d\n", ret);
+      return ret;
+    }
+
+  return ra8e1_gpt_pwm_main(0, NULL);
+}
+#endif
+
 
 /* Run all enabled application examples. Returns 0 on success or the
  * last non-zero error code from any example.
@@ -161,13 +175,13 @@ int ra8e1_rust_example(void)
 int ra8e1_app_examples(void)
 {
   int ret = 0;
-  int last_err = 0;
+  int last_err = ret;
 
 #ifdef CONFIG_RA8E1_GPT_PWM_EXAMPLE
-  ret = ra8e1_gpt_test_main(0, NULL);
+  ret = ra8e1_gpt_pwm_example();
   if (ret < 0)
     {
-      syslog(LOG_ERR, "GPT test failed: %d\n", ret);
+      syslog(LOG_ERR, "GPT PWM example failed: %d\n", ret);
       last_err = ret;
     }
 #endif

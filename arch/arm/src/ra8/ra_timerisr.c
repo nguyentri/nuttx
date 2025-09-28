@@ -50,7 +50,7 @@
 /*  GPT timer configuration */
 #ifdef CONFIG_RA_SYSTICK_GPT
 #  include "ra_mstp.h"
-#define RA_GPT_CHANNEL        (0)  /* Use GPT0 for system timer to match FSP example */
+#define RA_GPT_CHANNEL        (1) /* Use GPT1 for system timer */
 
 #if RA_GPT_CHANNEL == 0
 #  define RA_MSTP_GPT_SYSTICK       RA_MSTP_GPT0

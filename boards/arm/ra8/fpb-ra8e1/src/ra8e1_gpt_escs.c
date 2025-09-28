@@ -24,7 +24,8 @@
 
 #include <nuttx/config.h>
 
-#ifdef CONFIG_RA8E1_PWM_ESCS_EXAMPLE
+#if defined(CONFIG_RA8E1_PWM_ESCS_EXAMPLE)
+
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -35,20 +36,120 @@
 #include <unistd.h>
 #include <debug.h>
 #include <errno.h>
+#include <nuttx/fs/ioctl.h>
+#include <sys/ioctl.h>
+#include <syslog.h>
+#include <termios.h>
 
 #include <nuttx/timers/pwm.h>
 #include <nuttx/ioexpander/gpio.h>
 #include <arch/board/board.h>
+
+#include <nuttx/timers/timer.h>
+#include <nuttx/timers/pwm.h>
 
 #include "arm_internal.h"
 #include "chip.h"
 #include "ra_gpio.h"
 #include "ra_gpt.h"
 #include "fpb-ra8e1.h"
-#include "fpb-ra8e1.h"
 
+/* Include SEGGER RTT header only if present on the include path.  Use
+ * __has_include when available to avoid hard build failure when the
+ * SEGGER sources are not installed in the toolchain include paths.
+ */
+#if defined(CONFIG_SEGGER_RTT) || defined(CONFIG_STREAM_RTT) || defined(CONFIG_SYSLOG_RTT)
+#  if defined(__has_include)
+#    if __has_include(<SEGGER_RTT.h>)
+#      include <SEGGER_RTT.h>
+#      define HAVE_SEGGER_RTT 1
+#    endif
+#  else
+#    /* Cannot check for the header; try to include and hope for the best */
+#    include <SEGGER_RTT.h>
+#    define HAVE_SEGGER_RTT 1
+#  endif
+#endif
 
-#ifdef CONFIG_RA8E1_PWM_ESCS
+/* Some build environments may not expose the common OK macro in this
+ * translation unit. Define a local fallback to keep this file self-
+ * contained and avoid introducing a global header dependency.
+ */
+#ifndef OK
+#  define OK 0
+#endif
+
+/* Small demo input helpers used by multiple board demos.  If SEGGER RTT
+ * is available use that; otherwise fall back to non-blocking stdin reads.
+ */
+
+static int g_demo_buffer __attribute__((unused)) = -1;
+
+static bool demo_haskey(void)
+{
+#ifdef HAVE_SEGGER_RTT
+  return SEGGER_RTT_HasKey() != 0;
+#else
+  if (g_demo_buffer >= 0)
+    {
+      return true;
+    }
+
+  /* Try a non-blocking read from stdin */
+  int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
+  if (flags < 0)
+    {
+      return false;
+    }
+
+  fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
+  char ch;
+  ssize_t n = read(STDIN_FILENO, &ch, 1);
+  fcntl(STDIN_FILENO, F_SETFL, flags);
+
+  if (n == 1)
+    {
+      g_demo_buffer = (int)(unsigned char)ch;
+      return true;
+    }
+
+  return false;
+#endif
+}
+
+static int demo_getkey(void)
+{
+#ifdef HAVE_SEGGER_RTT
+  return SEGGER_RTT_GetKey();
+#else
+  if (g_demo_buffer >= 0)
+    {
+      int ch = g_demo_buffer;
+      g_demo_buffer = -1;
+      return ch;
+    }
+
+  /* Non-blocking read fallback */
+  int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
+  if (flags < 0)
+    {
+      return -1;
+    }
+
+  fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
+  char ch;
+  ssize_t n = read(STDIN_FILENO, &ch, 1);
+  fcntl(STDIN_FILENO, F_SETFL, flags);
+
+  if (n == 1)
+    {
+      return (int)(unsigned char)ch;
+    }
+
+  return -1;
+#endif
+}
+
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -70,12 +171,6 @@
 #define RTT_COMMAND_MAX         64
 
 /* GPIO Configuration for ESC PWM pins */
-
-static gpio_pinset_t g_pwm_esc1 = {3, 0, 0};   /* P300 - GPT3A */
-static gpio_pinset_t g_pwm_esc2 = {4, 15, 0};  /* P415 - GPT0A */
-static gpio_pinset_t g_pwm_esc3 = {1, 14, 0};  /* P114 - GPT2B */
-static gpio_pinset_t g_pwm_esc4 = {3, 2, 0};   /* P302 - GPT4A */
-
 /* ESC Status Structure */
 
 struct esc_status_s
@@ -125,11 +220,9 @@ static struct esc_channel_s g_esc_channels[NUM_ESC_CHANNELS] =
 
 static int ra8e1_gpt_setup_pins(void);
 static int ra8e1_gpt_initialize(void);
-static int ra8e1_gpt_setup(void);
-static struct pwm_lowerhalf_s *ra8e1_esc_get_pwm_dev(int esc_index);
+#ifdef CONFIG_PWM_HAVE_DUTY16
 static int ra8e1_esc_set_duty_us(int esc_index, uint32_t pulse_us, uint32_t frequency);
-static int ra8e1_esc_stop_all(void);
-
+#endif
 static int esc_pwm_open(int esc_index);
 static int esc_pwm_close(int esc_index);
 static int esc_set_throttle_us(int esc_index, uint32_t pulse_us);
@@ -138,6 +231,9 @@ static int esc_arm(int esc_index);
 static int esc_disarm(int esc_index);
 static int esc_arm_all(void);
 static int esc_disarm_all(void);
+
+/* Test sequence prototype (defined later) */
+int ra8e1_gpt_escs_test(void);
 
 static void print_menu(void);
 static void process_rtt_command(const char *command);
@@ -157,18 +253,7 @@ static int parse_esc_command(const char *command, int *esc_index, int *value);
 
 static int ra8e1_gpt_setup_pins(void)
 {
-  /* Configure ESC1 pin (P300 - GPT3A) */
-  ra_configgpio(g_pwm_esc1);
-
-  /* Configure ESC2 pin (P415 - GPT0A) */
-  ra_configgpio(g_pwm_esc2);
-
-  /* Configure ESC3 pin (P114 - GPT2B) */
-  ra_configgpio(g_pwm_esc3);
-
-  /* Configure ESC4 pin (P302 - GPT4A) */
-  ra_configgpio(g_pwm_esc4);
-
+  /* Configure ESC PWM pins  in ra_gpt.c already */
   pwminfo("ESC PWM pins configured successfully\n");
   return 0;
 }
@@ -190,13 +275,12 @@ static int ra8e1_gpt_initialize(void)
   static bool initialized = false;
   struct pwm_lowerhalf_s *pwm;
   int ret;
-  int i;
 
   /* Have we already initialized? */
 
   if (initialized)
     {
-      return OK;
+      return 0;
     }
 
   pwminfo("Initializing ESC PWM drivers\n");
@@ -291,43 +375,6 @@ static int ra8e1_gpt_initialize(void)
   return OK;
 }
 
-/****************************************************************************
- * Name: ra8e1_gpt_setup
- *
- * Description:
- *   Initialize PWM and register the PWM device.
- *
- ****************************************************************************/
-
-static int ra8e1_gpt_setup(void)
-{
-  return ra8e1_gpt_initialize();
-}
-
-/****************************************************************************
- * Name: ra8e1_esc_get_pwm_dev
- *
- * Description:
- *   Get PWM lower half device for specified ESC
- *
- * Input Parameters:
- *   esc_index - ESC index (0-3)
- *
- * Returned Value:
- *   PWM device pointer on success, NULL on failure.
- *
- ****************************************************************************/
-
-static struct pwm_lowerhalf_s *ra8e1_esc_get_pwm_dev(int esc_index)
-{
-  if (esc_index < 0 || esc_index >= 4)
-    {
-      return NULL;
-    }
-
-  return g_pwm_esc_devs[esc_index];
-}
-
 #ifdef CONFIG_PWM_HAVE_DUTY16
 /****************************************************************************
  * Name: ra8e1_esc_set_duty_us
@@ -390,16 +437,16 @@ static int ra8e1_esc_set_duty_us(int esc_index, uint32_t pulse_us, uint32_t freq
  *
  ****************************************************************************/
 
-static int ra8e1_esc_stop_all(void)
+int ra8e1_esc_stop_all(void)
 {
-  int ret = OK;
+  int ret = 0;
   int i;
 
   for (i = 0; i < 4; i++)
     {
-      if (g_pwm_esc_devs[i])
+      if (g_pwm_esc_devs[i] && g_pwm_esc_devs[i]->ops && g_pwm_esc_devs[i]->ops->stop)
         {
-          if (PWM_STOP(g_pwm_esc_devs[i]) < 0)
+          if (g_pwm_esc_devs[i]->ops->stop(g_pwm_esc_devs[i]) < 0)
             {
               pwmerr("ERROR: Failed to stop ESC%d PWM\n", i + 1);
               ret = -EIO;
@@ -1063,7 +1110,4 @@ int ra8e1_gpt_escs_test(void)
   syslog(LOG_INFO, "ESC test sequence completed\n");
   return OK;
 }
-
-#endif /* CONFIG_RA8E1_PWM_ESCS */
-
 #endif /* CONFIG_RA8E1_PWM_ESCS_EXAMPLE */

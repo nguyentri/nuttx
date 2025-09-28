@@ -30,7 +30,7 @@
  *
  * // Control GPIO pins
  * ra_gpiowrite(led_pin, true);     // Turn on LED
- * bool button_state = ra_gpio_read(button_pin);  // Read button
+ * bool button_state = ra_gpioread(button_pin);  // Read button
  */
 
 #ifndef __ARCH_ARM_SRC_RA_HARDWARE_RA_GPIO_H

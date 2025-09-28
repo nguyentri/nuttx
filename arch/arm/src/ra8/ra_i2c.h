@@ -35,6 +35,8 @@
 #include <nuttx/i2c/i2c_master.h>
 #include <nuttx/i2c/i2c_slave.h>
 
+#include "ra_gpio.h"
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -65,14 +67,8 @@ struct ra_i2c_config_s
   uint32_t mstpcrb_bit;   /* Module stop control bit */
 
   /* Pin configuration */
-  uint32_t scl_pin;       /* SCL pin configuration */
-  uint32_t sda_pin;       /* SDA pin configuration */
-
-  /* DTC configuration */
-  uint8_t  dtc_rx_ch;     /* DTC RX channel */
-  uint8_t  dtc_tx_ch;     /* DTC TX channel */
-  uint32_t dtc_rx_event;  /* DTC RX event */
-  uint32_t dtc_tx_event;  /* DTC TX event */
+  gpio_pinset_t scl_pin;       /* SCL pin configuration */
+  gpio_pinset_t sda_pin;       /* SDA pin configuration */
 };
 
 /* I2C Device Private Data */

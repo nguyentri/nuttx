@@ -286,7 +286,7 @@ void ra_gpiowrite(gpio_pinset_t pinset, bool value)
 }
 
 /****************************************************************************
- * Name: ra_gpio_read
+ * Name: ra_gpioread
  *
  * Description:
  *   Read one or zero from the selected GPIO pin
@@ -299,7 +299,7 @@ void ra_gpiowrite(gpio_pinset_t pinset, bool value)
  *
  ****************************************************************************/
 
-bool ra_gpio_read(gpio_pinset_t pinset)
+bool ra_gpioread(gpio_pinset_t pinset)
 {
   uint8_t port;
   uint8_t pin;

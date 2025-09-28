@@ -90,6 +90,8 @@ struct ra_i2c_priv_s
   /* Port configuration */
   const struct ra_i2c_config_s *config;
 
+  int      irq;           /* Interrupt slot number assigned during run-time */
+
   int      refs;          /* Reference count */
   mutex_t  lock;          /* Mutual exclusion mutex */
 
@@ -128,8 +130,6 @@ struct ra_i2c_priv_s
 
   /* DTC support */
   bool     use_dtc;       /* DTC enable flag */
-  uint32_t dtc_rx_handle; /* DTC RX handle */
-  uint32_t dtc_tx_handle; /* DTC TX handle */
 };
 
 /****************************************************************************
@@ -211,25 +211,17 @@ static const struct i2c_ops_s ra_i2c_ops =
 static const struct ra_i2c_config_s ra_i2c0_config =
 {
   .base         = R_IIC0_BASE,
-  .clk_freq     = BOARD_PCLKB_FREQUENCY,
+  .mstp         = RA_MSTP_IIC0,
+  .clk_freq     = RA_PCLKB_FREQUENCY,
   .bus          = 0,
-  .rxi_irq      = 0x35,  /* EVENT_IIC0_RXI */
-  .txi_irq      = 0x36,  /* EVENT_IIC0_TXI */
-  .tei_irq      = 0x37,  /* EVENT_IIC0_TEI */
-  .eri_irq      = 0x38,  /* EVENT_IIC0_ERI */
-  .mstpcrb_bit  = 1 << 24,   /* MSTPCRB bit for IIC0 */
+  .rxi_elc      = RA_ELC_IIC0_RXI,  /* EVENT_IIC0_RXI */
+  .txi_elc      = RA_ELC_IIC0_TXI,  /* EVENT_IIC0_TXI */
+  .tei_elc      = RA_ELC_IIC0_TEI,  /* EVENT_IIC0_TEI */
+  .eri_elc      = RA_ELC_IIC0_ERI,  /* EVENT_IIC0_ERI */
 
-  /* Pin configuration - P511/P512 for I2C1 (Arduino compatible) */
-  .scl_pin      = (5 << 8) | 12,  /* P512 (SCL1) */
-  .sda_pin      = (5 << 8) | 11,  /* P511 (SDA1) */
-
-  /* DTC configuration */
-#ifdef CONFIG_RA_I2C_DTC
-  .dtc_rx_ch    = 0,
-  .dtc_tx_ch    = 1,
-  .dtc_rx_event = 0x35,  /* EVENT_IIC0_RXI */
-  .dtc_tx_event = 0x36,  /* EVENT_IIC0_TXI */
-#endif
+  /* Pin configuration  */
+  .scl_pin      = GPIO_SCL0_A_1,  /* P410 (SCL0) */ //GPIO_SCL0_B_1 /* P408 (SCL0) */
+  .sda_pin      = GPIO_SDA0_A_1,  /* P409 (SDA0) */ //GPIO_SDA0_B_1 /* P407 (SDA0) */
 };
 
 static struct ra_i2c_priv_s ra_i2c0_priv =
@@ -249,69 +241,23 @@ static struct ra_i2c_priv_s ra_i2c0_priv =
 static const struct ra_i2c_config_s ra_i2c1_config =
 {
   .base         = R_IIC1_BASE,
-  .clk_freq     = BOARD_PCLKB_FREQUENCY,
+  .mstp         = RA_MSTP_IIC1,
+  .clk_freq     = RA_PCLKB_FREQUENCY,
   .bus          = 1,
-  .rxi_irq      = 0x3A,  /* EVENT_IIC1_RXI */
-  .txi_irq      = 0x3B,  /* EVENT_IIC1_TXI */
-  .tei_irq      = 0x3C,  /* EVENT_IIC1_TEI */
-  .eri_irq      = 0x3D,  /* EVENT_IIC1_ERI */
-  .mstpcrb_bit  = 1 << 23,   /* MSTPCRB bit for IIC1 */
+  .rxi_irq      = RA_ELC_IIC1_RXI,  /* EVENT_IIC1_RXI */
+  .txi_irq      = RA_ELC_IIC1_TXI,  /* EVENT_IIC1_TXI */
+  .tei_irq      = RA_ELC_IIC1_TEI,  /* EVENT_IIC1_TEI */
+  .eri_irq      = RA_ELC_IIC1_ERI,  /* EVENT_IIC1_ERI */
 
   /* Pin configuration - default pins for I2C1 */
-  .scl_pin      = (5 << 8) | 12,  /* P512 (SCL1) */
-  .sda_pin      = (5 << 8) | 11,  /* P511 (SDA1) */
-
-  /* DTC configuration */
-#ifdef CONFIG_RA_I2C_DTC
-  .dtc_rx_ch    = 2,
-  .dtc_tx_ch    = 3,
-  .dtc_rx_event = 0x3A,  /* EVENT_IIC1_RXI */
-  .dtc_tx_event = 0x3B,  /* EVENT_IIC1_TXI */
-#endif
+  .scl_pin      = GPIO_SCL1_B_1,  /* P205 (SCL1) */ //GPIO_SCL1_A_1 /* P512 (SCL1) */
+  .sda_pin      = GPIO_SDA1_B_1,  /* P206 (SDA1) */ //GPIO_SDA1_A_1 /* P511 (SDA1) */
 };
 
 static struct ra_i2c_priv_s ra_i2c1_priv =
 {
   .ops          = &ra_i2c_ops,
   .config       = &ra_i2c1_config,
-  .refs         = 0,
-  .lock         = NXMUTEX_INITIALIZER,
-#ifndef CONFIG_I2C_POLLED
-  .sem_isr      = SEM_INITIALIZER(0),
-#endif
-  .state        = I2CSTATE_IDLE,
-};
-#endif
-
-#ifdef CONFIG_RA_I2C2
-static const struct ra_i2c_config_s ra_i2c2_config =
-{
-  .base         = RA_I2C2_BASE,
-  .clk_freq     = BOARD_PCLKB_FREQUENCY,
-  .bus          = 2,
-  .rxi_irq      = 0x40,  /* EVENT_IIC2_RXI (estimated) */
-  .txi_irq      = 0x41,  /* EVENT_IIC2_TXI (estimated) */
-  .tei_irq      = 0x42,  /* EVENT_IIC2_TEI (estimated) */
-  .eri_irq      = 0x43,  /* EVENT_IIC2_ERI (estimated) */
-  .mstpcrb_bit  = 1 << 22,   /* MSTPCRB bit for IIC2 */
-
-  /* Pin configuration - default pins for I2C2 */
-  .scl_pin      = (3 << 8) | 2,   /* P302 */
-  .sda_pin      = (3 << 8) | 1,   /* P301 */
-
-  /* DTC configuration */
-#ifdef CONFIG_RA_I2C_DTC
-  .dtc_rx_ch    = 4,
-  .dtc_tx_ch    = 5,
-  .dtc_rx_event = 0x40,  /* EVENT_IIC2_RXI (estimated) */
-  .dtc_tx_event = 0x41,  /* EVENT_IIC2_TXI (estimated) */
-#endif
-};
-
-static struct ra_i2c_priv_s ra_i2c2_priv =
-{
-  .ops          = &ra_i2c_ops,
-  .config       = &ra_i2c2_config,
   .refs         = 0,
   .lock         = NXMUTEX_INITIALIZER,
 #ifndef CONFIG_I2C_POLLED
@@ -970,9 +916,7 @@ static int ra_i2c_init(struct ra_i2c_priv_s *priv)
   uint32_t regval;
 
   /* Enable I2C module clock */
-  regval = getreg32(0x40036038);  /* MSTPCRB register */
-  regval &= ~config->mstpcrb_bit;
-  putreg32(regval, 0x40036038);
+  ra_mstp_start(config->mstp);
 
   /* Configure I2C pins - TODO: Implement proper GPIO configuration */
   /* ra_configgpio(config->scl_pin); */
@@ -1019,16 +963,10 @@ static int ra_i2c_init(struct ra_i2c_priv_s *priv)
                 I2C_ICIER_TMOIE);   /* Timeout detection interrupt */
 
   /* Attach interrupt handlers */
-  irq_attach(config->rxi_irq, ra_i2c_isr_rxi, priv);
-  irq_attach(config->txi_irq, ra_i2c_isr_txi, priv);
-  irq_attach(config->tei_irq, ra_i2c_isr_tei, priv);
-  irq_attach(config->eri_irq, ra_i2c_isr_eri, priv);
-
-  /* Enable interrupts */
-  up_enable_irq(config->rxi_irq);
-  up_enable_irq(config->txi_irq);
-  up_enable_irq(config->tei_irq);
-  up_enable_irq(config->eri_irq);
+  priv->rxi_irq = ra_icu_attach(config->rxi_elc, ra_i2c_isr_rxi, priv, true);
+  priv->txi_irq = ra_icu_attach(config->txi_elc, ra_i2c_isr_txi, priv, true);
+  priv->tei_irq = ra_icu_attach(config->tei_elc, ra_i2c_isr_tei, priv, true);
+  priv->eri_irq = ra_icu_attach(config->eri_elc, ra_i2c_isr_eri, priv, true);
 #endif
 
   /* Enable I2C peripheral */
@@ -1065,16 +1003,10 @@ static int ra_i2c_deinit(struct ra_i2c_priv_s *priv)
 
 #ifndef CONFIG_I2C_POLLED
   /* Disable interrupts */
-  up_disable_irq(config->rxi_irq);
-  up_disable_irq(config->txi_irq);
-  up_disable_irq(config->tei_irq);
-  up_disable_irq(config->eri_irq);
-
-  /* Detach interrupt handlers */
-  irq_detach(config->rxi_irq);
-  irq_detach(config->txi_irq);
-  irq_detach(config->tei_irq);
-  irq_detach(config->eri_irq);
+  ra_icu_detach(config->rxi_irq);
+  ra_icu_detach(config->txi_irq);
+  ra_icu_detach(config->tei_irq);
+  ra_icu_detach(config->eri_irq);
 #endif
 
 #ifdef CONFIG_RA_I2C_DTC
@@ -1083,9 +1015,7 @@ static int ra_i2c_deinit(struct ra_i2c_priv_s *priv)
 #endif
 
   /* Disable I2C module clock */
-  regval = getreg32(0x40036038);  /* MSTPCRB register */
-  regval |= config->mstpcrb_bit;
-  putreg32(regval, 0x40036038);
+  ra_mstp_stop(config->mstp);
 
   return OK;
 }

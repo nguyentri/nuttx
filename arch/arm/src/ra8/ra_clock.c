@@ -330,10 +330,12 @@ static void ra_peripheral_clock_init(void)
 
   /* Set the I2C clock if I2C is enabled */
 #ifdef CONFIG_RA_I2C
+#ifdef R_SYSTEM_IICCKCR
   ra_peripheral_clock_set((volatile uint8_t *)R_SYSTEM_IICCKCR,
                           (volatile uint8_t *)R_SYSTEM_IICCKDIVCR,
                           CONFIG_RA_IICCLK_DIV,
                           CONFIG_RA_IICCLK_SOURCE);
+#endif
 #endif
 
   /* Set the ADC clock if ADC is enabled */

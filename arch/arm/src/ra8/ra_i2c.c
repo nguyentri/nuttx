@@ -50,9 +50,10 @@
 #include "hardware/ra_i2c.h"
 #include "hardware/ra_dmac.h"
 #include "hardware/ra_memorymap.h"
-#include "hardware/ra_icu.h"
-#include "hardware/ra_mstp.h"
+#include "ra_icu.h"
+#include "ra_mstp.h"
 #include "ra_i2c.h"
+#include "ra_clock.h"
 
 #ifdef CONFIG_RA_I2C
 
@@ -81,56 +82,9 @@
  * Private Types
  ****************************************************************************/
 
-/* I2C Device Private Data */
-struct ra_i2c_priv_s
-{
-  /* Standard I2C operations */
-  const struct i2c_ops_s *ops;
-
-  /* Port configuration */
-  const struct ra_i2c_config_s *config;
-
-  int      irq;           /* Interrupt slot number assigned during run-time */
-
-  int      refs;          /* Reference count */
-  mutex_t  lock;          /* Mutual exclusion mutex */
-
-#ifndef CONFIG_I2C_POLLED
-  sem_t    sem_isr;       /* Interrupt wait semaphore */
-#endif
-
-  /* I2C work state (see enum ra_i2cstate_e) */
-  volatile uint8_t state;
-
-  /* I2C current message */
-  struct i2c_msg_s *msgs; /* Remaining transfers - first one is active */
-  int      msgc;          /* Number of transfer remaining */
-
-  /* I2C Bus frequency */
-  uint32_t frequency;     /* Current I2C frequency */
-
-  /* I2C transfer state */
-  uint8_t *ptr;           /* Current message buffer */
-  uint32_t dcnt;          /* Current message length */
-  uint16_t flags;         /* Current message flags */
-
-  /* I2C address */
-  uint8_t  addr;          /* Current message address */
-
-  /* I2C trace support */
-#ifdef CONFIG_I2C_TRACE
-  int      tndx;          /* Trace array index */
-  uint32_t start_time;    /* Time when the trace was started */
-
-  /* The actual trace data */
-  struct i2c_trace_s trace[CONFIG_I2C_NTRACE];
-#endif
-
-  uint32_t status;        /* End of transfer SR2|SR1 status */
-
-  /* DTC support */
-  bool     use_dtc;       /* DTC enable flag */
-};
+/* The device-private structure is declared in the public header
+ * (arch/arm/src/ra8/ra_i2c.h). Do not duplicate that definition here.
+ */
 
 /****************************************************************************
  * Private Function Prototypes
@@ -138,16 +92,13 @@ struct ra_i2c_priv_s
 
 /* I2C operations */
 static uint32_t ra_i2c_setfrequency(struct i2c_master_s *dev, uint32_t frequency);
-static int ra_i2c_setaddress(struct i2c_master_s *dev, int addr, int nbits);
 static int ra_i2c_write(struct i2c_master_s *dev, const uint8_t *buffer, int buflen);
 static int ra_i2c_read(struct i2c_master_s *dev, uint8_t *buffer, int buflen);
 #ifdef CONFIG_I2C_WRITEREAD
 static int ra_i2c_writeread(struct i2c_master_s *dev, const uint8_t *wbuffer,
                            int wbuflen, uint8_t *rbuffer, int rbuflen);
 #endif
-#ifdef CONFIG_I2C_TRANSFER
 static int ra_i2c_transfer(struct i2c_master_s *dev, struct i2c_msg_s *msgs, int count);
-#endif
 #ifdef CONFIG_I2C_RESET
 static int ra_i2c_reset(struct i2c_master_s *dev);
 #endif
@@ -166,10 +117,6 @@ static int ra_i2c_isr_rxi(int irq, void *context, void *arg);
 static int ra_i2c_isr_txi(int irq, void *context, void *arg);
 static int ra_i2c_isr_tei(int irq, void *context, void *arg);
 static int ra_i2c_isr_eri(int irq, void *context, void *arg);
-static int ra_i2c_isr_start(int irq, void *context, void *arg);
-static int ra_i2c_isr_stop(int irq, void *context, void *arg);
-static int ra_i2c_isr_nak(int irq, void *context, void *arg);
-static int ra_i2c_isr_timeout(int irq, void *context, void *arg);
 #endif
 
 /* I2C initialization */
@@ -188,22 +135,58 @@ static void ra_i2c_dtc_cleanup(struct ra_i2c_priv_s *priv);
  * Private Data
  ****************************************************************************/
 
+/* Adapter wrappers to match canonical i2c_ops_s */
+static int ra_i2c_setup(FAR struct i2c_master_s *dev)
+{
+  struct ra_i2c_priv_s *priv = (struct ra_i2c_priv_s *)dev;
+  return ra_i2c_init(priv);
+}
+
+static int ra_i2c_shutdown(FAR struct i2c_master_s *dev)
+{
+  struct ra_i2c_priv_s *priv = (struct ra_i2c_priv_s *)dev;
+  return ra_i2c_deinit(priv);
+}
+
+static int ra_i2c_transfer_wrapper(FAR struct i2c_master_s *dev,
+                                   FAR struct i2c_msg_s *msgs, int count)
+{
+#ifdef CONFIG_I2C_TRANSFER
+  return ra_i2c_transfer(dev, msgs, count);
+#else
+  /* If the generic transfer API is not enabled, emulate it using the
+   * per-operation helpers (write/read) for each message. This avoids
+   * an undefined reference to ra_i2c_transfer when CONFIG_I2C_TRANSFER
+   * is not set in the build configuration.
+   */
+  int ret = OK;
+  int i;
+
+  for (i = 0; i < count && ret == OK; i++)
+    {
+      if (msgs[i].flags & I2C_M_READ)
+        {
+          ret = ra_i2c_read(dev, msgs[i].buffer, msgs[i].length);
+        }
+      else
+        {
+          ret = ra_i2c_write(dev, msgs[i].buffer, msgs[i].length);
+        }
+    }
+
+  return ret;
+#endif
+}
+
 /* I2C Interface */
 static const struct i2c_ops_s ra_i2c_ops =
 {
-  .setfrequency = ra_i2c_setfrequency,
-  .setaddress   = ra_i2c_setaddress,
-  .write        = ra_i2c_write,
-  .read         = ra_i2c_read,
-#ifdef CONFIG_I2C_WRITEREAD
-  .writeread    = ra_i2c_writeread,
-#endif
-#ifdef CONFIG_I2C_TRANSFER
-  .transfer     = ra_i2c_transfer,
-#endif
+  .transfer = ra_i2c_transfer_wrapper,
 #ifdef CONFIG_I2C_RESET
-  .reset        = ra_i2c_reset,
+  .reset    = ra_i2c_reset,
 #endif
+  .setup    = ra_i2c_setup,
+  .shutdown = ra_i2c_shutdown,
 };
 
 /* I2C device configuration */
@@ -244,10 +227,10 @@ static const struct ra_i2c_config_s ra_i2c1_config =
   .mstp         = RA_MSTP_IIC1,
   .clk_freq     = RA_PCLKB_FREQUENCY,
   .bus          = 1,
-  .rxi_irq      = RA_ELC_IIC1_RXI,  /* EVENT_IIC1_RXI */
-  .txi_irq      = RA_ELC_IIC1_TXI,  /* EVENT_IIC1_TXI */
-  .tei_irq      = RA_ELC_IIC1_TEI,  /* EVENT_IIC1_TEI */
-  .eri_irq      = RA_ELC_IIC1_ERI,  /* EVENT_IIC1_ERI */
+  .rxi_elc      = RA_ELC_IIC1_RXI,  /* EVENT_IIC1_RXI */
+  .txi_elc      = RA_ELC_IIC1_TXI,  /* EVENT_IIC1_TXI */
+  .tei_elc      = RA_ELC_IIC1_TEI,  /* EVENT_IIC1_TEI */
+  .eri_elc      = RA_ELC_IIC1_ERI,  /* EVENT_IIC1_ERI */
 
   /* Pin configuration - default pins for I2C1 */
   .scl_pin      = GPIO_SCL1_B_1,  /* P205 (SCL1) */ //GPIO_SCL1_A_1 /* P512 (SCL1) */
@@ -404,7 +387,7 @@ static uint32_t ra_i2c_setfrequency(struct i2c_master_s *dev, uint32_t frequency
  *
  ****************************************************************************/
 
-static int ra_i2c_setaddress(struct i2c_master_s *dev, int addr, int nbits)
+int ra_i2c_setaddress(struct i2c_master_s *dev, int addr, int nbits)
 {
   struct ra_i2c_priv_s *priv = (struct ra_i2c_priv_s *)dev;
 
@@ -747,7 +730,6 @@ static int ra_i2c_wait_event(struct ra_i2c_priv_s *priv, uint32_t timeout_us)
 #endif
 }
 
-#ifdef CONFIG_I2C_TRANSFER
 /****************************************************************************
  * Name: ra_i2c_transfer
  *
@@ -864,7 +846,6 @@ static int ra_i2c_transfer(struct i2c_master_s *dev, struct i2c_msg_s *msgs, int
 
   return ret;
 }
-#endif
 
 #ifdef CONFIG_I2C_RESET
 /****************************************************************************
@@ -913,7 +894,6 @@ static int ra_i2c_reset(struct i2c_master_s *dev)
 static int ra_i2c_init(struct ra_i2c_priv_s *priv)
 {
   const struct ra_i2c_config_s *config = priv->config;
-  uint32_t regval;
 
   /* Enable I2C module clock */
   ra_mstp_start(config->mstp);
@@ -996,17 +976,16 @@ static int ra_i2c_init(struct ra_i2c_priv_s *priv)
 static int ra_i2c_deinit(struct ra_i2c_priv_s *priv)
 {
   const struct ra_i2c_config_s *config = priv->config;
-  uint32_t regval;
 
   /* Disable I2C peripheral */
   ra_i2c_modifyreg(priv, RA_I2C_ICCR1_OFFSET, I2C_ICCR1_ICE, 0);
 
 #ifndef CONFIG_I2C_POLLED
   /* Disable interrupts */
-  ra_icu_detach(config->rxi_irq);
-  ra_icu_detach(config->txi_irq);
-  ra_icu_detach(config->tei_irq);
-  ra_icu_detach(config->eri_irq);
+  ra_icu_detach(priv->rxi_irq);
+  ra_icu_detach(priv->txi_irq);
+  ra_icu_detach(priv->tei_irq);
+  ra_icu_detach(priv->eri_irq);
 #endif
 
 #ifdef CONFIG_RA_I2C_DTC
@@ -1110,103 +1089,6 @@ static int ra_i2c_isr_eri(int irq, void *context, void *arg)
   return OK;
 }
 
-/****************************************************************************
- * Name: ra_i2c_isr_start
- *
- * Description:
- *   I2C start condition interrupt service routine
- *
- ****************************************************************************/
-
-static int ra_i2c_isr_start(int irq, void *context, void *arg)
-{
-  struct ra_i2c_priv_s *priv = (struct ra_i2c_priv_s *)arg;
-
-  DEBUGASSERT(priv != NULL);
-
-  /* Clear start flag */
-  ra_i2c_modifyreg(priv, RA_I2C_ICSR2_OFFSET, I2C_ICSR2_START, 0);
-
-  /* Signal semaphore to wake up waiting thread */
-  nxsem_post(&priv->sem_isr);
-
-  return OK;
-}
-
-/****************************************************************************
- * Name: ra_i2c_isr_stop
- *
- * Description:
- *   I2C stop condition interrupt service routine
- *
- ****************************************************************************/
-
-static int ra_i2c_isr_stop(int irq, void *context, void *arg)
-{
-  struct ra_i2c_priv_s *priv = (struct ra_i2c_priv_s *)arg;
-
-  DEBUGASSERT(priv != NULL);
-
-  /* Clear stop flag */
-  ra_i2c_modifyreg(priv, RA_I2C_ICSR2_OFFSET, I2C_ICSR2_STOP, 0);
-
-  /* Signal semaphore to wake up waiting thread */
-  nxsem_post(&priv->sem_isr);
-
-  return OK;
-}
-
-/****************************************************************************
- * Name: ra_i2c_isr_nak
- *
- * Description:
- *   I2C NAK interrupt service routine
- *
- ****************************************************************************/
-
-static int ra_i2c_isr_nak(int irq, void *context, void *arg)
-{
-  struct ra_i2c_priv_s *priv = (struct ra_i2c_priv_s *)arg;
-
-  DEBUGASSERT(priv != NULL);
-
-  /* Read status */
-  priv->status = ra_i2c_getreg(priv, RA_I2C_ICSR2_OFFSET);
-
-  /* Clear NAK flag */
-  ra_i2c_modifyreg(priv, RA_I2C_ICSR2_OFFSET, I2C_ICSR2_NACKF, 0);
-
-  /* Signal semaphore to wake up waiting thread */
-  nxsem_post(&priv->sem_isr);
-
-  return OK;
-}
-
-/****************************************************************************
- * Name: ra_i2c_isr_timeout
- *
- * Description:
- *   I2C timeout interrupt service routine
- *
- ****************************************************************************/
-
-static int ra_i2c_isr_timeout(int irq, void *context, void *arg)
-{
-  struct ra_i2c_priv_s *priv = (struct ra_i2c_priv_s *)arg;
-
-  DEBUGASSERT(priv != NULL);
-
-  /* Read status */
-  priv->status = ra_i2c_getreg(priv, RA_I2C_ICSR2_OFFSET);
-
-  /* Clear timeout flag */
-  ra_i2c_modifyreg(priv, RA_I2C_ICSR2_OFFSET, I2C_ICSR2_TMOF, 0);
-
-  /* Signal semaphore to wake up waiting thread */
-  nxsem_post(&priv->sem_isr);
-
-  return OK;
-}
 #endif /* !CONFIG_I2C_POLLED */
 
 #ifdef CONFIG_RA_I2C_DTC

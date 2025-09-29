@@ -55,16 +55,12 @@ struct ra_i2c_config_s
 {
   uint32_t base;          /* I2C base address */
   uint32_t clk_freq;      /* Clock frequency */
+  uint32_t mstp;          /* Module stop control (mstp) */
   uint8_t  bus;           /* I2C bus number */
-  uint8_t  rxi_irq;       /* RX interrupt */
-  uint8_t  txi_irq;       /* TX interrupt */
-  uint8_t  tei_irq;       /* Transfer end interrupt */
-  uint8_t  eri_irq;       /* Error interrupt */
-  uint8_t  irq_start;     /* Start condition interrupt */
-  uint8_t  irq_stop;      /* Stop condition interrupt */
-  uint8_t  irq_nak;       /* NAK interrupt */
-  uint8_t  irq_timeout;   /* Timeout interrupt */
-  uint32_t mstpcrb_bit;   /* Module stop control bit */
+  uint32_t rxi_elc;       /* RX event/ELC */
+  uint32_t txi_elc;       /* TX event/ELC */
+  uint32_t tei_elc;       /* TE event/ELC */
+  uint32_t eri_elc;       /* ER event/ELC */
 
   /* Pin configuration */
   gpio_pinset_t scl_pin;       /* SCL pin configuration */
@@ -105,6 +101,12 @@ struct ra_i2c_priv_s
   /* I2C address */
   uint8_t  addr;          /* Current message address */
 
+  /* Interrupt numbers assigned at runtime */
+  int      rxi_irq;       /* RX interrupt number */
+  int      txi_irq;       /* TX interrupt number */
+  int      tei_irq;       /* TE interrupt number */
+  int      eri_irq;       /* ER interrupt number */
+
   /* I2C trace support */
 #ifdef CONFIG_I2C_TRACE
   int      tndx;          /* Trace array index */
@@ -118,8 +120,6 @@ struct ra_i2c_priv_s
 
   /* DTC support */
   bool     use_dtc;       /* DTC enable flag */
-  uint32_t dtc_rx_handle; /* DTC RX handle */
-  uint32_t dtc_tx_handle; /* DTC TX handle */
 };
 
 /* I2C State Machine States */

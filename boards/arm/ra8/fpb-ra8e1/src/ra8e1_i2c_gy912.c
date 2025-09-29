@@ -42,7 +42,6 @@
 #include "chip.h"
 #include "ra_gpio.h"
 #include "ra_i2c.h"
-#include "gy912.h"
 
 #include "fpb-ra8e1.h"
 

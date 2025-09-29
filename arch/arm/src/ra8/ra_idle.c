@@ -162,8 +162,6 @@ static void up_idlepm(void)
 
 void up_idle(void)
 {
-  clock_t current_time;
-
 #if defined(CONFIG_SUPPRESS_INTERRUPTS) || defined(CONFIG_SUPPRESS_TIMER_INTS)
   /* If the system is idle and there are no timer interrupts, then process
    * "fake" timer interrupts. Hopefully, something will wake up.
@@ -173,7 +171,7 @@ void up_idle(void)
 #else
 #ifdef CONFIG_RA_IDLE_LOG_STATE
   /* Check if 5 seconds have passed and log with timestamp */
-  current_time = clock();
+  clock_t current_time = clock();
   if ((current_time - g_last_log_time) >= 5*CLOCKS_PER_SEC)
     {
       struct timespec ts;

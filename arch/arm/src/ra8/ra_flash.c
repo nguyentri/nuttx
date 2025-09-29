@@ -145,7 +145,7 @@ static int ra_flash_wait_ready(void)
 
   while (timeout > 0)
     {
-      status = getreg32(RA8_FLASH_FSTATR);
+      status = getreg32(R_FLASH_FSTATR);
       if (status & FLASH_FSTATR_FRDY)
         {
           return OK;
@@ -182,7 +182,7 @@ static int ra_flash_enter_pe_mode(bool data_flash)
 
   /* Enter P/E mode */
 
-  putreg32(FLASH_KEY_CODE | entry_bit, RA8_FLASH_FENTRYR);
+  putreg32(FLASH_KEY_CODE | entry_bit, R_FLASH_FENTRYR);
 
   /* Wait for entry to complete */
 
@@ -205,7 +205,7 @@ static int ra_flash_exit_pe_mode(bool data_flash)
 
   /* Exit P/E mode */
 
-  putreg32(FLASH_KEY_CODE, RA8_FLASH_FENTRYR);
+  putreg32(FLASH_KEY_CODE, R_FLASH_FENTRYR);
 
   /* Wait for exit to complete */
 
@@ -236,7 +236,7 @@ static int ra_flash_erase_block(struct ra_flash_dev_s *priv, uint32_t addr)
 
   /* Set erase address */
 
-  putreg32(addr, RA8_FLASH_FSADDR);
+  putreg32(addr, R_FLASH_FSADDR);
 
   /* Issue erase command */
 
@@ -252,7 +252,7 @@ static int ra_flash_erase_block(struct ra_flash_dev_s *priv, uint32_t addr)
 
   /* Check for errors */
 
-  uint32_t status = getreg32(RA8_FLASH_FSTATR);
+  uint32_t status = getreg32(R_FLASH_FSTATR);
   if (status & (FLASH_FSTATR_ILGLERR | FLASH_FSTATR_ERSERR))
     {
       ferr("Flash erase error: 0x%08" PRIx32 "\n", status);
@@ -286,7 +286,7 @@ static int ra_flash_program_page(struct ra_flash_dev_s *priv, uint32_t addr,
 
   /* Set program address */
 
-  putreg32(addr, RA8_FLASH_FSADDR);
+  putreg32(addr, R_FLASH_FSADDR);
 
   /* Issue program command */
 
@@ -301,7 +301,7 @@ static int ra_flash_program_page(struct ra_flash_dev_s *priv, uint32_t addr,
 
       /* Wait for buffer to be ready */
 
-      while ((getreg32(RA8_FLASH_FSTATR) & FLASH_FSTATR_DBFULL) != 0)
+      while ((getreg32(R_FLASH_FSTATR) & FLASH_FSTATR_DBFULL) != 0)
         {
           /* Wait */
         }
@@ -321,7 +321,7 @@ static int ra_flash_program_page(struct ra_flash_dev_s *priv, uint32_t addr,
 
   /* Check for errors */
 
-  uint32_t status = getreg32(RA8_FLASH_FSTATR);
+  uint32_t status = getreg32(R_FLASH_FSTATR);
   if (status & (FLASH_FSTATR_ILGLERR | FLASH_FSTATR_PRGERR))
     {
       ferr("Flash program error: 0x%08" PRIx32 "\n", status);
@@ -589,7 +589,7 @@ struct mtd_dev_s *ra_flash_initialize(bool data_flash)
 
   /* Clear any error flags */
 
-  putreg32(FLASH_CMD_STATUS_CLEAR, RA8_FLASH_FCMDR);
+  putreg32(FLASH_CMD_STATUS_CLEAR, R_FLASH_FCMDR);
 
   return (struct mtd_dev_s *)priv;
 }

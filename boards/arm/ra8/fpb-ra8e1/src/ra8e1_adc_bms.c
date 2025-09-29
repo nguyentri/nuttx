@@ -1309,25 +1309,4 @@ void ra8e1_register_adc_commands(void)
 
 #endif /* CONFIG_NSH_BUILTIN_APPS */
 
-/****************************************************************************
- * Name: board_adc_initialize
- *
- * Description:
- *   Board-level ADC initialization that can be called from bringup
- *   This is the main entry point for ADC initialization on the board
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   OK on success; a negated errno value on failure
- *
- ****************************************************************************/
-
-int board_adc_initialize(void)
-{
-  ra8e1_adc_initialize();
-  return OK;
-}
-
 #endif /* CONFIG_RA8E1_ADC_BMS_EXAMPLE */

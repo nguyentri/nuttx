@@ -51,6 +51,19 @@ int ra8e1_adc_bms_example(void)
 }
 #endif
 
+#ifdef CONFIG_RA8E1_ADC_BMS_EXAMPLE
+int ra8e1_adc_example(void)
+{
+  int ret = ra8e1_adc_init();
+  if (ret < 0)
+    {
+      return ret;
+    }
+
+  return ra8e1_adc_bms_main(0, NULL);
+}
+#endif
+
 #ifdef CONFIG_RA8E1_CODE_FLASH_EXAMPLE
 int ra8e1_code_flash_example(void)
 {

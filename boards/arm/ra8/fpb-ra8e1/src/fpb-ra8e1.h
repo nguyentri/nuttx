@@ -137,6 +137,11 @@ int ra8e1_adc_bms_init(void);
 int ra8e1_adc_bms_main(int argc, FAR char *argv[]);
 #endif
 
+#ifdef CONFIG_RA8E1_ADC_EXAMPLE
+/* Board-level ADC initialization */
+int ra8e1_adc_driver_initialize(void);
+#endif
+
 #ifdef CONFIG_RA8E1_CODE_FLASH_EXAMPLE
 int ra8e1_code_flash_init(void);
 int ra8e1_code_flash_test(void);

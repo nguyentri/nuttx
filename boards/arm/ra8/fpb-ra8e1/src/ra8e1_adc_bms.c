@@ -37,12 +37,20 @@
 #include <nuttx/analog/adc.h>
 #include <nuttx/arch.h>
 #include <arch/board/board.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <nuttx/analog/ioctl.h>
 
 #include "arm_internal.h"
 #include "chip.h"
 #include "ra_gpio.h"
 #include "board.h"
 #include "fpb-ra8e1.h"
+
+/* Forward declaration for ADC driver initialization */
+extern FAR struct adc_dev_s *ra8_adc_initialize(int intf, uint32_t chanlist, int nchannels);
 
 
 /****************************************************************************
@@ -163,6 +171,76 @@ static uint8_t g_channel_buffer[ADC_DTC_BUFFER_SIZE];
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: ra8e1_adc_driver_initialize
+ *
+ * Description:
+ *   Initialize the low-level ADC driver for the FPB-RA8E1 board
+ *   This function initializes the RA8 ADC driver and registers device nodes
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   OK on success; a negated errno value on failure
+ *
+ ****************************************************************************/
+
+int ra8e1_adc_driver_initialize(void)
+{
+  FAR struct adc_dev_s *adc;
+  int ret = OK;
+
+  ainfo("Initializing ADC driver for FPB-RA8E1\n");
+
+  /* ADC0 Channel mask - Enable battery monitoring channels */
+  uint32_t adc0_chanlist = (1 << 0) | (1 << 1);  /* AN000, AN001 */
+  int adc0_nchannels = 2;
+
+#ifdef CONFIG_RA_ADC1
+  /* ADC1 Channel mask - Enable current sensor */
+  uint32_t adc1_chanlist = (1 << 4);  /* AN104 mapped to ADC1 */
+  int adc1_nchannels = 1;
+#endif
+
+  /* Initialize ADC0 */
+  adc = ra8_adc_initialize(0, adc0_chanlist, adc0_nchannels);
+  if (adc == NULL)
+    {
+      aerr("ERROR: Failed to initialize ADC0\n");
+      return -ENODEV;
+    }
+
+  /* Register ADC0 driver */
+  ret = adc_register("/dev/adc0", adc);
+  if (ret < 0)
+    {
+      aerr("ERROR: adc_register ADC0 failed: %d\n", ret);
+      return ret;
+    }
+
+#ifdef CONFIG_RA_ADC1
+  /* Initialize ADC1 */
+  adc = ra8_adc_initialize(1, adc1_chanlist, adc1_nchannels);
+  if (adc == NULL)
+    {
+      aerr("ERROR: Failed to initialize ADC1\n");
+      return -ENODEV;
+    }
+
+  /* Register ADC1 driver */
+  ret = adc_register("/dev/adc1", adc);
+  if (ret < 0)
+    {
+      aerr("ERROR: adc_register ADC1 failed: %d\n", ret);
+      return ret;
+    }
+#endif
+
+  ainfo("ADC driver initialization complete\n");
+  return ret;
+}
+
+/****************************************************************************
  * Name: ra8e1_adc_setup
  *
  * Description:
@@ -202,22 +280,22 @@ static int ra8e1_adc_setup(void)
             g_adc_channels[i].channel, g_adc_channels[i].pinset);
     }
 
-  /* Initialize ADC driver */
+  /* Initialize low-level ADC driver first */
+
+  ret = ra8e1_adc_driver_initialize();
+  if (ret < 0)
+    {
+      aerr("ERROR: Failed to initialize ADC driver: %d\n", ret);
+      return ret;
+    }
+
+  /* Get reference to the registered ADC device */
 
   g_adc_dev = ra8_adc_initialize(0, chanlist, BOARD_ADC_CHANNELS);
   if (g_adc_dev == NULL)
     {
-      aerr("ERROR: Failed to initialize ADC\n");
+      aerr("ERROR: Failed to get ADC device reference\n");
       return -ENODEV;
-    }
-
-  /* Register ADC driver */
-
-  ret = adc_register("/dev/adc0", g_adc_dev);
-  if (ret < 0)
-    {
-      aerr("ERROR: Failed to register ADC driver: %d\n", ret);
-      return ret;
     }
 
   ainfo("ADC setup complete\n");
@@ -911,8 +989,22 @@ static void print_battery_status(FAR struct battery_status_s *status, bool verbo
 
 int ra8e1_adc_bms_init(void)
 {
+  int ret;
+
+  ainfo("Initializing ADC BMS subsystem\n");
+
   /* Initialize ADC for battery monitoring */
-  return battery_adc_initialize();
+  ra8e1_adc_initialize();
+
+  /* Check if initialization was successful */
+  if (!g_adc_initialized)
+    {
+      aerr("ERROR: ADC BMS initialization failed\n");
+      return -ENODEV;
+    }
+
+  ainfo("ADC BMS initialization complete\n");
+  return OK;
 }
 
 /****************************************************************************
@@ -1098,6 +1190,144 @@ int ra8e1_adc_bms_main(int argc, FAR char *argv[])
   syslog(LOG_INFO, "Please enable CONFIG_RA_ADC_BATTERY_MONITOR\n");
   return EXIT_FAILURE;
 #endif
+}
+
+
+
+#ifdef CONFIG_NSH_BUILTIN_APPS
+
+/****************************************************************************
+ * Name: cmd_adc_test
+ *
+ * Description:
+ *   ADC testing command for NSH
+ *
+ ****************************************************************************/
+
+static int cmd_adc_test(int argc, FAR char *argv[])
+{
+  int fd;
+  ssize_t nbytes;
+  struct adc_msg_s sample[4];
+  int nsamples;
+  int loops = 10;
+
+  if (argc > 1)
+    {
+      loops = atoi(argv[1]);
+    }
+
+  printf("ADC Test - Reading %d samples from /dev/adc0\n", loops);
+
+  /* Open ADC device */
+  fd = open("/dev/adc0", O_RDONLY);
+  if (fd < 0)
+    {
+      printf("ERROR: Failed to open /dev/adc0: %d\n", errno);
+      return ERROR;
+    }
+
+  for (int i = 0; i < loops; i++)
+    {
+      /* Read ADC samples */
+      nbytes = read(fd, sample, sizeof(sample));
+      if (nbytes < 0)
+        {
+          printf("ERROR: ADC read failed: %d\n", errno);
+          break;
+        }
+
+      nsamples = nbytes / sizeof(struct adc_msg_s);
+      printf("Sample %d:\n", i + 1);
+
+      for (int j = 0; j < nsamples; j++)
+        {
+          printf("  Channel %d: %ld (0x%04lx) = %.3fV\n",
+                 sample[j].am_channel,
+                 sample[j].am_data,
+                 sample[j].am_data & 0xFFFF,
+                 (sample[j].am_data * 3.3f) / 4096.0f);
+        }
+
+      usleep(100000);  /* 100ms delay */
+    }
+
+  close(fd);
+  return OK;
+}
+
+/****************************************************************************
+ * Name: cmd_adc_battery
+ *
+ * Description:
+ *   Battery monitoring command
+ *
+ ****************************************************************************/
+
+static int cmd_adc_battery(int argc, FAR char *argv[])
+{
+  struct battery_status_s battery;
+  int ret;
+
+  ret = ra8e1_adc_read_battery(&battery);
+  if (ret < 0)
+    {
+      printf("ERROR: Failed to read battery status: %d\n", ret);
+      return ERROR;
+    }
+
+  printf("Battery Status:\n");
+  printf("  Voltage: %lu mV (%.2fV)\n", battery.voltage_mv, battery.voltage_mv / 1000.0f);
+  printf("  Current: %ld mA (%.3fA)\n", battery.current_ma, battery.current_ma / 1000.0f);
+  printf("  Power: %lu mW (%.3fW)\n", battery.power_mw, battery.power_mw / 1000.0f);
+  printf("  Percentage: %d%%\n", battery.percentage);
+  printf("  Charging: %s\n", battery.is_charging ? "Yes" : "No");
+  printf("  Valid: %s\n", battery.is_valid ? "Yes" : "No");
+
+  return OK;
+}
+
+/* NSH command registrations */
+#ifdef CONFIG_SYSTEM_NSH_BUILTIN_APPS
+static const struct builtin_s g_adc_builtins[] =
+{
+  { "adc_test",    SCHED_PRIORITY_DEFAULT, CONFIG_DEFAULT_TASK_STACKSIZE, cmd_adc_test },
+  { "adc_battery", SCHED_PRIORITY_DEFAULT, CONFIG_DEFAULT_TASK_STACKSIZE, cmd_adc_battery },
+  { NULL, 0, 0, NULL }
+};
+
+/* Register commands with NSH */
+void ra8e1_register_adc_commands(void)
+{
+  int i;
+  for (i = 0; g_adc_builtins[i].name != NULL; i++)
+    {
+      builtin_register(&g_adc_builtins[i]);
+    }
+}
+#endif
+
+#endif /* CONFIG_NSH_BUILTIN_APPS */
+
+/****************************************************************************
+ * Name: board_adc_initialize
+ *
+ * Description:
+ *   Board-level ADC initialization that can be called from bringup
+ *   This is the main entry point for ADC initialization on the board
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   OK on success; a negated errno value on failure
+ *
+ ****************************************************************************/
+
+int board_adc_initialize(void)
+{
+  ra8e1_adc_initialize();
+  return OK;
 }
 
 #endif /* CONFIG_RA8E1_ADC_BMS_EXAMPLE */

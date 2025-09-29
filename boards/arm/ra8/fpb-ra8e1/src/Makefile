@@ -58,6 +58,10 @@ endif
 ############################################################################
 # Application specific support CONFIG_BOARDCTL
 ############################################################################
+ifeq ($(CONFIG_RA8E1_ADC_EXAMPLE),y)
+CSRCS += ra8e1_adc.c
+endif
+
 ifeq ($(CONFIG_RA8E1_ADC_BMS_EXAMPLE),y)
 CSRCS += ra8e1_adc_bms.c
 endif

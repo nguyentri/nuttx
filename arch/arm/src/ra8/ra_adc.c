@@ -39,11 +39,14 @@
 #include <nuttx/arch.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/analog/adc.h>
+#include <nuttx/analog/ioctl.h>
 
 #include "arm_internal.h"
 #include "chip.h"
 #include "hardware/ra_adc.h"
 #include "ra_gpio.h"
+#include "ra_mstp.h"
+#include "ra_icu.h"
 
 #ifdef CONFIG_RA_ADC
 
@@ -76,7 +79,7 @@
 struct ra8_adc_chan_s
 {
   uint8_t channel;                    /* ADC channel number */
-  uint32_t pinmux;                    /* Pin multiplexing configuration */
+  gpio_pinset_t pinmux;               /* Pin multiplexing configuration */
 };
 
 /* RA8 ADC private data structure */
@@ -85,8 +88,10 @@ struct ra8_adc_priv_s
 {
   const struct adc_callback_s *cb;    /* Upper half callback */
   uint32_t base;                      /* ADC base address */
+  uint32_t mstp;                      /* Module stop control bit */
   uint8_t intf;                       /* ADC interface number */
-  int irq;                            /* ADC interrupt number */
+  int irq;                            /* ADC interrupt slot number assigned in the runtime */
+  int elc;                            /* ELC event source for scan end */
   sem_t sem_excl;                     /* Mutual exclusion semaphore */
   uint32_t chanlist;                  /* Configured channel list */
   uint8_t nchannels;                  /* Number of configured channels */
@@ -169,11 +174,11 @@ static const struct ra8_adc_chan_s g_adc0_channels[] =
 {
   {
     .channel = RA8_ADC_CHANNEL_AN000,    /* Battery voltage (P004) */
-    .pinmux  = GPIO_P004_AN000,
+    .pinmux  = GPIO_P004_ANALOG,
   },
   {
     .channel = RA8_ADC_CHANNEL_AN001,    /* Reserved AN001 (P003) - Battery current AN104 mapped differently */
-    .pinmux  = GPIO_P003_AN001,
+    .pinmux  = GPIO_P003_ANALOG,
   },
   /* Add more channels as needed */
 };
@@ -185,7 +190,7 @@ static const struct ra8_adc_chan_s g_adc1_channels[] =
 {
   {
     .channel = RA8_ADC_CHANNEL_AN104,    /* Battery current (P003) mapped to ADC1 */
-    .pinmux  = GPIO_P003_AN104,
+    .pinmux  = GPIO_P005_ANALOG,
   },
   /* Add more ADC1 channels as needed */
 };
@@ -196,8 +201,10 @@ static const struct ra8_adc_chan_s g_adc1_channels[] =
 static struct ra8_adc_priv_s g_adc0_priv =
 {
   .base       = RA8_ADC0_BASE,
+  .mstp       = RA_MSTP_ADC0,
   .intf       = 0,
-  .irq        = RA8E1_IRQ_ADC0_SCAN_END,
+  .irq        = -1, /* Assigned dynamically */
+  .elc        = RA_ELC_ADC0_SCAN_END,
   .resolution = RA8_ADC_RESOLUTION_12BIT,
   .mode       = RA8_ADC_MODE_SINGLE_SCAN,
   .trigger    = RA8_ADC_TRIGGER_SOFTWARE,
@@ -222,7 +229,8 @@ static struct ra8_adc_priv_s g_adc1_priv =
 {
   .base       = RA8_ADC1_BASE,
   .intf       = 1,
-  .irq        = RA8E1_IRQ_ADC1_SCAN_END,
+  .irq        = -1, /* Assigned dynamically */
+  .elc        = RA_ELC_ADC1_SCAN_END,
   .resolution = RA8_ADC_RESOLUTION_12BIT,
   .mode       = RA8_ADC_MODE_SINGLE_SCAN,
   .trigger    = RA8_ADC_TRIGGER_SOFTWARE,
@@ -598,6 +606,9 @@ static int ra8_adc_setup(FAR struct adc_dev_s *dev)
 
   nxsem_init(&priv->sem_excl, 0, 1);
 
+  /* Enable module in MSTP */
+  ra_mstp_start(priv->mstp);
+
   /* Configure ADC */
 
   ret = ra8_adc_configure(priv);
@@ -620,7 +631,7 @@ static int ra8_adc_setup(FAR struct adc_dev_s *dev)
 
   /* Attach interrupt */
 
-  ret = irq_attach(priv->irq, ra8_adc_interrupt, dev);
+  ret = ra_icu_attach(priv->irq, ra8_adc_interrupt, dev, true);
   if (ret < 0)
     {
       aerr("ERROR: Failed to attach interrupt for ADC%d: %d\n", priv->intf, ret);
@@ -629,9 +640,6 @@ static int ra8_adc_setup(FAR struct adc_dev_s *dev)
 #endif
       return ret;
     }
-
-  up_enable_irq(priv->irq);
-
   ainfo("ADC%d: Setup complete\n", priv->intf);
   return OK;
 }
@@ -651,9 +659,7 @@ static void ra8_adc_shutdown(FAR struct adc_dev_s *dev)
   ainfo("ADC%d: Shutdown\n", priv->intf);
 
   /* Disable interrupt */
-
-  up_disable_irq(priv->irq);
-  irq_detach(priv->irq);
+  ra_icu_detach(priv->irq);
 
   /* Stop any ongoing conversion */
 

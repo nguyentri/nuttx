@@ -120,6 +120,11 @@ CONFIG_ADC=y
 CONFIG_RA_ADC=y
 CONFIG_RA_ADC0=y
 CONFIG_RA_ADC_DTC=n  # Disable DTC initially for simpler debugging
+CONFIG_RA_ADC_BATTERY_MONITOR=y
+
+# RA8E1 ADC-specific features
+CONFIG_RA8E1_ADC_BMS_EXAMPLE=y
+CONFIG_RA_ADCCLK_SOURCE_PLL1P=y
 
 # DTC support (optional - enable after basic ADC works)
 # CONFIG_RA_DMAC=y
@@ -132,5 +137,3 @@ CONFIG_BOARD_INITIALIZE=y
 # Analog support in upper-half driver
 CONFIG_ADC_FIFOSIZE=8
 CONFIG_ADC_NPOLLWAITERS=2
-CONFIG_RA8E1_ADC_EXAMPLE=y
-# CONFIG_RA8E1_ADC_BMS_EXAMPLE is not set

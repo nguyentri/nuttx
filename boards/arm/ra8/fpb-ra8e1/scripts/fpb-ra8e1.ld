@@ -1,4 +1,4 @@
-/****************************************************************************
+ /****************************************************************************
  * boards/arm/ra8/fpb-ra8e1/scripts/fpb-ra8e1.ld
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more

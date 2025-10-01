@@ -1590,15 +1590,20 @@ static void ra_spi_bus_initialize(struct ra_spi_priv_s *priv)
   ra_configgpio(priv->config->mosi_pin);
 
   /* Enable SPI module via MSTP */
+#if defined(CONFIG_RA_SPI0)
   if (priv->config->base == RA_SPI0_BASE)
     {
       ra_mstp_start(RA_MSTP_SPI0);
     }
-  else if (priv->config->base == RA_SPI1_BASE)
+  else
+#endif
+#if defined(CONFIG_RA_SPI1)
+  if (priv->config->base == RA_SPI1_BASE)
     {
       ra_mstp_start(RA_MSTP_SPI1);
     }
   else
+#endif
     {
       spierr("SPI%d invalid module\n", priv->config->bus);
       return;

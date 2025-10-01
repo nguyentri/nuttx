@@ -600,11 +600,11 @@ static int gpt_start(struct pwm_lowerhalf_s *dev,
   uint32_t regval;
 
 #ifdef CONFIG_PWM_MULTICHAN
-  pwminfo("GPT%d start: frequency=%lu (multichan)\n",
+  pwminfo("GPT%d start: frequency=%" PRIu32 " (multichan)\n",
           priv->config->channel, info->frequency);
 #else
-  pwminfo("GPT%d start: frequency=%lu duty=%08lx\n",
-          priv->config->channel, info->frequency, info->duty);
+  pwminfo("GPT%d start: frequency=%" PRIu32 " duty=%08" PRIx32 "\n",
+          priv->config->channel, info->frequency, (uint32_t)info->duty);
 #endif
 
   DEBUGASSERT(info->frequency > 0);
@@ -614,7 +614,7 @@ static int gpt_start(struct pwm_lowerhalf_s *dev,
   prescaler = gpt_calculate_prescaler(info->frequency, priv->config->pclkd_freq);
   if (prescaler == UINT32_MAX)
     {
-      pwmerr("ERROR: Cannot achieve frequency %lu\n", info->frequency);
+      pwmerr("ERROR: Cannot achieve frequency %" PRIu32 "\n", info->frequency);
       return -ERANGE;
     }
 
@@ -627,7 +627,7 @@ static int gpt_start(struct pwm_lowerhalf_s *dev,
 
     if (prescaler >= (sizeof(prescaler_divs) / sizeof(prescaler_divs[0])))
       {
-        pwmerr("ERROR: invalid prescaler index %lu\n", prescaler);
+        pwmerr("ERROR: invalid prescaler index %" PRIu32 "\n", prescaler);
         return -EINVAL;
       }
 
@@ -641,13 +641,13 @@ static int gpt_start(struct pwm_lowerhalf_s *dev,
   /* Verify period fits in the channel's maximum period */
   if (period == 0 || period > priv->config->max_period)
     {
-      pwmerr("ERROR: period %lu out of range for GPT%lu (max %lu)\n",
+      pwmerr("ERROR: period %" PRIu32 " out of range for GPT%" PRIu32 " (max %" PRIu32 ")\n",
              period, priv->config->channel, priv->config->max_period);
       return -ERANGE;
     }
 
-  pwminfo("prescaler=%lu, timer_freq=%lu, period=%lu\n",
-          prescaler, timer_freq, period);
+  pwminfo("prescaler=%" PRIu32 ", timer_freq=%" PRIu32 ", period=%" PRIu32 "\n",
+    prescaler, timer_freq, period);
 
   /* Calculate duty cycle values */
 

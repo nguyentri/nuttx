@@ -44,10 +44,6 @@
 #include "hardware/ra_option_setting.h"
 #include "hardware/ra_gpio.h"
 
-
-/* Function prototype for nx_start */
-void nx_start(void);
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -361,6 +357,9 @@ static volatile uint16_t g_register_protect_counters[4] = {0};
 #else
 #  define showprogress(c)
 #endif
+
+/* Function prototype for nx_start */
+void nx_start(void);
 
 /****************************************************************************
  * Public Functions

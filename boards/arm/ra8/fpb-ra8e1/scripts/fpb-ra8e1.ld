@@ -857,5 +857,7 @@ PROVIDE( _sinit = __init_array_start );
 PROVIDE( _einit = __init_array_end );
 PROVIDE( _sdata = ADDR(__ram_from_flash$$) );
 PROVIDE( _edata = ADDR(__ram_from_flash$$) + SIZEOF(__ram_from_flash$$) );
+PROVIDE( _stext = ADDR(__flash_readonly$$));
+PROVIDE( _etext = ADDR(__flash_readonly$$) + SIZEOF(__flash_readonly$$) );
 PROVIDE( _eronly = ADDR(__flash_readonly$$) + SIZEOF(__flash_readonly$$) );
 PROVIDE( _ebss = ADDR(__ram_zero$$) + SIZEOF(__ram_zero$$) );

@@ -189,6 +189,28 @@
 #define UART9_ASSIGNED  1
 #endif
 
+/* Pick ttys2. */
+
+#if defined(CONFIG_RA_SCI0_UART) && !defined(UART0_ASSIGNED)
+#define TTYS2_DEV       g_uart0port /* UART0 is ttyS2 */
+#define UART0_ASSIGNED  1
+#elif defined(CONFIG_RA_SCI1_UART) && !defined(UART1_ASSIGNED)
+#define TTYS2_DEV       g_uart1port /* UART1 is ttyS2 */
+#define UART1_ASSIGNED  1
+#elif defined(CONFIG_RA_SCI2_UART) && !defined(UART2_ASSIGNED)
+#define TTYS2_DEV       g_uart2port /* UART2 is ttyS2 */
+#define UART2_ASSIGNED  1
+#elif defined(CONFIG_RA_SCI3_UART) && !defined(UART3_ASSIGNED)
+#define TTYS2_DEV       g_uart3port /* UART3 is ttyS2 */
+#define UART3_ASSIGNED  1
+#elif defined(CONFIG_RA_SCI4_UART) && !defined(UART4_ASSIGNED)
+#define TTYS2_DEV       g_uart4port /* UART4 is ttyS2 */
+#define UART4_ASSIGNED  1
+#elif defined(CONFIG_RA_SCI9_UART) && !defined(UART9_ASSIGNED)
+#define TTYS2_DEV       g_uart9port /* UART9 is ttyS2 */
+#define UART9_ASSIGNED  1
+#endif
+
 /* Check if any UART is enabled */
 
 #ifdef CONFIG_RA_SCI0_UART
@@ -1417,34 +1439,25 @@ void arm_earlyserialinit(void)
 #endif
 #endif
 
+  /* Initialize non-console UART devices */
 #ifdef TTYS1_DEV
-#if !defined(HAVE_CONSOLE) || (&TTYS1_DEV != &CONSOLE_DEV)
   up_setup(&TTYS1_DEV);
-#endif
 #endif
 
 #ifdef TTYS2_DEV
-#if !defined(HAVE_CONSOLE) || (&TTYS2_DEV != &CONSOLE_DEV)
   up_setup(&TTYS2_DEV);
-#endif
 #endif
 
 #ifdef TTYS3_DEV
-#if !defined(HAVE_CONSOLE) || (&TTYS3_DEV != &CONSOLE_DEV)
   up_setup(&TTYS3_DEV);
-#endif
 #endif
 
 #ifdef TTYS4_DEV
-#if !defined(HAVE_CONSOLE) || (&TTYS4_DEV != &CONSOLE_DEV)
   up_setup(&TTYS4_DEV);
-#endif
 #endif
 
 #ifdef TTYS5_DEV
-#if !defined(HAVE_CONSOLE) || (&TTYS5_DEV != &CONSOLE_DEV)
   up_setup(&TTYS5_DEV);
-#endif
 #endif
 }
 
